@@ -5,6 +5,7 @@ from src.token_gen import generate_token, verify_token
 from src.notify.pushover import send_pushover
 from src.notify.gotify import send_gotify
 from src.notify.discord import send_discord
+from src.notify.ntfy import send_ntfy
 from src.qbittorrent import add_torrent
 from src.db import save_request  # switch to persistent DB store
 from src.webui import router as webui_router  # add web UI router import
@@ -102,6 +103,12 @@ async def webhook(request: Request):
     discord_webhook = os.getenv('DISCORD_WEBHOOK_URL')
     gotify_url = os.getenv('GOTIFY_URL')
     gotify_token = os.getenv('GOTIFY_TOKEN')
+    ntfy_cfg = notif_cfg.get('ntfy', {})
+    ntfy_enabled = ntfy_cfg.get('enabled', False)
+    ntfy_topic = ntfy_cfg.get('topic')
+    ntfy_url = ntfy_cfg.get('url', 'https://ntfy.sh')
+    ntfy_user = os.getenv('NTFY_USER')
+    ntfy_pass = os.getenv('NTFY_PASS')
 
     # Send notifications with granular error handling
     notification_errors = []
@@ -133,6 +140,21 @@ async def webhook(request: Request):
     except Exception as e:
         logging.error(f"Discord notification failed: {e}")
         notification_errors.append(f"Discord: {e}")
+    try:
+        if ntfy_enabled:
+            if not ntfy_topic:
+                error_msg = "ntfy topic is not set in config.yaml."
+                logging.error(error_msg)
+                notification_errors.append(f"ntfy: {error_msg}")
+            else:
+                send_ntfy(
+                    metadata, payload, token, base_url,
+                    ntfy_topic, ntfy_url, ntfy_user, ntfy_pass
+                )
+                logging.info("ntfy notification sent successfully.")
+    except Exception as e:
+        logging.error(f"ntfy notification failed: {e}")
+        notification_errors.append(f"ntfy: {e}")
 
     if notification_errors:
         return {"message": "Webhook received, but some notifications failed.", "errors": notification_errors}
