@@ -1,3 +1,6 @@
+# DEPRECATED: This in-memory store is no longer used. Use src/db.py for persistent storage.
+# This file can be removed.
+
 from src.config import load_config
 import time
 from threading import Lock

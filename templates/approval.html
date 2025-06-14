@@ -124,41 +124,41 @@
     <div class="info-box">
         <div style="text-align:center;">
             {% if cover_url %}
-            <img src="{{ cover_url }}" alt="Cover Image" style="margin-bottom:18px;max-height:220px;">
+            <img src="{{ cover_url }}" alt="Cover Image for {{ title }}" style="margin-bottom:18px;max-height:220px;" aria-label="Cover image for {{ title }}">
             {% endif %}
         </div>
         <div class="info-grid">
             <div class="label">📚 Title:</div>
-            <div class="value">{{ title }}</div>
+            <div class="value" aria-label="Title">{{ title }}</div>
             <div class="label">✍️ Author:</div>
-            <div class="value">{{ author }}</div>
+            <div class="value" aria-label="Author">{{ author }}</div>
             <div class="label">🏢 Publisher:</div>
-            <div class="value">{{ publisher }}</div>
+            <div class="value" aria-label="Publisher">{{ publisher }}</div>
             <div class="label">🎤 Narrators:</div>
-            <div class="value">{{ narrators|join(', ') }}</div>
+            <div class="value" aria-label="Narrators">{{ narrators|join(', ') }}</div>
             <div class="label">📅 Release Date:</div>
-            <div class="value">{{ release_date }}</div>
+            <div class="value" aria-label="Release Date">{{ release_date }}</div>
             <div class="label">⏱️ Runtime:</div>
-            <div class="value">{{ runtime_minutes }} min</div>
+            <div class="value" aria-label="Runtime">{{ runtime_minutes }} min</div>
             <div class="label">📦 Size:</div>
-            <div class="value">{{ size|default('N/A') }}</div>
+            <div class="value" aria-label="Size">{{ size|default('N/A') }}</div>
             <div class="label">🔗 Info URL:</div>
             <div class="value">
                 {% if url %}
-                <a href="{{ url }}" class="btn-link" target="_blank" rel="noopener">Info Page</a>
+                <a href="{{ url }}" class="btn-link" target="_blank" rel="noopener" aria-label="Info page for {{ title }}">Info Page</a>
                 {% else %}<span style="color:#f55;">N/A</span>{% endif %}
             </div>
             <div class="label">⬇️ Download:</div>
             <div class="value">
                 {% if download_url %}
-                <a href="{{ download_url }}" class="btn-download" target="_blank" rel="noopener">Download Torrent</a>
+                <a href="{{ download_url }}" class="btn-download" target="_blank" rel="noopener" aria-label="Download torrent for {{ title }}">Download Torrent</a>
                 {% else %}<span style="color:#f55;">N/A</span>{% endif %}
             </div>
         </div>
         <div style="margin-top:18px; text-align:center;">
             <div class="btnrow">
-                <a href="/approve/{{ token }}/action" class="btn-link" style="background:#0a0;" aria-label="Approve audiobook request">✅ Approve</a>
-                <a href="/reject/{{ token }}" class="btn-link" style="background:#a00;" aria-label="Reject audiobook request">❌ Reject</a>
+                <a href="/approve/{{ token }}/action" class="btn-link" style="background:#0a0;" aria-label="Approve audiobook request for {{ title }}">✅ Approve</a>
+                <a href="/reject/{{ token }}" class="btn-link" style="background:#a00;" aria-label="Reject audiobook request for {{ title }}">❌ Reject</a>
             </div>
         </div>
     </div>

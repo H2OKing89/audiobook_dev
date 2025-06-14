@@ -1,93 +1,160 @@
-# Audiobook Automation Project
+# Audiobook Approval Microservice
 
-This project is an automated media microservice platform designed to handle audiobook downloads and notifications. It utilizes FastAPI for the web framework and integrates with various notification services and a torrent client.
+A modular, production-ready FastAPI microservice for secure, stylish, and automated audiobook approval workflows. Features rich notifications, modern web UI, robust qBittorrent integration, and strong accessibility.
+
+---
+
+## Features
+
+- **Webhook endpoint** for Autobrr/MAM with secure token validation
+- **Metadata enrichment** via Audnex API and Audible scraping
+- **Persistent SQLite storage** for tokens and metadata
+- **Time-limited, one-time-use approval tokens**
+- **Rich notifications**: Pushover (with cover), Discord (embed), Gotify (markdown, cover)
+- **Modern, mobile-friendly web UI**: Approve/reject, cyberpunk/anime style, light/dark mode
+- **Dynamic OG/Twitter meta tags** for all major pages (social sharing)
+- **Robust qBittorrent integration**: .torrent download with MAM cookie, config-driven options
+- **Async/threadpool** for blocking calls
+- **Centralized, rotating logging** (configurable)
+- **Accessibility**: ARIA labels, color contrast, keyboard navigation
+- **Unit/integration test scaffolding**
+
+---
 
 ## Project Structure
 
 ```
-audiobook_automation/
+audiobook_dev/
 ├── src/
-│   ├── __init__.py
-│   ├── main.py           # FastAPI app: receives webhooks, routes requests, serves web UI
-│   ├── metadata.py       # Handles metadata lookup (Audnex, OpenLibrary, etc.)
-│   ├── token_gen.py      # Handles token creation/approval logic
+│   ├── main.py           # FastAPI app: webhooks, routes, logging
+│   ├── metadata.py       # Metadata lookup (Audnex, Audible)
+│   ├── token_gen.py      # Token creation/validation
 │   ├── notify/
-│   │   ├── __init__.py
-│   │   ├── pushover.py   # Notification via Pushover
-│   │   ├── gotify.py     # Notification via Gotify
-│   │   └── discord.py    # Notification via Discord
-│   ├── qbittorrent.py    # Handles interaction with qBittorrent
-│   ├── webui.py          # (Optional) HTML endpoints for approve/reject UI
-│   └── utils.py          # Any shared helpers/utilities
-├── requirements.txt
+│   │   ├── pushover.py   # Pushover notification
+│   │   ├── gotify.py     # Gotify notification
+│   │   └── discord.py    # Discord notification
+│   ├── qbittorrent.py    # qBittorrent integration
+│   ├── webui.py          # Web UI endpoints
+│   ├── db.py             # Persistent SQLite storage
+│   ├── config.py         # YAML config loader
+│   ├── html.py           # Jinja2 template rendering
+│   └── utils.py          # Shared helpers/utilities
+├── templates/            # Jinja2 HTML templates
+├── config/
+│   └── config.yaml       # Main configuration
+├── .env                  # Secrets (never commit)
+├── requirements.txt      # Python dependencies
 ├── README.md
-└── .env                  # For tokens, API keys, secrets (use python-dotenv)
+├── logs/                 # Rotating log files
+├── db.sqlite             # SQLite database
+└── tests/                # Unit/integration tests
 ```
 
-## Setup Instructions
+---
+
+## Setup & Usage
 
 1. **Clone the repository:**
-   ```
+   ```bash
    git clone <repository-url>
-   cd audiobook_automation
+   cd audiobook_dev
    ```
 
 2. **Create a virtual environment:**
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
    ```
 
 3. **Install dependencies:**
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. **Configure environment variables:**
-   Create a `.env` file in the root directory and add your API keys and tokens:
+   - Copy `.env.example` to `.env` and fill in your secrets (tokens, API keys, cookies, etc).
+   - Edit `config/config.yaml` for service options, logging, and qBittorrent settings.
+
+5. **Run the application:**
+   ```bash
+   uvicorn src.main:app --host 0.0.0.0 --port 8000
    ```
-   AUTOBRR_TOKEN=yourwebhooktoken
-   DISCORD_WEBHOOK_URL=https://discord.com/api/...
-   PUSHOVER_TOKEN=...
-   QB_API_USER=...
-   QB_API_PASS=...
-   ```
+   - For production, use a process manager (e.g., systemd, supervisord, Docker).
 
-## Usage
+6. **Access the web UI:**
+   - Visit `http://localhost:8000` (or your configured base URL).
 
-- Start the FastAPI application:
-  ```
-  uvicorn src.main:app --reload
-  ```
-
-- The application will be available at `http://127.0.0.1:8000`.
+---
 
 ## Endpoints
 
-- **Webhook Endpoint:** `/webhook`
-  - Receives incoming JSON payloads from Autobrr.
+- **Webhook:** `/webhook/audiobook-requests` (configurable)
+- **Approval:** `/approve/{token}`
+- **Approval Action:** `/approve/{token}/action`
+- **Rejection:** `/reject/{token}`
+- **UI Home:** `/`
 
-- **Approval Endpoint:** `/approve/{token}`
-  - Displays metadata and allows users to approve or reject requests.
+---
 
-- **Rejection Endpoint:** `/reject/{token}`
-  - Handles rejection of requests.
+## Configuration
 
-## Notification Services
+- **`config/config.yaml`**: All service, logging, and integration options
+- **`.env`**: Secrets (tokens, API keys, cookies)
+- **Logging**: Rotating, configurable via YAML
+- **qBittorrent**: Host, category, tags, cookie, etc.
+- **Notification**: Enable/disable, custom icons, sounds, priorities
 
-The project supports notifications through:
-- Pushover
-- Gotify
-- Discord
+---
 
-Each notification service has its own module within the `notify/` directory.
+## Notifications
 
-## Future Enhancements
+- **Pushover**: Rich HTML, cover image, approval link
+- **Discord**: Embed with all info, cover, approve/reject links
+- **Gotify**: Markdown, emoji, cover as bigImageUrl
 
-- Consider adding a database for persistent storage of pending approvals.
-- Implement background tasks for processing requests asynchronously.
-- Expand the web UI for better user experience and mobile support.
+---
+
+## Accessibility & UI
+
+- ARIA labels and color contrast for screen readers
+- Responsive, mobile-friendly, light/dark mode
+- Dynamic OG/Twitter meta tags for all major pages
+- Dedicated favicon for branding
+
+---
+
+## Testing
+
+- Unit/integration tests in `tests/`
+- Run with:
+  ```bash
+  pytest
+  ```
+
+---
+
+## Deployment
+
+- For production, use `systemd` or Docker for headless/background operation
+- Example `systemd` service:
+  ```ini
+  [Unit]
+  Description=Audiobook FastAPI Service
+  After=network.target
+
+  [Service]
+  User=quentin
+  WorkingDirectory=/home/quentin/scripts/audiobook_dev
+  Environment="PATH=/home/quentin/scripts/audiobook_dev/.venv/bin"
+  ExecStart=/home/quentin/scripts/audiobook_dev/.venv/bin/python -m src.main
+  Restart=always
+
+  [Install]
+  WantedBy=multi-user.target
+  ```
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+MIT License. See `LICENSE` for details.

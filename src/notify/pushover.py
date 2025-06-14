@@ -1,9 +1,25 @@
+from typing import Any, Dict, Optional, Tuple
 from src.utils import build_notification_message
 import os
 import tempfile
 
 
-def send_pushover(metadata, payload, token, base_url, user_key, api_token, sound=None, html=None, priority=None):
+def send_pushover(
+    metadata: Dict[str, Any],
+    payload: Dict[str, Any],
+    token: str,
+    base_url: str,
+    user_key: str,
+    api_token: str,
+    sound: Optional[str] = None,
+    html: Optional[int] = None,
+    priority: Optional[int] = None
+) -> Tuple[int, dict]:
+    """
+    Send a Pushover notification with optional cover image attachment.
+    Returns (status_code, response_json).
+    Raises requests.RequestException for network errors.
+    """
     import requests
 
     message = build_notification_message(metadata, payload, token, base_url)
@@ -15,11 +31,11 @@ def send_pushover(metadata, payload, token, base_url, user_key, api_token, sound
     }
     # Add optional settings
     if html is not None:
-        payload_data["html"] = html
+        payload_data["html"] = str(html)
     if sound is not None:
         payload_data["sound"] = sound
     if priority is not None:
-        payload_data["priority"] = priority
+        payload_data["priority"] = str(priority)
     # Include the approval page link in the notification
     approve_url = f"{base_url}/approve/{token}"
     payload_data['url'] = approve_url
@@ -42,7 +58,7 @@ def send_pushover(metadata, payload, token, base_url, user_key, api_token, sound
             temp_file.write(resp.content)
             temp_file.close()
             files = {'attachment': (os.path.basename(temp_file.name), open(temp_file.name, 'rb'), 'image/jpeg')}
-        except Exception as e:
+        except requests.RequestException:
             files = None
     try:
         if files:

@@ -42,6 +42,12 @@ async def approve(token: str, request: Request):
 
     # Merge metadata and payload for template context
     context = {'token': token, **payload, **metadata}
+    # Add dynamic Open Graph/Twitter meta
+    context.update({
+        'og_title': metadata.get('title'),
+        'og_description': metadata.get('description') or payload.get('name'),
+        'og_image': metadata.get('cover_url') or metadata.get('image')
+    })
 
     response = render_template(
         request,
@@ -97,9 +103,25 @@ async def approve_action(token: str, request: Request):
     delete_request(token)
     close_delay = config.get('server', {}).get('approve_success_autoclose', 3)
     if error_message:
-        response = render_template(request, 'failure.html', {'token': token, 'error_message': error_message})
+        # Dynamic OG meta for failure page
+        context = {
+            'token': token,
+            'error_message': error_message,
+            'og_title': 'Approval Failed',
+            'og_description': error_message,
+            'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+        }
+        response = render_template(request, 'failure.html', context)
     else:
-        response = render_template(request, 'success.html', {'token': token, 'close_delay': close_delay})
+        # Dynamic OG meta for success page
+        context = {
+            'token': token,
+            'close_delay': close_delay,
+            'og_title': 'Approval Successful',
+            'og_description': 'Your audiobook request was approved and processed!',
+            'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+        }
+        response = render_template(request, 'success.html', context)
     return response
 
 @router.get("/reject/{token}", response_class=HTMLResponse)
@@ -111,12 +133,13 @@ async def reject(token: str, request: Request):
         response.status_code = 410
         return response
     # handle rejection logic here
-    logging.info(f"Audiobook with token {token} has been rejected.")
     from src.db import delete_request
     delete_request(token)
-    response = render_template(
-        request,
-        'rejection.html',
-        {}
-    )
+    # Dynamic OG meta for rejection page
+    context = {
+        'og_title': 'Request Rejected',
+        'og_description': 'Your audiobook request was rejected.',
+        'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+    }
+    response = render_template(request, 'rejection.html', context)
     return response

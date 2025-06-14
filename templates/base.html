@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Audiobook Request System{% endblock %}</title>
   <!-- OG & Twitter Meta & Favicon -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://audiobook-requests.kingpaging.com">
-  <meta property="og:title" content="Audiobook Request System">
-  <meta property="og:description" content="Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged).">
-  <meta property="og:image" content="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png">
-  <meta property="og:image:alt" content="Cartoon Quentin with tech and anime vibes, holding an audiobook.">
+  {# Dynamic OG & Twitter Meta for sharing; fall back to defaults #}
+  <meta property="og:type" content="{{ og_type or 'website' }}">
+  <meta property="og:url" content="{{ og_url or request.url }}">
+  <meta property="og:title" content="{{ og_title or 'Audiobook Request System' }}">
+  <meta property="og:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
+  <meta property="og:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png' }}">
+  <meta property="og:image:alt" content="{{ og_image_alt or 'Cartoon Quentin with tech and anime vibes, holding an audiobook.' }}">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://audiobook-requests.kingpaging.com">
-  <meta name="twitter:title" content="Audiobook Request System">
-  <meta name="twitter:description" content="Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged).">
-  <meta name="twitter:image" content="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png">
-  <link rel="icon" href="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png">
+  <meta name="twitter:url" content="{{ og_url or request.url }}">
+  <meta name="twitter:title" content="{{ og_title or 'Audiobook Request System' }}">
+  <meta name="twitter:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
+  <meta name="twitter:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png' }}">
+  <link rel="icon" href="{{ og_image or 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png' }}">
   <!-- Orbitron for that cyber vibe; fallback to Inter and JetBrains Mono for code/inputs -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   {% block head_extra %}{% endblock %}

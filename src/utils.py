@@ -2,6 +2,12 @@ from html import escape
 from datetime import datetime
 
 def log_message(message: str) -> None:
+    """
+    Deprecated: Use the central logger instead of writing to app.log.
+    """
+    # Deprecated: remove this function or redirect to logging
+    import logging
+    logging.warning('log_message is deprecated; use logging module instead')
     with open("app.log", "a") as log_file:
         log_file.write(f"{message}\n")
 

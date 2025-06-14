@@ -14,6 +14,7 @@ def send_discord(metadata, payload, token, base_url, webhook_url):
     import requests
     config = load_config()
     server_cfg = config.get('server', {})
+    discord_cfg = config.get('notifications', {}).get('discord', {})
     # Build Approve/Reject URLs
     approve_url = f"{server_cfg.get('base_url', base_url)}/approve/{token}/action"
     reject_url = f"{server_cfg.get('base_url', base_url)}/reject/{token}"
@@ -71,20 +72,24 @@ def send_discord(metadata, payload, token, base_url, webhook_url):
     desc = '\n'.join([line for line in desc_lines if line])
 
     cover_url = metadata.get('cover_url') or metadata.get('image')
+    icon_url = discord_cfg.get('icon_url', "https://ptpimg.me/44pi19.png")
+    author_url = discord_cfg.get('author_url', "https://audiobookshelf.kingpaging.com/")
+    footer_icon_url = discord_cfg.get('footer_icon_url', "https://ptpimg.me/44pi19.png")
+    footer_text = discord_cfg.get('footer_text', "Powered by Autobrr")
     embed = {
         "color": 12074727,
         "title": f"{emoji} NEW AUDIOBOOK",
         "author": {
             "name": "Audiobook Notifier",
-            "icon_url": "https://ptpimg.me/44pi19.png",
-            "url": "https://audiobookshelf.kingpaging.com/"
+            "icon_url": icon_url,
+            "url": author_url
         },
         "description": desc,
         "thumbnail": {
-            "url": "https://ptpimg.me/44pi19.png"
+            "url": icon_url
         },
         "image": {"url": cover_url} if cover_url else None,
-        "footer": {"text": "Powered by Autobrr", "icon_url": "https://ptpimg.me/44pi19.png"},
+        "footer": {"text": footer_text, "icon_url": footer_icon_url},
         "timestamp": __import__('datetime').datetime.utcnow().isoformat()
     }
     # Remove None values (Discord API does not accept them)

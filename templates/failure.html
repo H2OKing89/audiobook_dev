@@ -46,7 +46,7 @@
 {% endblock %}
 {% block content %}
     <h2>Request Failed</h2>
-    <div class="info-box">
+    <div class="info-box" aria-label="Request Failed">
         <div style="font-size:2.5em;">⚠️</div>
         <p>{{ error_message|default('There was a problem processing your request. Please try again later or contact support.') }}</p>
         <a href="/" class="btn-link" aria-label="Return Home">Return Home</a>

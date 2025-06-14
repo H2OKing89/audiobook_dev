@@ -103,17 +103,39 @@ async def webhook(request: Request):
     gotify_url = os.getenv('GOTIFY_URL')
     gotify_token = os.getenv('GOTIFY_TOKEN')
 
-    # Send notifications
+    # Send notifications with granular error handling
+    notification_errors = []
     if pushover_enabled:
-        send_pushover(
-            metadata, payload, token, base_url,
-            pushover_user, pushover_token,
-            pushover_sound, pushover_html, pushover_priority
-        )
-    send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
-    send_discord(metadata, payload, token, base_url, discord_webhook)
-    logging.info("Sent notifications via Pushover, Gotify, and Discord.")
+        if pushover_user is None or pushover_token is None:
+            error_msg = "Pushover user key or token is not set in environment variables."
+            logging.error(error_msg)
+            notification_errors.append(f"Pushover: {error_msg}")
+        else:
+            try:
+                send_pushover(
+                    metadata, payload, token, base_url,
+                    pushover_user, pushover_token,
+                    pushover_sound, pushover_html, pushover_priority
+                )
+                logging.info("Pushover notification sent successfully.")
+            except Exception as e:
+                logging.error(f"Pushover notification failed: {e}")
+                notification_errors.append(f"Pushover: {e}")
+    try:
+        send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
+        logging.info("Gotify notification sent successfully.")
+    except Exception as e:
+        logging.error(f"Gotify notification failed: {e}")
+        notification_errors.append(f"Gotify: {e}")
+    try:
+        send_discord(metadata, payload, token, base_url, discord_webhook)
+        logging.info("Discord notification sent successfully.")
+    except Exception as e:
+        logging.error(f"Discord notification failed: {e}")
+        notification_errors.append(f"Discord: {e}")
 
+    if notification_errors:
+        return {"message": "Webhook received, but some notifications failed.", "errors": notification_errors}
     return {"message": "Webhook received and notifications sent."}
 
 # Commented out legacy handlers; using webui router instead
