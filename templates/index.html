@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audiobook Automation Home</title>
+    <style>
+        body {
+            font-family: Arial, 'Segoe UI', sans-serif;
+            background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
+            color: #f0e8ff;
+            max-width: 520px;
+            margin: 32px auto;
+        }
+        h1 {
+            color: #ff69b4;
+            text-shadow: 0 0 3px #ff69b4, 0 0 6px #222;
+            text-align: center;
+        }
+        .main-box {
+            background: #23243a;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px #000a;
+            padding: 32px 28px;
+            margin: 32px 0;
+            font-size: 1.18em;
+            line-height: 1.8;
+            text-align: center;
+        }
+        .btn-link {
+            display: inline-block;
+            background: #ff69b4;
+            color: #23243a !important;
+            border-radius: 7px;
+            padding: 10px 28px;
+            font-size: 17px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 1px 8px #18192b44;
+            transition: background 0.15s, color 0.15s;
+            margin-top: 18px;
+        }
+        .btn-link:hover {
+            background: #fff;
+            color: #ff69b4 !important;
+            box-shadow: 0 0 10px #ff69b4cc;
+            text-shadow: none;
+        }
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(135deg, #fff 65%, #e2e7fa 100%);
+                color: #18192b;
+            }
+            .main-box {
+                background: #f4f4fa;
+                color: #222;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
+                color: #f0e8ff;
+            }
+            .main-box {
+                background: #23243a;
+                color: #f0e8ff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Audiobook Automation</h1>
+    <div class="main-box">
+        <div style="font-size:2.2em;">🎧</div>
+        <p>This is the home of your automated audiobook approval and notification system.<br>
+        Requests are handled via secure webhooks and reviewed here for approval or rejection.</p>
+        <p style="margin-top:18px; color:#ff69b4; font-weight:600;">Ready to automate your listening?</p>
+        <a href="https://github.com/kingpaging/audiobook-automation" class="btn-link" target="_blank">View on GitHub</a>
+    </div>
+    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
+        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+    </div>
+</body>
+</html>

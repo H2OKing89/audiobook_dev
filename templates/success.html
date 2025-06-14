@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Success</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f6fff6; text-align: center; padding-top: 60px; }
+        .box { background: #e0ffe0; display: inline-block; padding: 32px 48px; border-radius: 12px; box-shadow: 0 2px 8px #b2dfb2; }
+        h1 { color: #2e7d32; }
+        a.button { display: inline-block; margin-top: 24px; padding: 10px 24px; background: #2e7d32; color: #fff; border-radius: 6px; text-decoration: none; font-weight: bold; }
+        a.button:hover { background: #388e3c; }
+        @media (prefers-color-scheme: dark) {
+            body { background: linear-gradient(140deg, #18192b 70%, #28234a 100%); color: #eaffea; }
+            .box { background: #1e2a1e; color: #eaffea; box-shadow: 0 2px 12px #000a; }
+            h1 { color: #4cff4c; }
+            a.button { background: #4cff4c; color: #23243a !important; }
+            a.button:hover { background: #fff; color: #4cff4c !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Action Successful!</h1>
+        <p>Your request has been processed successfully.</p>
+        <a href="/" class="button">Return Home</a>
+    </div>
+</body>
+</html>

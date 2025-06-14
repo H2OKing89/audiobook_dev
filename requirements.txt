@@ -1,0 +1,9 @@
+FastAPI
+uvicorn
+python-dotenv
+qbittorrent-api
+requests
+pydantic
+aiohttp
+PyYAML
+beautifulsoup4

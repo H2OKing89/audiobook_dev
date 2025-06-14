@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Expired or Used</title>
+    <style>
+        body {
+            font-family: Arial, 'Segoe UI', sans-serif;
+            background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
+            color: #f0e8ff;
+            max-width: 480px;
+            margin: 24px auto;
+        }
+        h2 {
+            color: #ffb347;
+            text-shadow: 0 0 3px #ffb347, 0 0 6px #222;
+        }
+        .info-box {
+            background: #23243a;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px #000a;
+            padding: 22px 20px;
+            margin: 22px 0;
+            font-size: 1.12em;
+            line-height: 1.7;
+            text-align: center;
+        }
+        .btn-link {
+            display: inline-block;
+            background: #ffb347;
+            color: #23243a !important;
+            border-radius: 7px;
+            padding: 6px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 1px 6px #18192b44;
+            transition: background 0.15s, color 0.15s;
+            margin-top: 18px;
+        }
+        .btn-link:hover {
+            background: #fff;
+            color: #ffb347 !important;
+            box-shadow: 0 0 8px #ffb347cc;
+            text-shadow: none;
+        }
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(135deg, #fff 65%, #e2e7fa 100%);
+                color: #18192b;
+            }
+            .info-box {
+                background: #f4f4fa;
+                color: #222;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
+                color: #f0e8ff;
+            }
+            .info-box {
+                background: #23243a;
+                color: #f0e8ff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Token Expired or Already Used</h2>
+    <div class="info-box">
+        <div style="font-size:2.5em;">⏳</div>
+        <p>This approval link is no longer valid.<br>
+        It may have already been used or has expired.</p>
+        <a href="/" class="btn-link">Return Home</a>
+    </div>
+    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
+        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+    </div>
+</body>
+</html>

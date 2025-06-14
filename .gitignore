@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Pytest
+.cache/
+
+# Coverage
+htmlcov/
+.coverage
+
+# Misc
+*.bak
+*.swp
+
+# Ignore config secrets
+config/config.yaml
+!config/config.yaml.example
+log/
+db.sqlite

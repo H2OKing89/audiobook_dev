@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}Request Rejected{% endblock %}
+    {% block head_extra %}
+    <style>
+        body {
+            font-family: Arial, 'Segoe UI', sans-serif;
+            background: linear-gradient(140deg, #2b1818 70%, #4a2323 100%);
+            color: #ffe8e8;
+            max-width: 480px;
+            margin: 24px auto;
+        }
+        h2 {
+            color: #ff3b3b;
+            text-shadow: 0 0 3px #ff3b3b, 0 0 6px #222;
+        }
+        .info-box {
+            background: #3a2323;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px #000a;
+            padding: 22px 20px;
+            margin: 22px 0;
+            font-size: 1.12em;
+            line-height: 1.7;
+            text-align: center;
+        }
+        .btn-link {
+            display: inline-block;
+            background: #ff3b3b;
+            color: #fff !important;
+            border-radius: 7px;
+            padding: 6px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 1px 6px #18192b44;
+            transition: background 0.15s, color 0.15s;
+            margin-top: 18px;
+        }
+        .btn-link:hover {
+            background: #fff;
+            color: #ff3b3b !important;
+            box-shadow: 0 0 8px #ff3b3bcc;
+            text-shadow: none;
+        }
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(135deg, #fff 65%, #fae2e2 100%);
+                color: #2b1818;
+            }
+            .info-box {
+                background: #fae2e2;
+                color: #222;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(140deg, #2b1818 70%, #4a2323 100%);
+                color: #ffe8e8;
+            }
+            .info-box {
+                background: #3a2323;
+                color: #ffe8e8;
+            }
+        }
+    </style>
+    {% endblock %}
+</head>
+<body>
+    {% block content %}
+    <h2>Request Rejected</h2>
+    <div class="info-box">
+        <div style="font-size:2.5em;">❌</div>
+        <p>Your audiobook request has been <b>rejected</b>.</p>
+        <p>If you believe this is a mistake, please contact the administrator.</p>
+        <a href="/" class="btn-link">Return Home</a>
+    </div>
+    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
+        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+    </div>
+    {% endblock %}
+</body>
+</html>
