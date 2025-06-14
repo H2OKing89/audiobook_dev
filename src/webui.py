@@ -7,6 +7,7 @@ from src.db import get_request  # use persistent DB store
 from src.utils import format_release_date, format_size
 import logging
 from datetime import datetime
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter()
 
@@ -57,7 +58,6 @@ async def approve_action(token: str, request: Request):
         response = render_template(request, 'token_expired.html', {})
         response.status_code = 410
         return response
-    # handle approval logic here (e.g., trigger qBittorrent, etc.)
     from src.db import delete_request
     from src.config import load_config
     from src.qbittorrent import add_torrent_file_with_cookie
@@ -65,7 +65,7 @@ async def approve_action(token: str, request: Request):
     config = load_config()
     qb_cfg = config.get('qbittorrent', {})
     enabled = qb_cfg.get('enabled', False)
-    # Only trigger qBittorrent if enabled in config
+    error_message = None
     if enabled:
         payload = entry.get('payload', {})
         name = payload.get('name') or entry.get('metadata', {}).get('title')
@@ -77,19 +77,29 @@ async def approve_action(token: str, request: Request):
         autoTMM = qb_cfg.get('use_auto_torrent_management', True)
         contentLayout = qb_cfg.get('content_layout', 'Subfolder')
         logging.info(f"Triggering qBittorrent for: {name}")
-        add_torrent_file_with_cookie(
-            download_url=download_url,
-            name=name,
-            category=category,
-            tags=tags,
-            cookie=cookie,
-            paused=paused,
-            autoTMM=autoTMM,
-            contentLayout=contentLayout
-        )
+        try:
+            result = await run_in_threadpool(
+                add_torrent_file_with_cookie,
+                download_url,
+                name,
+                category,
+                tags,
+                cookie,
+                paused,
+                autoTMM,
+                contentLayout
+            )
+            if not result:
+                error_message = "Failed to add torrent to qBittorrent. Please try again later."
+        except Exception as e:
+            logging.error(f"qBittorrent error: {e}")
+            error_message = f"Failed to add torrent to qBittorrent: {e}"
     delete_request(token)
     close_delay = config.get('server', {}).get('approve_success_autoclose', 3)
-    response = render_template(request, 'success.html', {'token': token, 'close_delay': close_delay})
+    if error_message:
+        response = render_template(request, 'failure.html', {'token': token, 'error_message': error_message})
+    else:
+        response = render_template(request, 'success.html', {'token': token, 'close_delay': close_delay})
     return response
 
 @router.get("/reject/{token}", response_class=HTMLResponse)
