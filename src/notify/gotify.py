@@ -1,4 +1,4 @@
-from src.utils import build_notification_message, format_size, format_release_date
+from src.utils import build_notification_message, format_size, format_release_date, strip_html_tags
 import os
 import requests
 import re
@@ -46,9 +46,12 @@ def send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token):
     runtime = str(metadata.get('runtime_minutes', ''))
     size = payload.get('size') or metadata.get('size')
     size_fmt = format_size(size)
-    description = metadata.get('description', '')
-    url = payload.get('url') or metadata.get('url')
-    download_url = payload.get('download_url') or metadata.get('download_url')
+    # Clean HTML from description
+    raw_desc = metadata.get('description', '')
+    description = strip_html_tags(raw_desc)
+    # Use token-based view/download URLs
+    view_url = f"{base_url}/view/{token}"
+    download_url = f"{base_url}/download/{token}"
     approve_url = f"{base_url}/approve/{token}/action"
     reject_url = f"{base_url}/reject/{token}"
 
@@ -65,8 +68,8 @@ def send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token):
         f"**📚 Category:** {escape_md(category)}" if category else None,
         f"**💾 Size:** {escape_md(size_fmt)}" if size_fmt else None,
         f"**📝 Description:** {escape_md(description)}" if description else None,
-        url and f"[🌐 View]({url})" or '',
-        download_url and f"[📥 Download]({download_url})" or '',
+        f"[🌐 View]({view_url})",
+        f"[📥 Download]({download_url})",
         '',
         f"# [✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})"
     ]
