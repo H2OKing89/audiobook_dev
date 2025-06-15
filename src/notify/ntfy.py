@@ -40,17 +40,20 @@ def send_ntfy(
     reject_url = f"{base_url}/reject/{token}"
     cover_url = metadata.get('cover_url') or metadata.get('image')
     msg_lines = [
-        f"🎧 **Title:** {title}",
-        f"🔗 **Series:** {series}" if series else None,
-        f"✍️ **Author:** {author}" if author else None,
-        f"🏢 **Publisher:** {publisher}" if publisher else None,
-        f"🎤 **Narrators:** {narrators}" if narrators else None,
-        f"📅 **Release Date:** {release_date}" if release_date else None,
-        f"⏱️ **Runtime:** {runtime}" if runtime else None,
-        f"📚 **Category:** {category}" if category else None,
-        f"💾 **Size:** {size_fmt}" if size_fmt else None,
-        f"📝 **Description:** {description}" if description else None,
+        f"- 🎧 **Title:** {title}",
+        f"- 🔗 **Series:** {series}" if series else None,
+        f"- ✍️ **Author:** {author}" if author else None,
+        f"- 🏢 **Publisher:** {publisher}" if publisher else None,
+        f"- 🎤 **Narrators:** {narrators}" if narrators else None,
+        f"- 📅 **Release Date:** {release_date}" if release_date else None,
+        f"- ⏱️ **Runtime:** {runtime}" if runtime else None,
+        f"- 📚 **Category:** {category}" if category else None,
+        f"- 💾 **Size:** {size_fmt}" if size_fmt else None,
+        f" ---\n",
+        f"> 📝 **Description:** {description}" if description else None,
     ]
+    if cover_url:
+        msg_lines.append(f"![cover]({cover_url})")
     message = '\n'.join([line for line in msg_lines if line])
 
     # Actions (JSON array)
@@ -63,8 +66,6 @@ def send_ntfy(
         "Title": f"{title}",
         "Markdown": "true",
     }
-    if cover_url:
-        headers["Attach"] = cover_url
     # Add Bearer token if present
     ntfy_token = os.getenv("NTFY_TOKEN")
     if ntfy_token:
