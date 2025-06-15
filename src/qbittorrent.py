@@ -73,6 +73,7 @@ def add_torrent_file_with_cookie(download_url, name, category=None, tags=None, c
         return True
     except Exception as e:
         logging.error(f"Failed to add torrent file: {e}")
+        logging.exception("Full exception traceback for failed torrent upload:")
         return False
     finally:
         if tmp:
