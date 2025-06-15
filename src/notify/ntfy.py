@@ -36,6 +36,8 @@ def send_ntfy(
     size = payload.get('size') or metadata.get('size')
     size_fmt = format_size(size)
     description = metadata.get('description', '')
+    url = payload.get('url') or metadata.get('url')
+    download_url = payload.get('download_url') or metadata.get('download_url')
     approve_url = f"{base_url}/approve/{token}/action"
     reject_url = f"{base_url}/reject/{token}"
     cover_url = metadata.get('cover_url') or metadata.get('image')
@@ -51,6 +53,7 @@ def send_ntfy(
         f"- 💾 **Size:** {size_fmt}" if size_fmt else None,
         f" ---\n",
         f"> 📝 **Description:** {description}" if description else None,
+        (f"[🌐 View]({url})" if url else "") + (f" | [📥 Download]({download_url})" if download_url else ""),
     ]
     if cover_url:
         msg_lines.append(f"![cover]({cover_url})")
