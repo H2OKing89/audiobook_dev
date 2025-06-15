@@ -202,6 +202,22 @@
             .mascot-img { width: 90px; height: 90px; }
         }
     </style>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+
+    <!-- Open Graph & Twitter -->
+    <meta property="og:type" content="{{ og_type or 'website' }}">
+    <meta property="og:url" content="{{ og_url or request.url }}">
+    <meta property="og:title" content="{{ og_title or 'Audiobook Automation Home' }}">
+    <meta property="og:description" content="{{ og_description or 'Welcome to Quentin’s overkill-level audiobook approval & notification system.' }}">
+    <meta property="og:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
+    <meta property="og:image:alt" content="{{ og_image_alt or 'Transparent Quentin mascot in tech/anime style' }}">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ og_url or request.url }}">
+    <meta name="twitter:title" content="{{ og_title or 'Audiobook Automation Home' }}">
+    <meta name="twitter:description" content="{{ og_description or 'Welcome to Quentin’s overkill-level audiobook approval & notification system.' }}">
+    <meta name="twitter:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
 </head>
 <body>
     <div class="mascot-banner">
