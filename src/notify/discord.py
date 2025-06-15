@@ -1,6 +1,6 @@
 import re
 from src.config import load_config
-from src.utils import format_size, format_release_date
+from src.utils import format_size, format_release_date, strip_html_tags
 
 
 def escape_md(text):
@@ -49,7 +49,9 @@ def send_discord(metadata, payload, token, base_url, webhook_url):
     runtime = str(metadata.get('runtime_minutes', ''))
     size = payload.get('size') or metadata.get('size')
     size_fmt = format_size(size)
-    description = metadata.get('description', '')
+    # Clean HTML from description
+    raw_desc = metadata.get('description', '')
+    description = strip_html_tags(raw_desc)
     url = payload.get('url') or metadata.get('url')
     download_url = payload.get('download_url') or metadata.get('download_url')
 

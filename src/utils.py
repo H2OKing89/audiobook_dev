@@ -1,5 +1,6 @@
-from html import escape
 from datetime import datetime
+import re
+from html import escape
 
 def log_message(message: str) -> None:
     """
@@ -7,16 +8,20 @@ def log_message(message: str) -> None:
     """
     # Deprecated: remove this function or redirect to logging
     import logging
+
     logging.warning('log_message is deprecated; use logging module instead')
     with open("app.log", "a") as log_file:
         log_file.write(f"{message}\n")
+
 
 def format_metadata(metadata: dict) -> str:
     formatted = "\n".join(f"{key}: {value}" for key, value in metadata.items())
     return formatted
 
+
 def validate_payload(payload: dict, required_keys: list) -> bool:
     return all(key in payload for key in required_keys)
+
 
 def format_release_date(date_str: str) -> str:
     if not date_str:
@@ -24,6 +29,7 @@ def format_release_date(date_str: str) -> str:
     if 'T' in date_str:
         return date_str.split('T')[0]
     return date_str
+
 
 def format_size(size_bytes) -> str:
     try:
@@ -39,10 +45,51 @@ def format_size(size_bytes) -> str:
     except Exception:
         return str(size_bytes)
 
+
+def clean_author_list(authors):
+    """
+    Return only authors, not illustrators or translators.
+    """
+    filtered = []
+    for author in authors:
+        name = author.get('name', '')
+        if not any(term in name.lower() for term in (
+            'illustrator', 'translator', 'adapter', 'contributor', 'editor'
+        )):
+            filtered.append(name)
+    return filtered
+
+
 def clean_light_novel(text: str) -> str:
     if not text:
         return text
     return text.replace('(Light Novel)', '').replace('(light novel)', '').strip()
+
+
+def strip_html_tags(text: str) -> str:
+    """
+    Strips all HTML tags from a string, preserving paragraph breaks.
+    Converts <p> and <br> tags into newlines, removes other tags,
+    decodes basic HTML entities, and collapses excess whitespace.
+    """
+    if not text:
+        return ''
+    # Convert <p> and <br> to newlines
+    text = re.sub(r'</?(p|br)[^>]*>', '\n', text, flags=re.IGNORECASE)
+    # Remove other HTML tags
+    text = re.sub(r'<.*?>', '', text)
+    # Decode HTML entities
+    text = (text.replace('&quot;', '"')
+                .replace('&amp;', '&')
+                .replace('&lt;', '<')
+                .replace('&gt;', '>')
+                .replace('&apos;', "'"))
+    # Collapse multiple paragraph breaks
+    text = re.sub(r'\n\s*\n+', '\n\n', text)
+    # Collapse spaces/tabs
+    text = re.sub(r'[ \t]+', ' ', text)
+    return text.strip()
+
 
 def build_notification_message(metadata: dict, payload: dict, token: str, base_url: str) -> str:
     """
@@ -61,7 +108,9 @@ def build_notification_message(metadata: dict, payload: dict, token: str, base_u
     runtime = str(metadata.get('runtime_minutes', ''))
     category = payload.get('category', '')
     size = payload.get('size', '')
-    description = metadata.get('description', '')
+    # Clean HTML from description
+    raw_desc = metadata.get('description', '')
+    description = strip_html_tags(raw_desc)
 
     parts = [
         f"<font color=\"green\"><b>🎉 NEW AUDIOBOOK</b></font><br>",
