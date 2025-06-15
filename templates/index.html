@@ -11,40 +11,175 @@
             color: #f0e8ff;
             max-width: 520px;
             margin: 32px auto;
+            padding: 0 12px;
         }
         h1 {
             color: #ff69b4;
             text-shadow: 0 0 3px #ff69b4, 0 0 6px #222;
             text-align: center;
+            margin-top: 10px;
+            margin-bottom: 2px;
+            font-size: 2em;
+        }
+        .mascot-banner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+        .mascot-img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px #ff69b466, 0 4px 32px #0008;
+            border: 3px solid #ffb347;
+            background: #23243a;
+            margin-bottom: 3px;
+            animation: popIn 1s;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.75);}
+            70% { opacity: 1; transform: scale(1.08);}
+            100% { opacity: 1; transform: scale(1);}
+        }
+        .cat-tail {
+            position: absolute;
+            right: 12px;
+            bottom: 16px;
+            width: 32px;
+            height: 64px;
+            cursor: pointer;
+            opacity: 0.8;
+            z-index: 4;
+            transition: filter 0.2s;
+        }
+        .cat-tail:hover {
+            opacity: 1;
+            filter: drop-shadow(0 0 8px #ffb347aa);
+        }
+        .easter-tip {
+            display: none;
+            position: fixed;
+            bottom: 72px; right: 25px;
+            background: #22243e;
+            color: #ffb347;
+            border-radius: 7px;
+            padding: 12px 16px;
+            font-size: 0.97em;
+            box-shadow: 0 2px 14px #000b;
+            z-index: 55;
+            max-width: 280px;
+        }
+        .dynamic-tagline {
+            font-size: 1.08em;
+            color: #ffd6ee;
+            text-align: center;
+            margin-bottom: 8px;
+            min-height: 24px;
         }
         .main-box {
             background: #23243a;
             border-radius: 16px;
             box-shadow: 0 2px 16px #000a;
             padding: 32px 28px;
-            margin: 32px 0;
+            margin: 20px 0 28px 0;
             font-size: 1.18em;
             line-height: 1.8;
             text-align: center;
+            opacity: 0;
+            animation: fadeInUp 0.75s 0.05s forwards;
+            color: #f0e8ff;
         }
-        .btn-link {
-            display: inline-block;
+        .main-box p, .main-box div, .main-box span, .main-box a, .main-box h2, .main-box h3, .main-box h4 {
+            color: inherit;
+        }
+        .main-desc {
+            color: #fff !important;
+        }
+        @keyframes fadeInUp {
+            to { opacity: 1; }
+        }
+        .quick-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 18px;
+            margin: 20px 0 12px 0;
+        }
+        .quick-link-btn {
             background: #ff69b4;
             color: #23243a !important;
-            border-radius: 7px;
-            padding: 10px 28px;
-            font-size: 17px;
+            border-radius: 9px;
+            padding: 12px 18px 9px 18px;
+            font-size: 1em;
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 1px 8px #18192b44;
-            transition: background 0.15s, color 0.15s;
-            margin-top: 18px;
+            box-shadow: 0 2px 8px #18192b30;
+            transition: background 0.13s, color 0.13s, transform 0.11s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 7px;
+            border: none;
         }
-        .btn-link:hover {
+        .quick-link-btn:hover {
             background: #fff;
             color: #ff69b4 !important;
-            box-shadow: 0 0 10px #ff69b4cc;
-            text-shadow: none;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 0 11px #ff69b466;
+        }
+        .about-section {
+            margin: 24px auto 0 auto;
+            text-align: left;
+            max-width: 390px;
+        }
+        .about-summary {
+            color: #ff69b4;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.09em;
+            margin-bottom: 7px;
+        }
+        .about-content {
+            color: #cdd0ff;
+            padding-left: 6px;
+            margin-bottom: 7px;
+            font-size: 0.99em;
+        }
+        .footer {
+            margin-top: 35px;
+            font-size: 13px;
+            color: #888;
+            text-align: center;
+            min-height: 20px;
+            transition: color 0.2s;
+        }
+        /* High contrast mode toggle */
+        .contrast-toggle {
+            position: fixed;
+            bottom: 16px;
+            right: 24px;
+            background: #23243a;
+            color: #ff69b4;
+            border: none;
+            border-radius: 100%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5em;
+            z-index: 22;
+            box-shadow: 0 2px 7px #0007;
+            transition: background 0.12s;
+        }
+        .contrast-toggle.active {
+            background: #fff;
+            color: #18192b;
         }
         @media (prefers-color-scheme: light) {
             body {
@@ -53,32 +188,138 @@
             }
             .main-box {
                 background: #f4f4fa;
-                color: #222;
+                color: #222 !important;
             }
+            .main-desc {
+                color: #222 !important;
+            }
+            .footer { color: #888; }
+            .about-content { color: #333a55; }
+            .easter-tip { background: #fffbe6; color: #18192b;}
         }
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
-                color: #f0e8ff;
-            }
-            .main-box {
-                background: #23243a;
-                color: #f0e8ff;
-            }
+        @media (max-width: 600px) {
+            .main-box, .about-section { padding: 14px 5vw; }
+            .mascot-img { width: 90px; height: 90px; }
         }
     </style>
 </head>
 <body>
+    <div class="mascot-banner">
+        <img src="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png"
+             alt="Audiobook Automation Mascot"
+             class="mascot-img"
+             draggable="false"
+             loading="eager"
+        >
+        <!-- Cat tail Easter egg overlay -->
+        <svg class="cat-tail" viewBox="0 0 21 48" fill="none">
+            <path d="M10,0 Q18,22 6,37 Q-2,48 19,47"
+                  stroke="#b4916e"
+                  stroke-width="3.2"
+                  fill="none"/>
+        </svg>
+    </div>
     <h1>Welcome to Audiobook Automation</h1>
+    <div class="dynamic-tagline" id="dynamicTag"></div>
     <div class="main-box">
         <div style="font-size:2.2em;">🎧</div>
-        <p>This is the home of your automated audiobook approval and notification system.<br>
+        <div class="quick-links">
+            <a href="/audiobook-requests" class="quick-link-btn" aria-label="Request Audiobook">📚 Request Audiobook</a>
+            <a href="/requests" class="quick-link-btn" aria-label="View Requests">🔎 View Requests</a>
+            <a href="https://github.com/kingpaging/audiobook-automation" class="quick-link-btn" target="_blank" rel="noopener">🛠️ Documentation</a>
+            <a href="#" class="quick-link-btn" aria-label="Call Quentin Silly" onclick="event.preventDefault(); document.getElementById('call-quentin-popup').style.display='block';">✉️ Contact Quentin</a>
+        </div>
+        <p class="main-desc">This is the home of your automated audiobook approval and notification system.<br>
         Requests are handled via secure webhooks and reviewed here for approval or rejection.</p>
         <p style="margin-top:18px; color:#ff69b4; font-weight:600;">Ready to automate your listening?</p>
-        <a href="https://github.com/kingpaging/audiobook-automation" class="btn-link" target="_blank" aria-label="View on GitHub" rel="noopener">View on GitHub</a>
     </div>
-    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
-        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+    <div class="about-section">
+        <details>
+            <summary class="about-summary">What is this all about?</summary>
+            <div class="about-content">
+                <b>“Built by Quentin in a caffeine-fueled haze, this project is the result of too many audiobooks, not enough organization, and a burning desire for overkill-level automation.”</b>
+                <br><br>
+                <span style="color:#ffd6ee;">Why does this exist?</span><br>
+                Sick of the chaos of audiobooks scattered everywhere, Quentin decided to automate everything—approval, notifications, and even rejection. Now your backlog has nowhere to hide.
+            </div>
+        </details>
     </div>
+    <div class="footer" id="footer"></div>
+    <!-- High contrast toggle -->
+    <button class="contrast-toggle" id="contrastToggle" aria-label="Toggle High Contrast">
+      <span>☀️</span>
+    </button>
+    <!-- Cat tail Easter egg tip -->
+    <div class="easter-tip" id="easterTip">You found the secret tail! Reward: One imaginary audiobook credit.</div>
+    <!-- Call Quentin popup -->
+    <div id="call-quentin-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#23243a; color:#fff; padding:28px 36px; border-radius:14px; box-shadow:0 2px 24px #000b; z-index:9999; text-align:center;">
+        <div style="font-size:1.3em; margin-bottom:12px;">Call Quentin Silly</div>
+        <button onclick="document.getElementById('call-quentin-popup').style.display='none';" style="margin-top:14px; padding:8px 22px; background:#ff69b4; color:#23243a; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Close</button>
+    </div>
+    <script>
+      // Rotating tagline
+      const taglines = [
+        "Stop sorting audiobooks like a caveman—let the robots handle it.",
+        "Now with 99.9% fewer manual clicks.",
+        "Your backlog is our business.",
+        "Because life’s too short for duplicate MP3s.",
+        "Audiobook approval, Quentin style: Overkill enabled.",
+        "Automate, approve, listen, repeat.",
+        "Runs on Python, caffeine, and pure stubbornness.",
+        "One click and your next listen is queued up.",
+        "If you see this page, you’re already winning at life."
+      ];
+      let tagIdx = 0;
+      function cycleTagline() {
+        document.getElementById('dynamicTag').innerText = taglines[tagIdx % taglines.length];
+        tagIdx++;
+        setTimeout(cycleTagline, 4000);
+      }
+      cycleTagline();
+
+      // Cycling footer
+      const footerPhrases = [
+        "Automated by Quentin’s Overkill Automation™ 🤖",
+        "Page served by a caffeinated Quentin script.",
+        "No audiobooks were harmed in the making of this page.",
+        "All systems nominal. Humans? That's another story.",
+        "Built with more enthusiasm than sleep.",
+        "Powered by 24-core Threadripper and pure stubbornness.",
+        "🔄 Refresh for a new Quentin-ism."
+      ];
+      let footerIdx = 0;
+      function cycleFooter() {
+        document.getElementById('footer').innerText = footerPhrases[footerIdx % footerPhrases.length];
+        footerIdx++;
+        setTimeout(cycleFooter, 3500);
+      }
+      cycleFooter();
+
+      // Cat tail easter egg
+      const catTail = document.querySelector('.cat-tail');
+      const tip = document.getElementById('easterTip');
+      catTail.addEventListener('click', () => {
+        tip.style.display = 'block';
+        setTimeout(() => { tip.style.display = 'none'; }, 3400);
+      });
+
+      // High contrast mode toggle
+      const contrastToggle = document.getElementById('contrastToggle');
+      contrastToggle.addEventListener('click', () => {
+        document.body.classList.toggle('contrast');
+        contrastToggle.classList.toggle('active');
+        if (document.body.classList.contains('contrast')) {
+          document.body.style.background = "#000";
+          document.body.style.color = "#ff69b4";
+          document.querySelector('.main-box').style.background = "#23243a";
+          document.querySelector('.footer').style.color = "#ff69b4";
+        } else {
+          document.body.style.background = "";
+          document.body.style.color = "";
+          document.querySelector('.main-box').style.background = "";
+          document.querySelector('.footer').style.color = "";
+        }
+      });
+    </script>
 </body>
 </html>

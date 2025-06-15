@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block title %}Request Rejected{% endblock %}
-    {% block head_extra %}
+    <title>Request Rejected</title>
+    <!-- Favicon & Social Meta -->
+    <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Request Rejected">
+    <meta property="og:description" content="Your audiobook request has been rejected.">
+    <meta property="og:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+    <meta property="og:image:alt" content="Quentin mascot looking apologetic">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Request Rejected">
+    <meta name="twitter:description" content="Your audiobook request has been rejected.">
+    <meta name="twitter:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
     <style>
         body {
             font-family: Arial, 'Segoe UI', sans-serif;
@@ -16,6 +26,12 @@
         h2 {
             color: #ff3b3b;
             text-shadow: 0 0 3px #ff3b3b, 0 0 6px #222;
+            text-align: center;
+        }
+        .mascot {
+            width:72px; height:72px; border-radius:50%; margin:12px auto 4px auto; display:block;
+            box-shadow:0 0 0 3px #ff3b3b,0 1px 8px #0006;
+            background:#3a2323;
         }
         .info-box {
             background: #3a2323;
@@ -26,7 +42,9 @@
             font-size: 1.12em;
             line-height: 1.7;
             text-align: center;
+            animation: popIn 0.7s;
         }
+        @keyframes popIn { 0% {transform:scale(0.85); opacity:0.2;} 80% {transform:scale(1.05);} 100% {transform:scale(1);opacity:1;} }
         .btn-link {
             display: inline-block;
             background: #ff3b3b;
@@ -37,7 +55,7 @@
             font-weight: 600;
             text-decoration: none;
             box-shadow: 0 1px 6px #18192b44;
-            transition: background 0.15s, color 0.15s;
+            transition: background 0.15s, color 0.15s, transform 0.13s;
             margin-top: 18px;
         }
         .btn-link:hover {
@@ -45,6 +63,10 @@
             color: #ff3b3b !important;
             box-shadow: 0 0 8px #ff3b3bcc;
             text-shadow: none;
+            transform: scale(1.07);
+        }
+        #rejected-quote {
+            color:#ffb2b2; font-size:1em; margin-top:10px; min-height:24px;
         }
         @media (prefers-color-scheme: light) {
             body {
@@ -55,6 +77,8 @@
                 background: #fae2e2;
                 color: #222;
             }
+            .mascot { background: #fae2e2; }
+            #rejected-quote { color:#ff3b3b; }
         }
         @media (prefers-color-scheme: dark) {
             body {
@@ -65,22 +89,35 @@
                 background: #3a2323;
                 color: #ffe8e8;
             }
+            .mascot { background: #3a2323; }
+            #rejected-quote { color:#ffb2b2; }
         }
     </style>
-    {% endblock %}
 </head>
 <body>
-    {% block content %}
     <h2>Request Rejected</h2>
-    <div class="info-box" aria-label="Request Rejected">
+    <div class="info-box" aria-label="Request Rejected" role="status" aria-live="polite">
+        <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png"
+             alt="Rejected Mascot" class="mascot" loading="eager" draggable="false">
         <div style="font-size:2.5em;">❌</div>
         <p>Your audiobook request has been <b>rejected</b>.</p>
         <p>If you believe this is a mistake, please contact the administrator.</p>
-        <a href="/" class="btn-link" aria-label="Return Home">Return Home</a>
+        <p id="rejected-quote"></p>
+        <a href="/" class="btn-link" aria-label="Return Home">🏠 Return Home</a>
     </div>
     <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
         {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
     </div>
-    {% endblock %}
+    <script>
+      const jokes = [
+        "Sorry, your request got snapped like Thanos was in IT.",
+        "Rejected—but at least you didn’t get isekai’d. Try again!",
+        "This audiobook didn’t make the cut. Quentin still likes you, though.",
+        "Not all heroes wear capes. Some just reject requests.",
+        "The council of robots has spoken. Rejection it is.",
+        "Better luck next time! (No audiobooks were harmed.)"
+      ];
+      document.getElementById('rejected-quote').innerText = jokes[Math.floor(Math.random()*jokes.length)];
+    </script>
 </body>
 </html>

@@ -1,169 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Approve Audiobook</title>
-    <style>
-        body {
-            font-family: Arial, 'Segoe UI', sans-serif;
-            background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
-            color: #f0e8ff;
-            max-width: 480px;
-            margin: 24px auto;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            font-family: Arial, 'Segoe UI', sans-serif;
-        }
-        h2 {
-            color: #ff69b4;
-            text-shadow: 0 0 3px #ff69b4, 0 0 6px #222;
-        }
-        a, button {
-            background: #29284a;
-            color: #fff;
-            border-radius: 9px;
-            border: none;
-            padding: 7px 14px;
-            font-size: 15px;
-            cursor: pointer;
-            margin: 2px;
-        }
-        a:hover, button:hover {
-            background: #ff69b4;
-            color: #1a1a1a;
-            opacity: 1;
-            box-shadow: 0 0 8px #ff69b4aa;
-        }
-        .btnrow { display: flex; gap: 12px; margin-bottom: 8px; }
-        img { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 2px 12px #000a; }
-        .info-box {
-            background: #23243a;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px #000a;
-            padding: 22px 20px;
-            margin: 22px 0;
-            font-size: 1.12em;
-            line-height: 1.7;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: max-content 1fr;
-            row-gap: 10px;
-            column-gap: 16px;
-            align-items: center;
-        }
-        .label {
-            color: #9be7ff;
-            font-weight: 600;
-            text-align: right;
-            white-space: nowrap;
-            letter-spacing: 0.01em;
-        }
-        .value {
-            color: #f0e8ff;
-            word-break: break-word;
-        }
-        .btn-download {
-            display: inline-block;
-            background: #ff69b4;
-            color: #23243a !important;
-            border-radius: 7px;
-            padding: 6px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            text-decoration: none;
-            box-shadow: 0 1px 6px #18192b44;
-            transition: background 0.15s, color 0.15s;
-        }
-        .btn-link, .btn-download {
-            display: inline-block;
-            background: #ff69b4;
-            color: #23243a !important;
-            border-radius: 7px;
-            padding: 6px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            text-decoration: none;
-            box-shadow: 0 1px 6px #18192b44;
-            transition: background 0.15s, color 0.15s;
-            margin-right: 6px;
-            margin-bottom: 2px;
-        }
-        .btn-link:hover, .btn-download:hover {
-            background: #fff;
-            color: #ff69b4 !important;
-            box-shadow: 0 0 8px #ff69b4cc;
-            text-shadow: none;
-        }
-        @media (prefers-color-scheme: light) {
-            body {
-                background: linear-gradient(135deg, #fff 65%, #e2e7fa 100%);
-                color: #18192b;
-            }
-            .info-box {
-                background: #f4f4fa;
-                color: #222;
-            }
-            .value { color: #18192b; }
-        }
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
-                color: #f0e8ff;
-            }
-            .info-box {
-                background: #23243a;
-                color: #f0e8ff;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Page Title -->
+  <title>Approve Audiobook</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+
+  <!-- OG & Twitter Meta -->
+  <meta property="og:type" content="{{ og_type or 'website' }}">
+  <meta property="og:url" content="{{ og_url or request.url }}">
+  <meta property="og:title" content="{{ og_title or 'Audiobook Request System' }}">
+  <meta property="og:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
+  <meta property="og:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
+  <meta property="og:image:alt" content="{{ og_image_alt or 'Cartoon Quentin with tech and anime vibes, holding an audiobook.' }}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="{{ og_url or request.url }}">
+  <meta name="twitter:title" content="{{ og_title or 'Audiobook Request System' }}">
+  <meta name="twitter:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
+  <meta name="twitter:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
+
+  <style>
+    body {
+      font-family: Arial, 'Segoe UI', sans-serif;
+      background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
+      color: #f0e8ff;
+      max-width: 480px;
+      margin: 24px auto;
+      padding: 0 12px;
+    }
+    h2 {
+      color: #ff69b4;
+      text-shadow: 0 0 3px #ff69b4, 0 0 6px #222;
+      font-family: Arial, 'Segoe UI', sans-serif;
+      text-align: center;
+    }
+    .info-box {
+      background: #23243a;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px #000a;
+      padding: 22px 20px;
+      margin: 22px 0;
+      font-size: 1.12em;
+      line-height: 1.7;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      row-gap: 10px;
+      column-gap: 16px;
+      align-items: center;
+    }
+    .label {
+      color: #9be7ff;
+      font-weight: 600;
+      text-align: right;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+    .value {
+      color: #f0e8ff;
+      word-break: break-word;
+    }
+    a, button {
+      background: #29284a;
+      color: #fff;
+      border-radius: 9px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 2px;
+      text-decoration: none;
+    }
+    a:hover, button:hover {
+      background: #ff69b4;
+      color: #1a1a1a;
+      box-shadow: 0 0 8px #ff69b4aa;
+    }
+    .btnrow { display: flex; gap: 12px; margin-top: 12px; }
+    .btn-download, .btn-link {
+      background: #ff69b4;
+      color: #23243a !important;
+      border-radius: 7px;
+      padding: 6px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 1px 6px #18192b44;
+      transition: background 0.15s, color 0.15s;
+      margin-right: 6px;
+      margin-bottom: 2px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-download:hover, .btn-link:hover {
+      background: #fff;
+      color: #ff69b4 !important;
+      box-shadow: 0 0 8px #ff69b4cc;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px #000a;
+      margin-bottom: 18px;
+    }
+    @media (prefers-color-scheme: light) {
+      body {
+        background: linear-gradient(135deg, #fff 65%, #e2e7fa 100%);
+        color: #18192b;
+      }
+      .info-box {
+        background: #f4f4fa;
+        color: #222;
+      }
+      .value { color: #18192b; }
+    }
+  </style>
 </head>
 <body>
-    <h2>Approve Audiobook</h2>
-    <div class="info-box">
-        <div style="text-align:center;">
-            {% if cover_url %}
-            <img src="{{ cover_url }}" alt="Cover Image for {{ title }}" style="margin-bottom:18px;max-height:220px;" aria-label="Cover image for {{ title }}">
-            {% endif %}
-        </div>
-        <div class="info-grid">
-            <div class="label">📚 Title:</div>
-            <div class="value" aria-label="Title">{{ title }}</div>
-            <div class="label">✍️ Author:</div>
-            <div class="value" aria-label="Author">{{ author }}</div>
-            <div class="label">🏢 Publisher:</div>
-            <div class="value" aria-label="Publisher">{{ publisher }}</div>
-            <div class="label">🎤 Narrators:</div>
-            <div class="value" aria-label="Narrators">{{ narrators|join(', ') }}</div>
-            <div class="label">📅 Release Date:</div>
-            <div class="value" aria-label="Release Date">{{ release_date }}</div>
-            <div class="label">⏱️ Runtime:</div>
-            <div class="value" aria-label="Runtime">{{ runtime_minutes }} min</div>
-            <div class="label">📦 Size:</div>
-            <div class="value" aria-label="Size">{{ size|default('N/A') }}</div>
-            <div class="label">🔗 Info URL:</div>
-            <div class="value">
-                {% if url %}
-                <a href="{{ url }}" class="btn-link" target="_blank" rel="noopener" aria-label="Info page for {{ title }}">Info Page</a>
-                {% else %}<span style="color:#f55;">N/A</span>{% endif %}
-            </div>
-            <div class="label">⬇️ Download:</div>
-            <div class="value">
-                {% if download_url %}
-                <a href="{{ download_url }}" class="btn-download" target="_blank" rel="noopener" aria-label="Download torrent for {{ title }}">Download Torrent</a>
-                {% else %}<span style="color:#f55;">N/A</span>{% endif %}
-            </div>
-        </div>
-        <div style="margin-top:18px; text-align:center;">
-            <div class="btnrow">
-                <a href="/approve/{{ token }}/action" class="btn-link" style="background:#0a0;" aria-label="Approve audiobook request for {{ title }}">✅ Approve</a>
-                <a href="/reject/{{ token }}" class="btn-link" style="background:#a00;" aria-label="Reject audiobook request for {{ title }}">❌ Reject</a>
-            </div>
-        </div>
+  <h2>Approve Audiobook</h2>
+
+  <div class="info-box">
+    <!-- Optional Cover Image -->
+    <div style="text-align:center;">
+      {% if cover_url %}
+        <img src="{{ cover_url }}" alt="Cover Image for {{ title }}">
+      {% endif %}
     </div>
-    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
-        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+
+    <!-- Details Grid -->
+    <div class="info-grid">
+      <div class="label">📚 Title:</div>
+      <div class="value">{{ title }}</div>
+
+      <div class="label">✍️ Author:</div>
+      <div class="value">{{ author }}</div>
+
+      <div class="label">🏢 Publisher:</div>
+      <div class="value">{{ publisher }}</div>
+
+      <div class="label">🎤 Narrators:</div>
+      <div class="value">{{ narrators|join(', ') }}</div>
+
+      <div class="label">📅 Release Date:</div>
+      <div class="value">{{ release_date }}</div>
+
+      <div class="label">⏱️ Runtime:</div>
+      <div class="value">{{ runtime_minutes }} min</div>
+
+      <div class="label">📦 Size:</div>
+      <div class="value">{{ size|default('N/A') }}</div>
+
+      <div class="label">🔗 Info URL:</div>
+      <div class="value">
+        {% if url %}
+          <a href="{{ url }}" class="btn-link" target="_blank" rel="noopener">Info Page</a>
+        {% else %}
+          <span style="color:#f55;">N/A</span>
+        {% endif %}
+      </div>
+
+      <div class="label">⬇️ Download:</div>
+      <div class="value">
+        {% if download_url %}
+          <a href="{{ download_url }}" class="btn-download" target="_blank" rel="noopener">Download Torrent</a>
+        {% else %}
+          <span style="color:#f55;">N/A</span>
+        {% endif %}
+      </div>
     </div>
+
+    <!-- Approve / Reject Buttons -->
+    <div class="btnrow" style="justify-content:center;">
+      <a href="/approve/{{ token }}/action" class="btn-link" style="background:#0a0;">✅ Approve</a>
+      <a href="/reject/{{ token }}" class="btn-link" style="background:#a00;">❌ Reject</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
+    {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+  </div>
 </body>
 </html>

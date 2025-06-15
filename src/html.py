@@ -6,6 +6,9 @@ templates = Jinja2Templates(directory="templates")
 
 def render_template(request: Request, template_name: str, context: dict):
     """
-    Renders a Jinja2 template with the provided context.
+    Renders a Jinja2 template with the provided context, including the request.
     """
-    return templates.TemplateResponse(request, template_name, context)
+    # Inject 'request' into the template context as required by Jinja2Templates
+    full_context = {"request": request}
+    full_context.update(context or {})
+    return templates.TemplateResponse(template_name, full_context)

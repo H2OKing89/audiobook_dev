@@ -40,5 +40,5 @@ htmlcov/
 # Ignore config secrets
 config/config.yaml
 !config/config.yaml.example
-log/
+logs/
 db.sqlite
