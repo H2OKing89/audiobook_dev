@@ -202,14 +202,16 @@ def is_endpoint_protected(path: str) -> bool:
     if not auth_settings['endpoint_protection_enabled']:
         return False
     
-    # Check if path starts with any public endpoint pattern
+    # Check if path matches any public endpoint pattern
     for public_pattern in auth_settings['public_endpoints']:
-        if path.startswith(public_pattern):
+        # Handle exact matches and prefix matches
+        if path == public_pattern or path.startswith(public_pattern + '/'):
             return False
     
-    # Check if path starts with any protected endpoint pattern
+    # Check if path matches any protected endpoint pattern  
     for protected_pattern in auth_settings['protected_endpoints']:
-        if path.startswith(protected_pattern):
+        # Handle exact matches and prefix matches
+        if path == protected_pattern or path.startswith(protected_pattern + '/'):
             return True
     
     # Default behavior for unknown endpoints

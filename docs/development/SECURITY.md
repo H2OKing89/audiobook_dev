@@ -172,3 +172,21 @@ security:
 ## Reporting Security Issues
 
 Security issues should be reported privately to the system administrator.
+
+# Security Documentation
+
+## Latest Security Audits
+
+### ✅ Backend Security Audit - June 16, 2025
+**Status**: PASSED - All critical issues resolved  
+**Report**: [Backend Security Audit June 2025](../security/BACKEND_SECURITY_AUDIT_JUNE_2025.md)
+
+**Key Findings**:
+- Fixed critical admin endpoint exposure vulnerability
+- Resolved authentication bypass issues  
+- All 13 security tests passing
+- Risk Level: LOW ✅
+
+### Previous Audits
+- [Security Audit June 2025](../security/SECURITY_AUDIT_JUNE_2025.md) - Frontend/UI security
+- [Security Implementation Summary](../security/SECURITY_IMPLEMENTATION_SUMMARY.md) - Current controls

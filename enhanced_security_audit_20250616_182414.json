@@ -1,0 +1,1551 @@
+{
+  "audit_metadata": {
+    "timestamp": "2025-06-16T18:24:14.386957",
+    "target_url": "http://localhost:8000",
+    "total_tests": 191,
+    "risk_score": 0,
+    "risk_level": "LOW"
+  },
+  "summary": {
+    "critical_issues": 0,
+    "warnings": 0,
+    "info_passed": 191
+  },
+  "critical_issues": [],
+  "warnings": [],
+  "all_results": [
+    {
+      "timestamp": "2025-06-16T18:24:14.353719",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Home page",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.353930",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Static CSS",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.354103",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Health check",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.354270",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Favicon",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.354436",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Admin dashboard",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.354602",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Admin API",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.354762",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Configuration",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355022",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Log files",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355183",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Statistics",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355338",
+      "level": "ERROR",
+      "category": "Endpoint Access",
+      "test": "Error testing Debug info",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355494",
+      "level": "ERROR",
+      "category": "Token Validation",
+      "test": "Error testing Token approval",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355655",
+      "level": "ERROR",
+      "category": "Token Validation",
+      "test": "Error testing Token rejection",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355817",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-For bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.355975",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Real-IP bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.356135",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Originating-IP bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.356288",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Remote-IP bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.356439",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Client-IP bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.356698",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing True-Client-IP bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.356851",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Original-URL bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357006",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Rewrite-URL bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357154",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Host bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357304",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Host bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357450",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-Host bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357596",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing User-Agent bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357741",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Referer bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.357894",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Authorization bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.358090",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-API-Key bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.358353",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Admin bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.358511",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Authenticated bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.358666",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Auth-User bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.358849",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-User bypass",
+      "result": "/admin",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359018",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-For bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359178",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Real-IP bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359322",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Originating-IP bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359465",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Remote-IP bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359609",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Client-IP bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359753",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing True-Client-IP bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.359907",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Original-URL bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360213",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Rewrite-URL bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360367",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Host bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360516",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Host bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360667",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-Host bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360813",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing User-Agent bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.360961",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Referer bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361112",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Authorization bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361260",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-API-Key bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361405",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Admin bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361550",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Authenticated bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361704",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Auth-User bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.361976",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-User bypass",
+      "result": "/config",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362134",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-For bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362283",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Real-IP bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362431",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Originating-IP bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362579",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Remote-IP bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362727",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Client-IP bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.362871",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing True-Client-IP bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.363028",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Original-URL bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.363180",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Rewrite-URL bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.363328",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Host bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.363530",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Host bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.363870",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-Host bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364068",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing User-Agent bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364217",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Referer bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364363",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Authorization bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364509",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-API-Key bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364655",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Admin bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364802",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Authenticated bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.364953",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Auth-User bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.365137",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-User bypass",
+      "result": "/logs",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.365286",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-For bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.365435",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Real-IP bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.365711",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Originating-IP bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.365863",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Remote-IP bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366015",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Client-IP bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366162",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing True-Client-IP bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366308",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Original-URL bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366454",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Rewrite-URL bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366617",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Host bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366780",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Host bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.366926",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Forwarded-Host bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367091",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing User-Agent bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367248",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Referer bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367533",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing Authorization bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367687",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-API-Key bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367837",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Admin bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.367987",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Authenticated bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368135",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-Auth-User bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368319",
+      "level": "ERROR",
+      "category": "Auth Bypass",
+      "test": "Error testing X-User bypass",
+      "result": "/debug",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368481",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368639",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368796",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.368947",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/..%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.369107",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/..%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.369387",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/..\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.369543",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/..%5cadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.369694",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/%2e%2e%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.369844",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/%252e%252e%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370034",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/....//admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370187",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/....\\\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370338",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370494",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370644",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.370801",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/approve/../../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371123",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371286",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371446",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371597",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/..%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371749",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/..%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.371900",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/..\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.372054",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/..%5cadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.372211",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/%2e%2e%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.372419",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/%252e%252e%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.372626",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/....//admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.372785",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/....\\\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.373359",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.373522",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.373678",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.373834",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/reject/../../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374031",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374185",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374343",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374494",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/..%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374644",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/..%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374793",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/..\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.374943",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/..%5cadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.375268",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/%2e%2e%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.375420",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/%252e%252e%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.375637",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/....//admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.375786",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/....\\\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.375938",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376095",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376244",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376394",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/static/../../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376544",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376696",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.376850",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../../../admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377137",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/..%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377294",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/..%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377446",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/..\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377601",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/..%5cadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377751",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/%2e%2e%2fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.377899",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/%252e%252e%252fadmin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.378051",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/....//admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.378201",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/....\\\\admin",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.378351",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.378571",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../../config",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.378909",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379116",
+      "level": "INFO",
+      "category": "Path Traversal",
+      "test": "Path traversal test failed",
+      "result": "/api/../../logs",
+      "details": "Request failed - likely blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379297",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "' OR '1'='1",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379465",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "'; DROP TABLE tokens; --",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379623",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "' UNION SELECT * FROM requests --",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379778",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "admin'--",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.379934",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "admin' OR 1=1--",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.380092",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "1' OR '1'='1",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.380251",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "'; WAITFOR DELAY '00:00:05'--",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.380410",
+      "level": "INFO",
+      "category": "SQL Injection",
+      "test": "SQL injection test failed",
+      "result": "'; SELECT SLEEP(5)--",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.380567",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "<script>alert('xss')</script>",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.380860",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "<img src=x onerror=alert('xss')>",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381030",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "javascript:alert('xss')",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381186",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "';alert('xss');//",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381341",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "<svg onload=alert('xss')>",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381499",
+      "level": "INFO",
+      "category": "XSS Injection",
+      "test": "XSS test failed",
+      "result": "\">'><script>alert('xss')</script>",
+      "details": "Request failed - likely input validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381692",
+      "level": "ERROR",
+      "category": "Webhook Security",
+      "test": "Error testing webhook auth",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.381860",
+      "level": "INFO",
+      "category": "Webhook Validation",
+      "test": "Malformed payload test #1 failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.382024",
+      "level": "INFO",
+      "category": "Webhook Validation",
+      "test": "Malformed payload test #2 failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.382187",
+      "level": "INFO",
+      "category": "Webhook Validation",
+      "test": "Malformed payload test #3 failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.382349",
+      "level": "INFO",
+      "category": "Webhook Validation",
+      "test": "Malformed payload test #4 failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.382506",
+      "level": "INFO",
+      "category": "Webhook Validation",
+      "test": "Malformed payload test #5 failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely validation working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.383461",
+      "level": "INFO",
+      "category": "Webhook Size Limits",
+      "test": "Oversized payload test failed",
+      "result": "EXCEPTION",
+      "details": "Request failed - likely size limits working"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.383636",
+      "level": "INFO",
+      "category": "Rate Limiting",
+      "test": "Rate limiting test inconclusive",
+      "result": "0 successful requests",
+      "details": "Could not determine rate limiting behavior"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.383788",
+      "level": "ERROR",
+      "category": "Security Headers",
+      "test": "Error testing security headers",
+      "result": "EXCEPTION",
+      "details": "Cannot connect to host localhost:8000 ssl:default [Connect call failed ('127.0.0.1', 8000)]"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.383937",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PUT on /",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384082",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "DELETE on /",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384220",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PATCH on /",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384355",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "TRACE on /",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384493",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "CONNECT on /",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384630",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PUT on /admin",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384768",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "DELETE on /admin",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.384905",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PATCH on /admin",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385190",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "TRACE on /admin",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385333",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "CONNECT on /admin",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385484",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PUT on /approve/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385624",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "DELETE on /approve/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385762",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PATCH on /approve/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.385897",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "TRACE on /approve/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386038",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "CONNECT on /approve/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386185",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PUT on /reject/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386321",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "DELETE on /reject/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386461",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "PATCH on /reject/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386597",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "TRACE on /reject/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    },
+    {
+      "timestamp": "2025-06-16T18:24:14.386870",
+      "level": "INFO",
+      "category": "HTTP Methods",
+      "test": "CONNECT on /reject/test",
+      "result": "BLOCKED",
+      "details": "Method properly blocked"
+    }
+  ],
+  "recommendations": {
+    "immediate_action_required": false,
+    "security_improvements_needed": false,
+    "overall_security_posture": "LOW"
+  }
+}
