@@ -3,7 +3,8 @@ import requests
 import logging
 from typing import Any, Dict, Optional, Tuple, List
 from src.utils import clean_light_novel, format_release_date, format_size
-# from src.utils import build_notification_message
+
+
 def send_ntfy(
     metadata: Dict[str, Any],
     payload: Dict[str, Any],
