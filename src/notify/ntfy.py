@@ -2,7 +2,7 @@ import os
 import requests
 import logging
 from typing import Any, Dict, Optional, Tuple, List
-from src.utils import clean_light_novel, format_release_date, format_size
+from src.utils import get_notification_fields
 
 
 def send_ntfy(
@@ -23,25 +23,22 @@ def send_ntfy(
     """
     logging.info(f"Preparing ntfy notification for topic={ntfy_topic} at {ntfy_url}")
     # Build message body (Markdown)
-    title = clean_light_novel(metadata.get('title', 'New Audiobook'))
-    series_info = metadata.get('series_primary', {})
-    series = clean_light_novel(series_info.get('name'))
-    if series and series_info.get('position'):
-        series = f"{series} (Vol. {series_info['position']})"
-    author = metadata.get('author', '')
-    publisher = metadata.get('publisher', '')
-    narrators = ', '.join(metadata.get('narrators', []))
-    release_date = format_release_date(metadata.get('release_date', ''))
-    runtime = str(metadata.get('runtime_minutes', ''))
-    category = payload.get('category', '')
-    size = payload.get('size') or metadata.get('size')
-    size_fmt = format_size(size)
-    description = metadata.get('description', '')
-    url = payload.get('url') or metadata.get('url')
-    download_url = payload.get('download_url') or metadata.get('download_url')
+    fields = get_notification_fields(metadata, payload)
+    title = fields['title']
+    series = fields['series']
+    author = fields['author']
+    publisher = fields['publisher']
+    narrators = ', '.join(fields['narrators'])
+    release_date = fields['release_date']
+    runtime = fields['runtime']
+    category = fields['category']
+    size_fmt = fields['size']
+    description = fields['description']
+    url = fields['url']
+    download_url = fields['download_url']
+    cover_url = fields['cover_url']
     approve_url = f"{base_url}/approve/{token}/action"
     reject_url = f"{base_url}/reject/{token}"
-    cover_url = metadata.get('cover_url') or metadata.get('image')
     msg_lines = [
         f"- 🎧 **Title:** {title}",
         f"- 🔗 **Series:** {series}" if series else None,

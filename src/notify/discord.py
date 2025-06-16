@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, Tuple
 from src.config import load_config
-from src.utils import format_size, format_release_date, strip_html_tags
+from src.utils import get_notification_fields
 
 
 def escape_md(text: Optional[str]) -> str:
@@ -39,42 +39,32 @@ def send_discord(
     key = re.sub(r'[^a-z]', '', category.split('/')[-1].split('-')[-1].split('&')[0].strip())
     emoji = emoji_tbl.get(key, '📚')
 
-    # Compose fields using cleaned info
-    def clean_light_novel(text):
-        if not text:
-            return text
-        return text.replace('(Light Novel)', '').replace('(light novel)', '').strip()
-
-    title = clean_light_novel(metadata.get('title', ''))
-    series_info = metadata.get('series_primary', {})
-    series = clean_light_novel(series_info.get('name'))
-    if series and series_info.get('position'):
-        series = f"{series} (Vol. {series_info['position']})"
-    author = metadata.get('author', '')
-    publisher = metadata.get('publisher', '')
-    narrators = ', '.join(metadata.get('narrators', []))
-    release_date = format_release_date(metadata.get('release_date', ''))
-    runtime = str(metadata.get('runtime_minutes', ''))
-    size = payload.get('size') or metadata.get('size')
-    size_fmt = format_size(size)
-    # Clean HTML from description
-    raw_desc = metadata.get('description', '')
-    description = strip_html_tags(raw_desc)
-    url = payload.get('url') or metadata.get('url')
-    download_url = payload.get('download_url') or metadata.get('download_url')
+    # Sanitize and extract common fields
+    fields = get_notification_fields(metadata, payload)
+    title = escape_md(fields['title'])
+    series = escape_md(fields['series'])
+    author = escape_md(fields['author'])
+    publisher = escape_md(fields['publisher'])
+    narrators = escape_md(', '.join(fields['narrators']))
+    release_date = escape_md(fields['release_date'])
+    runtime = escape_md(fields['runtime'])
+    size_fmt = escape_md(fields['size'])
+    description = escape_md(fields['description'])
+    url = fields['url']
+    download_url = fields['download_url']
 
     # Build description block
     desc_lines = [
-        f"🎧 **Title:** {escape_md(title)}",
-        f"🔗 **Series:** {escape_md(series)}" if series else None,
-        f"✍️ **Author:** {escape_md(author)}" if author else None,
-        f"🏢 **Publisher:** {escape_md(publisher)}" if publisher else None,
-        f"🎤 **Narrators:** {escape_md(narrators)}" if narrators else None,
-        f"📅 **Release Date:** {escape_md(release_date)}" if release_date else None,
-        f"⏱️ **Runtime:** {escape_md(runtime)}" if runtime else None,
-        f"📚 **Category:** {escape_md(category)}" if category else None,
-        f"💾 **Size:** {escape_md(size_fmt)}" if size_fmt else None,
-        f"📝 **Description:** {escape_md(description)}" if description else None,
+        f"🎧 **Title:** {title}",
+        f"🔗 **Series:** {series}" if series else None,
+        f"✍️ **Author:** {author}" if author else None,
+        f"🏢 **Publisher:** {publisher}" if publisher else None,
+        f"🎤 **Narrators:** {narrators}" if narrators else None,
+        f"📅 **Release Date:** {release_date}" if release_date else None,
+        f"⏱️ **Runtime:** {runtime}" if runtime else None,
+        f"📚 **Category:** {category}" if category else None,
+        f"💾 **Size:** {size_fmt}" if size_fmt else None,
+        f"📝 **Description:** {description}" if description else None,
         '',
         (f"[🌐 View]({url})" if url else "") + (f" | [📥 Download]({download_url})" if download_url else ""),
         f"[✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})"

@@ -1,8 +1,9 @@
 import requests
 from typing import Any, Dict, Optional, Tuple
-from src.utils import build_notification_message
+from src.utils import build_notification_message, get_notification_fields
 import os
 import tempfile
+from html import escape
 
 
 def send_pushover(
@@ -21,7 +22,27 @@ def send_pushover(
     Returns (status_code, response_json).
     Raises requests.RequestException for network errors.
     """
-    message = build_notification_message(metadata, payload, token, base_url)
+    fields = get_notification_fields(metadata, payload)
+    message = (
+        '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
+        f'<font color="#30bfff"><b>🎧 Title:</b></font> <b>{escape(fields["title"])}</b><br>'
+        f'<font color="#e040fb"><b>🔗 Series:</b></font> {escape(fields["series"])}<br>'
+        f'<font color="#ff9500"><b>✍️ Author:</b></font> <i>{escape(fields["author"])}</i><br>'
+        f'<font color="#30bfff"><b>🏢 Publisher:</b></font> {escape(fields["publisher"])}<br>'
+        f'<font color="#b889f4"><b>🎤 Narrators:</b></font> {escape(", ".join(fields["narrators"]))}<br>'
+        f'<font color="#ff9500"><b>📅 Release Date:</b></font> {escape(fields["release_date"])}<br>'
+        f'<font color="green"><b>⏱️ Runtime:</b></font> {escape(fields["runtime"])}<br>'
+        f'<font color="#b889f4"><b>📚 Category:</b></font> {escape(fields["category"])}<br>'
+        f'<font color="#888"><b>💾 Size:</b></font> {fields["size"]}<br>'
+        f'<font color="#888"><b>📝 Description:</b></font> {fields["description"]}<br>'
+    )
+    # Add url and download_url
+    if fields['url']:
+        message += f'<br><font color="#30bfff"><b>🔗 URL:</b></font> <a href="{escape(fields["url"])}">{escape(fields["url"])}</a>'
+    if fields['download_url']:
+        message += f'<br><font color="#30bfff"><b>⬇️ Download:</b></font> <a href="{escape(fields["download_url"])}">{escape(fields["download_url"])}</a>'
+    message += f'<br><br><a href="{base_url}/approve/{token}">✅ Approve</a> <a href="{base_url}/reject/{token}">❌ Reject</a><br>'
+
     url = "https://api.pushover.net/1/messages.json"
     payload_data = {
         "token": api_token,

@@ -139,3 +139,40 @@ def build_notification_message(metadata: Dict[str, Any], payload: Dict[str, Any]
         msg += f'<br><font color="#30bfff"><b>⬇️ Download:</b></font> <a href="{escape(download_url)}">{escape(download_url)}</a>'
     msg += f'<br><br><a href="{base_url}/approve/{token}">✅ Approve</a> <a href="{base_url}/reject/{token}">❌ Reject</a><br>'
     return msg
+
+
+def get_notification_fields(metadata: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract and sanitize common fields for notification formatting.
+    """
+    title = clean_light_novel(metadata.get('title', '')) or ''
+    series_info = metadata.get('series_primary', {})
+    series = clean_light_novel(series_info.get('name', ''))
+    if series and series_info.get('position'):
+        series = f"{series} (Vol. {series_info['position']})"
+    author = metadata.get('author', '')
+    publisher = metadata.get('publisher', '')
+    narrators = payload.get('narrators', metadata.get('narrators', []))
+    release_date = format_release_date(metadata.get('release_date', ''))
+    runtime = str(metadata.get('runtime_minutes', ''))
+    category = payload.get('category', '')
+    size = format_size(payload.get('size') or metadata.get('size'))
+    description = strip_html_tags(metadata.get('summary') or metadata.get('description', ''))
+    url = payload.get('url') or metadata.get('url')
+    download_url = payload.get('download_url') or metadata.get('download_url')
+    cover_url = metadata.get('cover_url') or metadata.get('image')
+    return {
+        'title': title,
+        'series': series,
+        'author': author,
+        'publisher': publisher,
+        'narrators': narrators,
+        'release_date': release_date,
+        'runtime': runtime,
+        'category': category,
+        'size': size,
+        'description': description,
+        'url': url,
+        'download_url': download_url,
+        'cover_url': cover_url,
+    }
