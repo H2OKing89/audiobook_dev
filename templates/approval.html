@@ -1,190 +1,217 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Page Title -->
-  <title>Approve Audiobook</title>
+{% extends "base.html" %}
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+{% block body_class %}approval-page{% endblock %}
 
-  <!-- OG & Twitter Meta -->
-  <meta property="og:type" content="{{ og_type or 'website' }}">
-  <meta property="og:url" content="{{ og_url or request.url }}">
-  <meta property="og:title" content="{{ og_title or 'Audiobook Request System' }}">
-  <meta property="og:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
-  <meta property="og:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
-  <meta property="og:image:alt" content="{{ og_image_alt or 'Cartoon Quentin with tech and anime vibes, holding an audiobook.' }}">
+{% block title %}🎧 Approval Zone - {{ title or name or 'Mystery Audiobook' }}{% endblock %}
 
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="{{ og_url or request.url }}">
-  <meta name="twitter:title" content="{{ og_title or 'Audiobook Request System' }}">
-  <meta name="twitter:description" content="{{ og_description or "Request audiobooks, track approvals, and join Quentin's cyberpunk library. No dad jokes required (but encouraged)." }}">
-  <meta name="twitter:image" content="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/pages/approval.css">
+<script src="/static/js/pages/approval.js" defer></script>
+{% endblock %}
 
-  <style>
-    body {
-      font-family: Arial, 'Segoe UI', sans-serif;
-      background: linear-gradient(140deg, #18192b 70%, #28234a 100%);
-      color: #f0e8ff;
-      max-width: 480px;
-      margin: 24px auto;
-      padding: 0 12px;
-    }
-    h2 {
-      color: #ff69b4;
-      text-shadow: 0 0 3px #ff69b4, 0 0 6px #222;
-      font-family: Arial, 'Segoe UI', sans-serif;
-      text-align: center;
-    }
-    .info-box {
-      background: #23243a;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px #000a;
-      padding: 22px 20px;
-      margin: 22px 0;
-      font-size: 1.12em;
-      line-height: 1.7;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: max-content 1fr;
-      row-gap: 10px;
-      column-gap: 16px;
-      align-items: center;
-    }
-    .label {
-      color: #9be7ff;
-      font-weight: 600;
-      text-align: right;
-      white-space: nowrap;
-      letter-spacing: 0.01em;
-    }
-    .value {
-      color: #f0e8ff;
-      word-break: break-word;
-    }
-    a, button {
-      background: #29284a;
-      color: #fff;
-      border-radius: 9px;
-      border: none;
-      padding: 7px 14px;
-      font-size: 15px;
-      cursor: pointer;
-      margin: 2px;
-      text-decoration: none;
-    }
-    a:hover, button:hover {
-      background: #ff69b4;
-      color: #1a1a1a;
-      box-shadow: 0 0 8px #ff69b4aa;
-    }
-    .btnrow { display: flex; gap: 12px; margin-top: 12px; }
-    .btn-download, .btn-link {
-      background: #ff69b4;
-      color: #23243a !important;
-      border-radius: 7px;
-      padding: 6px 18px;
-      font-size: 15px;
-      font-weight: 600;
-      box-shadow: 0 1px 6px #18192b44;
-      transition: background 0.15s, color 0.15s;
-      margin-right: 6px;
-      margin-bottom: 2px;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .btn-download:hover, .btn-link:hover {
-      background: #fff;
-      color: #ff69b4 !important;
-      box-shadow: 0 0 8px #ff69b4cc;
-    }
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px #000a;
-      margin-bottom: 18px;
-    }
-    @media (prefers-color-scheme: light) {
-      body {
-        background: linear-gradient(135deg, #fff 65%, #e2e7fa 100%);
-        color: #18192b;
-      }
-      .info-box {
-        background: #f4f4fa;
-        color: #222;
-      }
-      .value { color: #18192b; }
-    }
-  </style>
-</head>
-<body>
-  <h2>Approve Audiobook</h2>
-
-  <div class="info-box">
-    <!-- Optional Cover Image -->
-    <div style="text-align:center;">
-      {% if cover_url %}
-        <img src="{{ cover_url }}" alt="Cover Image for {{ title }}">
-      {% endif %}
-    </div>
-
-    <!-- Details Grid -->
-    <div class="info-grid">
-      <div class="label">📚 Title:</div>
-      <div class="value">{{ title }}</div>
-
-      <div class="label">✍️ Author:</div>
-      <div class="value">{{ author }}</div>
-
-      <div class="label">🏢 Publisher:</div>
-      <div class="value">{{ publisher }}</div>
-
-      <div class="label">🎤 Narrators:</div>
-      <div class="value">{{ narrators|join(', ') }}</div>
-
-      <div class="label">📅 Release Date:</div>
-      <div class="value">{{ release_date }}</div>
-
-      <div class="label">⏱️ Runtime:</div>
-      <div class="value">{{ runtime_minutes }} min</div>
-
-      <div class="label">📦 Size:</div>
-      <div class="value">{{ size|default('N/A') }}</div>
-
-      <div class="label">🔗 Info URL:</div>
-      <div class="value">
-        {% if url %}
-          <a href="{{ url }}" class="btn-link" target="_blank" rel="noopener">Info Page</a>
-        {% else %}
-          <span style="color:#f55;">N/A</span>
-        {% endif %}
+{% block content %}
+<div class="approval-zone">
+  <div class="glitch-container">
+    
+    <!-- Fun Header -->
+    <header class="zone-header">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="terminal-content">
+          <div class="typing-text">
+            <span class="prompt">quentin@audiobook-hq:~$</span> 
+            <span class="command">审批模式已激活 // APPROVAL MODE ACTIVATED</span>
+          </div>
+        </div>
       </div>
-
-      <div class="label">⬇️ Download:</div>
-      <div class="value">
-        {% if download_url %}
-          <a href="{{ download_url }}" class="btn-download" target="_blank" rel="noopener">Download Torrent</a>
-        {% else %}
-          <span style="color:#f55;">N/A</span>
-        {% endif %}
+      <div class="status-bar">
+        <span class="status-item">STATUS: <span class="status-pending">PENDING REVIEW</span></span>
+        <span class="status-item">PRIORITY: <span class="status-high">HIGH</span></span>
+        <span class="status-item">TOKEN: <span class="status-token">{{ token }}</span></span>
       </div>
-    </div>
+    </header>
 
-    <!-- Approve / Reject Buttons -->
-    <div class="btnrow" style="justify-content:center;">
-      <a href="/approve/{{ token }}/action" class="btn-link" style="background:#0a0;">✅ Approve</a>
-      <a href="/reject/{{ token }}" class="btn-link" style="background:#a00;">❌ Reject</a>
-    </div>
-  </div>
+    <!-- Main Content Viewport -->
+    <main class="content-viewport">
+      <div class="book-scanner">
+        <div class="scanner-line"></div>
+        
+        <!-- Book Info Panel -->
+        <section class="book-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">📁 INCOMING TRANSMISSION</h2>
+            <div class="signal-strength">
+              <span class="signal-bar"></span>
+              <span class="signal-bar"></span>
+              <span class="signal-bar"></span>
+              <span class="signal-bar"></span>
+            </div>
+          </div>
 
-  <!-- Footer -->
-  <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
-    {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
+          <div class="book-layout">
+            <!-- Compact Cover -->
+            {% if cover_url or image %}
+            <div class="cover-mini">
+              <div class="cover-frame-mini">
+                <img src="{{ cover_url or image }}" 
+                     alt="Cover: {{ title or name or 'Unknown Title' }}"
+                     class="cover-img"
+                     onerror="this.parentElement.innerHTML='<div class=&quot;cover-fallback&quot;>�</div>'">
+                <div class="cover-scan-effect"></div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Book Data -->
+            <div class="book-data">
+              <h3 class="book-title">{{ title or name or '[ TITLE_NOT_FOUND ]' }}</h3>
+              <div class="book-meta">
+                <div class="meta-row">
+                  <span class="meta-label">AUTHOR:</span>
+                  <span class="meta-value">{{ author or 'UNKNOWN_ENTITY' }}</span>
+                </div>
+                {% if narrator %}
+                <div class="meta-row">
+                  <span class="meta-label">NARRATOR:</span>
+                  <span class="meta-value">{{ narrator }}</span>
+                </div>
+                {% endif %}
+                {% if series %}
+                <div class="meta-row">
+                  <span class="meta-label">SERIES:</span>
+                  <span class="meta-value">{{ series }}</span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          {% if description %}
+          <div class="description-panel">
+            <div class="panel-subheader">📝 SYNOPSIS.TXT</div>
+            <div class="description-content">{{ description|safe }}</div>
+          </div>
+          {% endif %}
+
+          <!-- Tech Specs -->
+          <div class="specs-grid">
+            {% if duration %}
+            <div class="spec-card">
+              <div class="spec-icon">⏱️</div>
+              <div class="spec-data">
+                <div class="spec-label">DURATION</div>
+                <div class="spec-value">{{ duration }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if release_date %}
+            <div class="spec-card">
+              <div class="spec-icon">📅</div>
+              <div class="spec-data">
+                <div class="spec-label">RELEASED</div>
+                <div class="spec-value">{{ release_date }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if genre %}
+            <div class="spec-card">
+              <div class="spec-icon">�</div>
+              <div class="spec-data">
+                <div class="spec-label">GENRE</div>
+                <div class="spec-value">{{ genre }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if publisher %}
+            <div class="spec-card">
+              <div class="spec-icon">�</div>
+              <div class="spec-data">
+                <div class="spec-label">PUBLISHER</div>
+                <div class="spec-value">{{ publisher }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if size %}
+            <div class="spec-card">
+              <div class="spec-icon">💾</div>
+              <div class="spec-data">
+                <div class="spec-label">FILE_SIZE</div>
+                <div class="spec-value">{{ size }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if url %}
+            <div class="spec-card spec-wide">
+              <div class="spec-icon">🔗</div>
+              <div class="spec-data">
+                <div class="spec-label">SOURCE_LINK</div>
+                <div class="spec-value">
+                  <a href="{{ url }}" target="_blank" rel="noopener noreferrer" class="source-link">
+                    🌐 VIEW_ORIGINAL.EXE
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </section>
+
+        <!-- Action Console -->
+        <section class="action-console">
+          <div class="console-header">
+            <h3>⚡ DECISION MATRIX</h3>
+            <div class="warning-text">⚠️ IRREVERSIBLE_OPERATION ⚠️</div>
+          </div>
+          
+          <div class="button-array">
+            <a href="/approve/{{ token }}/action" class="matrix-btn approve-matrix">
+              <div class="btn-glow"></div>
+              <div class="btn-content">
+                <span class="btn-icon">✅</span>
+                <span class="btn-text">APPROVE.EXE</span>
+                <span class="btn-hotkey">[A]</span>
+              </div>
+              <div class="btn-shimmer"></div>
+            </a>
+            
+            <a href="/reject/{{ token }}" class="matrix-btn reject-matrix">
+              <div class="btn-glow"></div>
+              <div class="btn-content">
+                <span class="btn-icon">❌</span>
+                <span class="btn-text">REJECT.EXE</span>
+                <span class="btn-hotkey">[R]</span>
+              </div>
+              <div class="btn-shimmer"></div>
+            </a>
+          </div>
+
+          <div class="footer-note">
+            <span class="note-icon">🔒</span>
+            Action logged to blockchain. No takebacks, chief.
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- System Footer -->
+    <footer class="system-footer">
+      <div class="footer-stats">
+        <span>UPTIME: 99.9%</span>
+        <span>CPU: 12%</span>
+        <span>MEMORY: 420MB</span>
+        <span>DAD_JOKES: ∞</span>
+      </div>
+    </footer>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}

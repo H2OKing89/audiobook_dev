@@ -260,7 +260,7 @@ async def check_endpoint_authorization(request: Request) -> Optional[Response]:
     logging.warning(f"Unauthorized access attempt to {path} from IP: {client_ip}")
     
     # Return 401 response with HTML template
-    from src.html import render_template
+    from src.template_helpers import render_template
     try:
         response = render_template(request, '401_page.html', {
             'requested_path': path,

@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from typing import Any, Optional
 from src.metadata import fetch_metadata
 from src.token_gen import verify_token
-from src.html import render_template
+from src.template_helpers import render_template
 from src.db import get_request  # use persistent DB store
 from src.utils import format_release_date, format_size
 import logging
@@ -362,4 +362,28 @@ async def admin_dashboard(request: Request) -> HTMLResponse:
         
     except Exception as e:
         logging.error(f"Failed to render admin dashboard: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/test-approval", response_class=HTMLResponse)
+async def test_approval(request: Request) -> HTMLResponse:
+    """Simple test approval page"""
+    response = render_template(request, 'test_approval.html', {})
+    return response
+
+@router.get("/approve/{token}/minimal", response_class=HTMLResponse)
+async def approve_minimal(token: str, request: Request) -> HTMLResponse:
+    """Minimal approval page for testing"""
+    try:
+        entry = get_request(token)
+        if not entry:
+            return render_template(request, 'token_expired.html', {})
+        
+        metadata = entry.get('metadata') or {}
+        payload = entry.get('payload') or {}
+        context = {'token': token, **payload, **metadata}
+        
+        response = render_template(request, 'approval_minimal.html', context)
+        return response
+    except Exception as e:
+        logging.error(f"Error in minimal approval: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

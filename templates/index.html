@@ -4,103 +4,184 @@
 
 {% block head_extra %}
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/pages/home.css">
 {% endblock %}
 
+{% block body_class %}home-page{% endblock %}
+
 {% block content %}
-<body class="home-page">
 <div class="home-container">
-    <div class="mascot-banner">
-        <img src="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png"
-             alt="Quentin's Audiobook Automation Mascot"
-             class="mascot-img"
-             draggable="false"
-             loading="eager"
-        >
-        <!-- Cat tail Easter egg overlay -->
-        <svg class="cat-tail" viewBox="0 0 21 48" fill="none">
-            <path d="M10,0 Q18,22 6,37 Q-2,48 19,47"
-                  stroke="#b4916e"
-                  stroke-width="3.2"
-                  fill="none"/>
-        </svg>
-    </div>
-    
-    <h1>Welcome to Audiobook HQ</h1>
-    <div class="dynamic-tagline" id="dynamicTag">Loading witty automation wisdom...</div>
-    
-    <div class="main-box">
-        <div class="emoji-header">🎧</div>
-        <div class="quick-links">
-            <a href="/audiobook-requests" class="quick-link-btn" aria-label="Request New Audiobook">
-                📚 Request Audiobook
-            </a>
-            <a href="/requests" class="quick-link-btn" aria-label="Browse All Requests">
-                � Browse Requests
-            </a>
-            <a href="https://github.com/kingpaging/audiobook-automation" class="quick-link-btn" target="_blank" rel="noopener" aria-label="View Documentation">
-                🛠️ View Docs
-            </a>
-            <button class="quick-link-btn" aria-label="Contact the Overlord" data-action="contact">
-                📞 Call Quentin
-            </button>
+    <!-- Header Section -->
+    <header class="home-header">
+        <div class="mascot-banner">
+            <img src="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png"
+                 alt="Quentin's Audiobook Automation Mascot"
+                 class="mascot-img"
+                 draggable="false"
+                 loading="eager"
+            >
+            <!-- Cat tail Easter egg overlay -->
+            <svg class="cat-tail" viewBox="0 0 21 48" fill="none">
+                <path d="M10,0 Q18,22 6,37 Q-2,48 19,47"
+                      stroke="#b4916e"
+                      stroke-width="3.2"
+                      fill="none"/>
+            </svg>
         </div>
         
-        <p class="main-desc">
-            Welcome to your personal audiobook automation empire! 🏰 This is where requests get processed, 
-            algorithms make questionable decisions, and your listening queue gets managed with the precision 
-            of a caffeinated robot.
-        </p>
-        
-        <div class="call-to-action">
-            Ready to let the machines handle your audiobook chaos? 🤖✨
+        <h1 class="main-title">
+            <span class="title-accent">🎧</span>
+            Audiobook Automation HQ
+            <span class="title-accent">🤖</span>
+        </h1>
+        <div class="dynamic-tagline" id="dynamicTag">Loading witty automation wisdom...</div>
+    </header>
+
+    <!-- Main Action Section -->
+    <main class="main-content">
+        <div class="main-box">
+            <div class="status-indicator">
+                <div class="pulse-dot"></div>
+                <span>System Online</span>
+            </div>
+            
+            <div class="quick-links">
+                <a href="/audiobook-requests" class="quick-link-btn primary" aria-label="Request New Audiobook">
+                    <span class="btn-icon">📚</span>
+                    <span class="btn-text">Request Audiobook</span>
+                </a>
+                <a href="/requests" class="quick-link-btn secondary" aria-label="Browse All Requests">
+                    <span class="btn-icon">📋</span>
+                    <span class="btn-text">Browse Requests</span>
+                </a>
+                <a href="https://github.com/kingpaging/audiobook-automation" class="quick-link-btn tertiary" target="_blank" rel="noopener" aria-label="View Documentation">
+                    <span class="btn-icon">🛠️</span>
+                    <span class="btn-text">View Docs</span>
+                </a>
+                <button class="quick-link-btn contact" aria-label="Contact the Overlord" data-action="contact">
+                    <span class="btn-icon">📞</span>
+                    <span class="btn-text">Call Quentin</span>
+                </button>
+            </div>
+            
+            <div class="description-section">
+                <p class="main-desc">
+                    Welcome to your personal audiobook automation empire! 🏰 
+                    <br>
+                    This is where requests get processed, algorithms make questionable decisions, 
+                    and your listening queue gets managed with the precision of a caffeinated robot.
+                </p>
+                
+                <div class="call-to-action">
+                    <span class="cta-text">Ready to let the machines handle your audiobook chaos?</span>
+                    <span class="cta-emoji">🤖✨</span>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <h2 class="section-title">What Makes This Special?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Lightning Fast</h3>
+                <p>Automated processing that's faster than you can say "audiobook"</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Smart Decisions</h3>
+                <p>AI-powered recommendations (that sometimes make sense)</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Cyberpunk Vibes</h3>
+                <p>Because why be boring when you can be neon?</p>
+            </div>
+        </div>
+    </section>
     
-    <div class="about-section">
-        <details>
+    <!-- About Section -->
+    <section class="about-section">
+        <details class="about-details">
             <summary class="about-summary">What's this beautiful chaos all about?</summary>
             <div class="about-content">
-                <b>"Built by Quentin during a legendary caffeine bender, this project represents the pinnacle of audiobook automation overkill."</b>
-                <br><br>
+                <div class="about-intro">
+                    <strong>"Built by Quentin during a legendary caffeine bender, this project represents the pinnacle of audiobook automation overkill."</strong>
+                </div>
                 
-                <span style="color:#9be7ff; font-weight:600;">🚀 The Mission:</span><br>
-                Transform your audiobook management from a chaotic free-for-all into a well-oiled, automated machine that would make even the most obsessive librarian weep tears of joy.
-                
-                <br><br>
-                <span style="color:#ffb347; font-weight:600;">🎯 The Result:</span><br>
-                Approval workflows, smart notifications, rejection handling, and enough automation to make your audiobooks organize themselves (almost).
-                
-                <br><br>
-                <span style="color:#ff69b4; font-weight:600;">🎪 The Experience:</span><br>
-                Part productivity tool, part entertainment system, 100% unnecessarily over-engineered for maximum satisfaction.
+                <div class="about-points">
+                    <div class="about-point">
+                        <span class="point-label">🚀 The Mission:</span>
+                        <p>Transform your audiobook management from a chaotic free-for-all into a well-oiled, automated machine that would make even the most obsessive librarian weep tears of joy.</p>
+                    </div>
+                    
+                    <div class="about-point">
+                        <span class="point-label">🎯 The Result:</span>
+                        <p>Approval workflows, smart notifications, rejection handling, and enough automation to make your audiobooks organize themselves (almost).</p>
+                    </div>
+                    
+                    <div class="about-point">
+                        <span class="point-label">🎪 The Experience:</span>
+                        <p>Part productivity tool, part entertainment system, 100% unnecessarily over-engineered for maximum satisfaction.</p>
+                    </div>
+                </div>
             </div>
         </details>
-    </div>
+    </section>
     
-    <div class="footer" id="footer">Powered by Quentin's Legendary Overkill Engineering™ 🤖</div>
+    <!-- Footer -->
+    <footer class="home-footer">
+        <div class="footer-content" id="footer">Powered by Quentin's Legendary Overkill Engineering™ 🤖</div>
+        <div class="footer-stats">
+            <span class="stat-item">
+                <span class="stat-value" id="uptimeCounter">99.9%</span>
+                <span class="stat-label">Uptime</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-value">∞</span>
+                <span class="stat-label">Sass Level</span>
+            </span>
+        </div>
+    </footer>
     
+    <!-- Interactive Elements -->
     <!-- High contrast toggle -->
-    <button class="contrast-toggle" id="contrastToggle" aria-label="Toggle High Contrast Mode">
-      <span>💫</span>
+    <button class="contrast-toggle" id="contrastToggle" aria-label="Toggle High Contrast Mode" title="Toggle High Contrast">
+        <span>💫</span>
     </button>
     
-    <!-- Cat tail Easter egg tip -->
+    <!-- Easter egg tip -->
     <div class="easter-tip" id="easterTip">
         🎉 Congratulations! You found the secret tail! Your reward: One virtual high-five and the knowledge that you're officially part of the elite tail-finder club. 🐱
     </div>
     
     <!-- Call Quentin popup -->
     <div class="call-quentin-popup" id="call-quentin-popup">
-        <div class="popup-title">📞 Calling Quentin...</div>
-        <div class="popup-message">
-            🤖 <strong>Beep boop!</strong> Quentin is currently busy teaching robots how to be more sarcastic. 
-            <br><br>
-            💬 In the meantime, you can find him on GitHub, probably arguing with code comments or explaining why his 47-line function "needs to be that way for performance reasons."
-            <br><br>
-            🎭 <em>Fun fact:</em> Quentin once spent 3 hours optimizing a function that saved 0.2 milliseconds. He regrets nothing.
+        <div class="popup-backdrop"></div>
+        <div class="popup-content">
+            <div class="popup-header">
+                <div class="popup-title">📞 Calling Quentin...</div>
+                <button class="popup-close" data-action="close-popup" aria-label="Close">×</button>
+            </div>
+            <div class="popup-body">
+                <div class="popup-message">
+                    🤖 <strong>Beep boop!</strong> Quentin is currently busy teaching robots how to be more sarcastic. 
+                    <br><br>
+                    💬 In the meantime, you can find him on GitHub, probably arguing with code comments or explaining why his 47-line function "needs to be that way for performance reasons."
+                    <br><br>
+                    🎭 <em>Fun fact:</em> Quentin once spent 3 hours optimizing a function that saved 0.2 milliseconds. He regrets nothing.
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button class="btn popup-btn" data-action="close-popup">Got It, Thanks! 😄</button>
+            </div>
         </div>
-        <button class="close-btn" data-action="close-popup">Got It, Thanks! 😄</button>
     </div>
 </div>
-</body>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pages/home.js"></script>
 {% endblock %}

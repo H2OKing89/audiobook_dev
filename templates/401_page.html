@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unauthorized Access</title>
     
-    <!-- External Stylesheets -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- New CSS Architecture -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/pages/error.css">
     
     <!-- Security Headers -->
     {% include 'security_headers.html' %}
@@ -31,7 +33,9 @@
         </div>
     </div>
     
-    <!-- External JavaScript -->
-    <script src="/static/js/app.js"></script>
+    <!-- JavaScript -->
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/pages/error.js"></script>
 </body>
 </html>

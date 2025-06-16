@@ -1,39 +1,199 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Action Successful</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
 
-    <!-- Favicon & Social Meta -->
-    <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Action Successful">
-    <meta property="og:description" content="Your request has been processed successfully.">
-    <meta property="og:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
-    <meta property="og:image:alt" content="Quentin mascot celebrating success">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Action Successful">
-    <meta name="twitter:description" content="Your request has been processed successfully.">
-    <meta name="twitter:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+{% block body_class %}success-page{% endblock %}
 
-    <!-- External Stylesheets -->
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body class="success-page">
-    <div class="box" aria-label="Action Successful" role="status" aria-live="polite">
-        <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png" 
-             alt="Success Mascot" class="mascot" loading="eager" draggable="false">
-        <h1>Action Successful!</h1>
-        <p>Your request has been processed successfully.</p>
-        <p id="success-quote"></p>
-        <a href="/" class="button" aria-label="Return Home">🏠 Return Home</a>
-    </div>
-    <div class="footer">
-      Automated by Quentin's Overkill Automation™ 🤖
-    </div>
+{% block title %}✅ SUCCESS PROTOCOL - Mission Accomplished{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/pages/success.css">
+<script src="/static/js/pages/success.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="success-zone">
+  <div class="celebration-container">
     
-    <!-- External JavaScript -->
-    <script src="/static/js/app.js"></script>
-</body>
-</html>
+    <!-- Victory Terminal Header -->
+    <header class="victory-terminal">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green active"></span>
+        </div>
+        <div class="terminal-content">
+          <div class="success-output">
+            <span class="prompt">quentin@audiobook-hq:~$</span> 
+            <span class="command">./approve_request.sh</span>
+          </div>
+          <div class="success-line">
+            <span class="success-text">✅ SUCCESS: Request approved and queued</span>
+          </div>
+          <div class="success-line">
+            <span class="success-code">Exit code: 200_AWESOME</span>
+          </div>
+          <div class="success-line">
+            <span class="celebration-text">🎉 Initiating celebration protocol...</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Success Display -->
+    <main class="success-display">
+      <div class="victory-screen">
+        
+        <!-- Big Success Alert -->
+        <div class="victory-section">
+          <div class="victory-icon">🎉</div>
+          <h1 class="victory-title">MISSION ACCOMPLISHED</h1>
+          <div class="victory-subtitle">REQUEST_APPROVED :: DOWNLOAD_QUEUE_ACTIVATED</div>
+        </div>
+
+        <!-- Celebration Mascot -->
+        <div class="celebration-container-mascot">
+          <div class="mascot-frame">
+            <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png"
+                 alt="Celebrating Quentin" 
+                 class="celebration-image"
+                 draggable="false">
+            <div class="celebration-particles"></div>
+            <div class="victory-aura"></div>
+          </div>
+          <div class="mascot-label">QUENTIN_AI.exe :: HAPPY_MODE</div>
+        </div>
+
+        <!-- Success Stats -->
+        <div class="success-stats">
+          <div class="stats-header">
+            <span class="header-icon">📊</span>
+            <span class="header-text">OPERATION COMPLETE</span>
+          </div>
+          <div class="stats-content">
+            <div class="stat-line">
+              <span class="stat-label">STATUS:</span>
+              <span class="stat-value success">APPROVED</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">PROCESSING_TIME:</span>
+              <span class="stat-value">0.42 SECONDS</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">QUEUE_POSITION:</span>
+              <span class="stat-value success">#1 (PRIORITY)</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">ETA:</span>
+              <span class="stat-value">SOON™</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Victory Quote Console -->
+        <div class="quote-console">
+          <div class="console-header">
+            <span class="console-icon">💬</span>
+            <span class="console-title">WISDOM_GENERATOR.EXE</span>
+          </div>
+          <div class="quote-display" id="success-quote">
+            <div class="loading-quote">
+              <span class="loading-text">Generating inspirational quote...</span>
+              <div class="loading-sparkles">
+                <span class="sparkle">✨</span>
+                <span class="sparkle">✨</span>
+                <span class="sparkle">✨</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Panel -->
+        <div class="action-panel">
+          <div class="panel-header">
+            <span class="panel-icon">🚀</span>
+            <span class="panel-title">NEXT_STEPS</span>
+          </div>
+          
+          <div class="action-grid">
+            <a href="/" class="action-cmd primary-cmd">
+              <div class="cmd-icon">🏠</div>
+              <div class="cmd-text">
+                <div class="cmd-name">HOME.EXE</div>
+                <div class="cmd-desc">Return to command center</div>
+              </div>
+              <div class="cmd-hotkey">[H]</div>
+            </a>
+
+            <button class="action-cmd secondary-cmd" onclick="showStatusUpdate()">
+              <div class="cmd-icon">📡</div>
+              <div class="cmd-text">
+                <div class="cmd-name">STATUS.EXE</div>
+                <div class="cmd-desc">Check download progress</div>
+              </div>
+              <div class="cmd-hotkey">[S]</div>
+            </button>
+
+            <button class="action-cmd celebration-cmd" onclick="triggerCelebration()">
+              <div class="cmd-icon">🎊</div>
+              <div class="cmd-text">
+                <div class="cmd-name">PARTY.EXE</div>
+                <div class="cmd-desc">Extra celebration mode</div>
+              </div>
+              <div class="cmd-hotkey">[P]</div>
+            </button>
+
+            <button class="action-cmd easter-cmd" onclick="showEasterEgg()">
+              <div class="cmd-icon">🎁</div>
+              <div class="cmd-text">
+                <div class="cmd-name">SURPRISE.EXE</div>
+                <div class="cmd-desc">Mystery reward...</div>
+              </div>
+              <div class="cmd-hotkey">[?]</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Achievement Unlocked -->
+        <div class="achievement-section">
+          <div class="achievement-header">
+            <span class="achievement-icon">🏆</span>
+            <span class="achievement-title">ACHIEVEMENT_UNLOCKED</span>
+          </div>
+          <div class="achievement-content">
+            <div class="achievement-badge">
+              <div class="badge-icon">⭐</div>
+              <div class="badge-text">
+                <div class="badge-name">"Request Master"</div>
+                <div class="badge-desc">Successfully submitted an audiobook request</div>
+              </div>
+              <div class="badge-points">+100 XP</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- System Footer -->
+    <footer class="system-footer">
+      <div class="footer-data">
+        <span class="footer-item">SUCCESS_RATE: 100%</span>
+        <span class="footer-item">HAPPINESS_LEVEL: MAXIMUM</span>
+        <span class="footer-item">CONFETTI_DEPLOYED: ∞</span>
+        <span class="footer-item">NEXT_REQUEST: READY</span>
+      </div>
+      <div class="footer-message">
+        Powered by Quentin's Definitely-Not-Overkill Success Engine™ 🚀
+      </div>
+    </footer>
+
+    <!-- Hidden Success Overlay -->
+    <div class="success-overlay" id="successOverlay">
+      <div class="overlay-content">
+        <h2>🎉 EXTRA CELEBRATION ACTIVATED! 🎉</h2>
+        <p>Your audiobook is now in the priority queue!</p>
+        <p>Estimated arrival: Faster than a dad joke! ⚡</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

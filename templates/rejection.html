@@ -1,68 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Rejected - Better Luck Next Time!</title>
-    <!-- Favicon & Social Meta -->
-    <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Request Rejected - Better Luck Next Time!">
-    <meta property="og:description" content="Your audiobook request didn't make the cut this time.">
-    <meta property="og:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
-    <meta property="og:image:alt" content="Quentin mascot looking apologetic">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Request Rejected - Better Luck Next Time!">
-    <meta name="twitter:description" content="Your audiobook request didn't make the cut this time.">
-    <meta name="twitter:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
+{% extends "base.html" %}
+
+{% block body_class %}rejection-page{% endblock %}
+
+{% block title %}🚫 REJECTION PROTOCOL - Access Denied{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/pages/rejection.css">
+<script src="/static/js/pages/rejection.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="rejection-zone">
+  <div class="glitch-container">
     
-    <!-- External Stylesheets -->
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-</head>
-<body class="rejection-page">
-    <div class="particles" id="particles"></div>
-    
-    <div class="rejection-container">
-        <h1 class="rejection-title">NOPE!</h1>
-        <p class="rejection-subtitle">That request didn't quite make the cut...</p>
+    <!-- Error Terminal Header -->
+    <header class="error-terminal">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="terminal-content">
+          <div class="error-output">
+            <span class="prompt">quentin@audiobook-hq:~$</span> 
+            <span class="command">./process_request.sh</span>
+          </div>
+          <div class="error-line">
+            <span class="error-text">ERROR: Request rejected by security protocols</span>
+          </div>
+          <div class="error-line">
+            <span class="error-code">Exit code: 403_NOPE</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Rejection Display -->
+    <main class="rejection-display">
+      <div class="status-screen">
         
-        <div class="mascot-container">
+        <!-- Big Rejection Alert -->
+        <div class="alert-section">
+          <div class="alert-icon">🚫</div>
+          <h1 class="alert-title">REQUEST DENIED</h1>
+          <div class="alert-subtitle">ACCESS_VIOLATION :: CONTENT_FILTER_TRIGGERED</div>
+        </div>
+
+        <!-- Hologram Mascot -->
+        <div class="hologram-container">
+          <div class="hologram-frame">
             <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png"
-                 alt="Quentin looking sheepish" class="mascot" loading="eager" draggable="false">
+                 alt="Disappointed Quentin Hologram" 
+                 class="hologram-image"
+                 draggable="false">
+            <div class="hologram-scanlines"></div>
+            <div class="hologram-glitch"></div>
+          </div>
+          <div class="hologram-label">QUENTIN_AI.exe</div>
         </div>
-        
-        <div class="rejection-emoji">🚫</div>
-        
-        <div class="rejection-message">
-            Your audiobook request has been <strong>rejected</strong> by the digital overlords.
+
+        <!-- System Message -->
+        <div class="system-message">
+          <div class="message-header">
+            <span class="header-icon">📊</span>
+            <span class="header-text">SYSTEM ANALYSIS COMPLETE</span>
+          </div>
+          <div class="message-content">
+            <div class="message-line">
+              <span class="line-label">STATUS:</span>
+              <span class="line-value error">REJECTED</span>
+            </div>
+            <div class="message-line">
+              <span class="line-label">REASON:</span>
+              <span class="line-value">CONTENT_FILTER_ACTIVATION</span>
+            </div>
+            <div class="message-line">
+              <span class="line-label">PROBABILITY_OF_APPEAL:</span>
+              <span class="line-value success">78.3%</span>
+            </div>
+          </div>
         </div>
-        
-        <div class="rejection-reason">
-            <strong>💡 Pro Tip:</strong> Even the best algorithms have bad days. If you think this was a mistake, don't hesitate to reach out to the human behind the curtain!
+
+        <!-- Dad Joke Console -->
+        <div class="joke-console">
+          <div class="console-header">
+            <span class="console-icon">🎭</span>
+            <span class="console-title">CONSOLATION_PROTOCOL.EXE</span>
+          </div>
+          <div class="joke-display" id="rejection-joke">
+            <div class="loading-joke">
+              <span class="loading-text">Loading dad joke...</span>
+              <div class="loading-bars">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div class="witty-quote" id="rejected-quote">
-            Loading philosophical wisdom about rejection...
-        </div>
-        
-        <div class="action-buttons">
-            <a href="/" class="btn-link" aria-label="Return Home">
-                🏠 Return to Base
+
+        <!-- Action Panel -->
+        <div class="action-panel">
+          <div class="panel-header">
+            <span class="panel-icon">⚡</span>
+            <span class="panel-title">RECOVERY_OPTIONS</span>
+          </div>
+          
+          <div class="action-grid">
+            <a href="/" class="action-cmd primary-cmd">
+              <div class="cmd-icon">🏠</div>
+              <div class="cmd-text">
+                <div class="cmd-name">HOME.EXE</div>
+                <div class="cmd-desc">Return to base station</div>
+              </div>
+              <div class="cmd-hotkey">[H]</div>
             </a>
-            <a href="mailto:admin@example.com" class="btn-link btn-secondary" aria-label="Contact Admin">
-                📧 Appeal to Humans
+
+            <a href="mailto:admin@example.com" class="action-cmd secondary-cmd">
+              <div class="cmd-icon">📧</div>
+              <div class="cmd-text">
+                <div class="cmd-name">APPEAL.EXE</div>
+                <div class="cmd-desc">Contact human overlords</div>
+              </div>
+              <div class="cmd-hotkey">[A]</div>
             </a>
+
+            <button class="action-cmd retry-cmd" onclick="showRetryMessage()">
+              <div class="cmd-icon">🔄</div>
+              <div class="cmd-text">
+                <div class="cmd-name">RETRY.EXE</div>
+                <div class="cmd-desc">Try again with different data</div>
+              </div>
+              <div class="cmd-hotkey">[R]</div>
+            </button>
+
+            <button class="action-cmd easter-cmd" onclick="triggerEasterEgg()">
+              <div class="cmd-icon">🎮</div>
+              <div class="cmd-text">
+                <div class="cmd-name">SECRET.EXE</div>
+                <div class="cmd-desc">Konami code unlocks...</div>
+              </div>
+              <div class="cmd-hotkey">[?]</div>
+            </button>
+          </div>
         </div>
-        
-        <div class="footer-section">
-            {% if footer %}{{ footer }}{% else %}Powered by Quentin's Slightly Judgmental AI&trade; &#x1F916;{% endif %}
+
+        <!-- Pro Tips -->
+        <div class="tips-section">
+          <div class="tips-header">
+            <span class="tips-icon">💡</span>
+            <span class="tips-title">PRO_TIPS.TXT</span>
+          </div>
+          <div class="tips-content">
+            <div class="tip-item">• Double-check your request formatting</div>
+            <div class="tip-item">• Make sure content meets community guidelines</div>
+            <div class="tip-item">• Try adding more cowbell (always works)</div>
+            <div class="tip-item">• Bribe Quentin with virtual cookies �</div>
+          </div>
         </div>
+      </div>
+    </main>
+
+    <!-- System Footer -->
+    <footer class="system-footer">
+      <div class="footer-data">
+        <span class="footer-item">REJECTION_COUNT: 1</span>
+        <span class="footer-item">USER_TEARS: 0</span>
+        <span class="footer-item">DAD_JOKES_LOADED: ∞</span>
+        <span class="footer-item">APPEAL_SUCCESS_RATE: 42%</span>
+      </div>
+      <div class="footer-message">
+        Don't take it personally - even Shakespeare got rejected sometimes! 🎭
+      </div>
+    </footer>
+
+    <!-- Hidden Easter Egg -->
+    <div class="easter-egg-hidden" id="easterEgg">
+      <div class="egg-content">
+        <h3>🥚 SECRET ACHIEVEMENT UNLOCKED! 🥚</h3>
+        <p>You found the hidden rejection consolation prize!</p>
+        <p>Here's a virtual hug: 🤗</p>
+      </div>
     </div>
-    
-    <div class="easter-egg" onclick="showSecretMessage()" title="Click for consolation">🎭</div>
-    
-    <!-- External JavaScript -->
-    <script src="/static/js/app.js"></script>
-</body>
-</html>
+  </div>
+</div>
+{% endblock %}
