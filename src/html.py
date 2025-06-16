@@ -4,7 +4,7 @@ from fastapi import Request
 # Initialize Jinja2 templates (looks for 'templates/' at project root)
 templates = Jinja2Templates(directory="templates")
 
-def render_template(request: Request, template_name: str, context: dict):
+def render_template(request: Request, template_name: str, context: dict) -> 'TemplateResponse':  # type: ignore
     """
     Renders a Jinja2 template with the provided context, including the request.
     """

@@ -3,9 +3,11 @@ import logging
 import tempfile
 import requests
 from qbittorrentapi import Client, LoginFailed, exceptions as qbexc
+from typing import Optional, Dict, Any
+import types
 
 
-def get_client():
+def get_client() -> Client:
     """Initialize and return a qBittorrent Client using environment variables."""
     host = os.getenv('QBITTORRENT_URL')
     username = os.getenv('QBITTORRENT_USERNAME')
@@ -16,7 +18,7 @@ def get_client():
     return Client(host=host, username=username, password=password)
 
 
-def add_torrent(torrent_data):
+def add_torrent(torrent_data: Dict[str, Any]) -> bool:
     """Add torrent via qBittorrent API (by URL)."""
     try:
         client = get_client()
@@ -30,11 +32,20 @@ def add_torrent(torrent_data):
         return False
 
 
-def add_torrent_file_with_cookie(download_url, name, category=None, tags=None, cookie=None, paused=False, autoTMM=True, contentLayout="Subfolder"):
+def add_torrent_file_with_cookie(
+    download_url: str,
+    name: str,
+    category: Optional[str] = None,
+    tags: Optional[Any] = None,
+    cookie: Optional[str] = None,
+    paused: bool = False,
+    autoTMM: bool = True,
+    contentLayout: str = "Subfolder"
+) -> bool:
     """
     Download a .torrent file (with optional cookie) and upload to qBittorrent with options.
     """
-    tmp = None
+    tmp: Optional[tempfile._TemporaryFileWrapper[bytes]] = None
     try:
         # Download .torrent file
         headers = {"Cookie": cookie} if cookie else {}

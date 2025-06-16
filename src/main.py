@@ -94,10 +94,20 @@ async def add_request_id(request: Request, call_next):
         token = request.headers.get('X-Request-ID') or uuid.uuid4().hex
     # Store in contextvar
     request_id_ctx_var.set(token)
+    # Get client IP address, respecting X-Forwarded-For if present
+    xff = request.headers.get('x-forwarded-for')
+    if xff:
+        # X-Forwarded-For may be a comma-separated list; take the first (original client)
+        client_ip = xff.split(',')[0].strip()
+    else:
+        client_ip = request.client.host if request.client else 'unknown'
+    # Log the incoming request with IP and token
+    logging.info(f"Incoming request: path={request.url.path} ip={client_ip} token={token}")
     # Proceed with request
     response = await call_next(request)
     # Echo request_id back in response headers
     response.headers['X-Request-ID'] = token
+    response.headers['X-Client-IP'] = client_ip
     return response
 
 # Use dynamic autobrr endpoint from config
@@ -107,8 +117,9 @@ async def webhook(request: Request):
     autobrr_token = os.getenv('AUTOBRR_TOKEN')
     header_token = request.headers.get('X-Autobrr-Token')
     if autobrr_token and header_token != autobrr_token:
-        logging.warning(f"Invalid Autobrr token: {header_token}")
-        raise HTTPException(status_code=401, detail="Invalid Autobrr token")
+        logging.warning(f"Invalid Autobrr token received")
+        request_id = request_id_ctx_var.get() or '-'
+        raise HTTPException(status_code=401, detail=f"Invalid Autobrr token (Request ID: {request_id})")
     payload = await request.json()
     # Generate one-time-use token and use as request ID for logs
     token = generate_token()
@@ -120,7 +131,8 @@ async def webhook(request: Request):
         metadata = fetch_metadata(payload)
     except Exception as e:
         logging.error(log_prefix + f"Metadata fetch failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        request_id = request_id_ctx_var.get() or '-'
+        raise HTTPException(status_code=400, detail=f"Failed to fetch metadata (Request ID: {request_id})")
     logging.info(log_prefix + f"Fetched metadata: {metadata}")
 
     # Persist token, metadata, and original payload
@@ -166,18 +178,36 @@ async def webhook(request: Request):
             except Exception as e:
                 logging.error(log_prefix + f"Pushover notification failed: {e}")
                 notification_errors.append(f"Pushover: {e}")
-    try:
-        send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
-        logging.info(log_prefix + "Gotify notification sent successfully.")
-    except Exception as e:
-        logging.error(log_prefix + f"Gotify notification failed: {e}")
-        notification_errors.append(f"Gotify: {e}")
-    try:
-        send_discord(metadata, payload, token, base_url, discord_webhook)
-        logging.info(log_prefix + "Discord notification sent successfully.")
-    except Exception as e:
-        logging.error(log_prefix + f"Discord notification failed: {e}")
-        notification_errors.append(f"Discord: {e}")
+    if gotify_url and gotify_token:
+        try:
+            send_gotify(
+                metadata,
+                payload,
+                token,
+                base_url,
+                gotify_url,  # type: ignore
+                gotify_token  # type: ignore
+            )
+        except Exception as e:
+            logging.error(log_prefix + f"Gotify notification failed: {e}")
+            notification_errors.append(f"Gotify: {e}")
+    elif notif_cfg.get('gotify', {}).get('enabled', False):
+        notification_errors.append("Gotify: URL or token not set in environment/config.")
+
+    if discord_webhook:
+        try:
+            send_discord(
+                metadata,
+                payload,
+                token,
+                base_url,
+                discord_webhook  # type: ignore
+            )
+        except Exception as e:
+            logging.error(log_prefix + f"Discord notification failed: {e}")
+            notification_errors.append(f"Discord: {e}")
+    elif notif_cfg.get('discord', {}).get('enabled', False):
+        notification_errors.append("Discord: webhook URL not set in environment/config.")
     try:
         if ntfy_enabled:
             if not ntfy_topic:

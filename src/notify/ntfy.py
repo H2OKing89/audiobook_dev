@@ -1,7 +1,7 @@
 import os
 import requests
 import logging
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, Tuple, List
 from src.utils import clean_light_novel, format_release_date, format_size
 # from src.utils import build_notification_message
 def send_ntfy(
@@ -13,7 +13,7 @@ def send_ntfy(
     ntfy_url: str,
     ntfy_user: Optional[str] = None,
     ntfy_pass: Optional[str] = None
-) -> requests.Response:
+) -> Tuple[int, dict]:
     """
     Send a notification to ntfy.sh with Markdown, cover image, and action buttons.
     Logs all attempts and errors.
@@ -96,7 +96,7 @@ def send_ntfy(
         )
         resp.raise_for_status()
         logging.info(f"ntfy JSON publish succeeded: status={resp.status_code}")
-        return resp
+        return resp.status_code, resp.json()
     except Exception as e:
         logging.error(f"ntfy JSON publish failed: {e}")
         # Fallback to topic endpoint
@@ -110,4 +110,4 @@ def send_ntfy(
         )
         resp2.raise_for_status()
         logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
-        return resp2
+        return resp2.status_code, resp2.json()

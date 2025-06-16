@@ -1,16 +1,23 @@
 import re
+from typing import Any, Dict, Optional, Tuple
 from src.config import load_config
 from src.utils import format_size, format_release_date, strip_html_tags
 
 
-def escape_md(text):
+def escape_md(text: Optional[str]) -> str:
     # Escape Discord markdown
     if not text:
         return ''
     return re.sub(r'([*_`~|>])', r'\\\1', str(text))
 
 
-def send_discord(metadata, payload, token, base_url, webhook_url):
+def send_discord(
+    metadata: Dict[str, Any],
+    payload: Dict[str, Any],
+    token: str,
+    base_url: str,
+    webhook_url: str
+) -> Tuple[int, Any]:
     import requests
     config = load_config()
     server_cfg = config.get('server', {})
@@ -98,6 +105,8 @@ def send_discord(metadata, payload, token, base_url, webhook_url):
     embed = {k: v for k, v in embed.items() if v is not None}
     data = {"embeds": [embed]}
     response = requests.post(webhook_url, json=data)
-    if response.status_code not in (200, 204):
-        raise Exception(f"Failed to send message to Discord: {response.status_code} - {response.text}")
-    return response.status_code, response.text
+    try:
+        resp_json = response.json()
+    except Exception:
+        resp_json = {"text": response.text}
+    return response.status_code, resp_json

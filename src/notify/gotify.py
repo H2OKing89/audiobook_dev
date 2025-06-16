@@ -1,13 +1,21 @@
 import re
 import requests
+from typing import Any, Dict, Optional, Tuple
 from src.utils import format_size, format_release_date, strip_html_tags
 
-def escape_md(text):
+def escape_md(text: Optional[str]) -> str:
     if not text:
         return ''
     return re.sub(r'([*_`~|>])', r'\\\1', str(text))
 
-def send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token):
+def send_gotify(
+    metadata: Dict[str, Any],
+    payload: Dict[str, Any],
+    token: str,
+    base_url: str,
+    gotify_url: str,
+    gotify_token: str
+) -> Tuple[int, dict]:
     """
     Send a Gotify notification with Markdown message and big image for Android notifications.
     """

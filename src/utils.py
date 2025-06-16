@@ -1,6 +1,7 @@
 from datetime import datetime
 import re
 from html import escape
+from typing import Any, Dict, List, Optional
 
 def log_message(message: str) -> None:
     """
@@ -14,12 +15,12 @@ def log_message(message: str) -> None:
         log_file.write(f"{message}\n")
 
 
-def format_metadata(metadata: dict) -> str:
+def format_metadata(metadata: Dict[str, Any]) -> str:
     formatted = "\n".join(f"{key}: {value}" for key, value in metadata.items())
     return formatted
 
 
-def validate_payload(payload: dict, required_keys: list) -> bool:
+def validate_payload(payload: Dict[str, Any], required_keys: List[str]) -> bool:
     return all(key in payload for key in required_keys)
 
 
@@ -31,7 +32,7 @@ def format_release_date(date_str: str) -> str:
     return date_str
 
 
-def format_size(size_bytes) -> str:
+def format_size(size_bytes: Any) -> str:
     try:
         size_bytes = int(size_bytes)
         if size_bytes >= 1024 ** 3:
@@ -46,7 +47,7 @@ def format_size(size_bytes) -> str:
         return str(size_bytes)
 
 
-def clean_author_list(authors):
+def clean_author_list(authors: List[Dict[str, Any]]) -> List[str]:
     """
     Return only authors, not illustrators or translators.
     """
@@ -60,13 +61,13 @@ def clean_author_list(authors):
     return filtered
 
 
-def clean_light_novel(text: str) -> str:
+def clean_light_novel(text: Optional[str]) -> Optional[str]:
     if not text:
         return text
     return text.replace('(Light Novel)', '').replace('(light novel)', '').strip()
 
 
-def strip_html_tags(text: str) -> str:
+def strip_html_tags(text: Optional[str]) -> str:
     """
     Strips all HTML tags from a string, preserving paragraph breaks.
     Converts <p> and <br> tags into newlines, removes other tags,
@@ -91,11 +92,11 @@ def strip_html_tags(text: str) -> str:
     return text.strip()
 
 
-def build_notification_message(metadata: dict, payload: dict, token: str, base_url: str) -> str:
+def build_notification_message(metadata: Dict[str, Any], payload: Dict[str, Any], token: str, base_url: str) -> str:
     """
     Construct an HTML notification message for Pushover/Discord with approve/reject links.
     """
-    title = clean_light_novel(metadata.get('title', ''))
+    title = clean_light_novel(metadata.get('title', '')) or ''
     # Series with volume number if available
     series_info = metadata.get('series_primary', {})
     series = clean_light_novel(series_info.get('name'))

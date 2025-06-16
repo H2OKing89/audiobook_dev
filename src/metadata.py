@@ -1,14 +1,14 @@
 import re
 import requests
 import logging
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from functools import lru_cache
 from src.config import load_config
 from src.utils import validate_payload, clean_author_list
 
 # LRU cache for metadata lookups to avoid unbounded growth
 @lru_cache(maxsize=512)
-def get_cached_metadata(asin, region, api_url):
+def get_cached_metadata(asin: str, region: str, api_url: str) -> Optional[Dict[str, Any]]:
     try:
         resp = requests.get(f"{api_url}/{asin}", params={'region': region})
         resp.raise_for_status()
@@ -68,13 +68,12 @@ def get_audible_asin(title: str, author: str) -> Optional[str]:
                 asin = m.group(1)
                 logging.info(f"Scraped ASIN from Audible: {asin}")
                 return asin
-                return asin
     except Exception as e:
         logging.error(f"Error scraping Audible for ASIN: {e}")
     return None
 
 
-def clean_series_sequence(series_name, sequence):
+def clean_series_sequence(series_name: str, sequence: str) -> str:
     import re
     if not sequence:
         return ''
@@ -85,7 +84,7 @@ def clean_series_sequence(series_name, sequence):
     return updated_sequence
 
 
-def clean_metadata(item):
+def clean_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
     # Series raw
     series = []
     if item.get('seriesPrimary'):
@@ -224,7 +223,7 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
 
     raise ValueError(f"Could not fetch metadata for '{name}' [{asin}]")
 
-def fetch_metadata_audiobookshelf(payload, region='us'):
+def fetch_metadata_audiobookshelf(payload: dict, region: str = 'us') -> Optional[dict]:
     asin = payload.get('asin')
     title = payload.get('title')
     author = payload.get('author')

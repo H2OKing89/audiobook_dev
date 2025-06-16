@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Request, Depends
+from fastapi.responses import Response
+from starlette.responses import Response as StarletteResponse
 from fastapi.responses import HTMLResponse
+from typing import Any
 from src.metadata import fetch_metadata
 from src.token_gen import verify_token
 from src.html import render_template
@@ -12,11 +15,11 @@ from starlette.concurrency import run_in_threadpool
 router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request) -> HTMLResponse:
     return render_template(request, 'index.html', {})
 
 @router.get("/approve/{token}", response_class=HTMLResponse)
-async def approve(token: str, request: Request):
+async def approve(token: str, request: Request) -> HTMLResponse:
     entry = get_request(token)
     logging.debug(f"Approve called for token: {token}, entry: {entry}")
     if not entry:
@@ -57,7 +60,7 @@ async def approve(token: str, request: Request):
     return response
 
 @router.get("/approve/{token}/action", response_class=HTMLResponse)
-async def approve_action(token: str, request: Request):
+async def approve_action(token: str, request: Request) -> HTMLResponse:
     entry = get_request(token)
     logging.debug(f"Approve-Action called for token: {token}, entry: {entry}")
     if not entry:
@@ -125,7 +128,7 @@ async def approve_action(token: str, request: Request):
     return response
 
 @router.get("/reject/{token}", response_class=HTMLResponse)
-async def reject(token: str, request: Request):
+async def reject(token: str, request: Request) -> HTMLResponse:
     entry = get_request(token)
     logging.debug(f"Reject called for token: {token}, entry: {entry}")
     if not entry:
