@@ -2,11 +2,22 @@ import re
 import requests
 import logging
 from typing import Optional, List
+from functools import lru_cache
 from src.config import load_config
 from src.utils import validate_payload, clean_author_list
 
-# Cache for metadata lookups to avoid repeat API calls
-CACHE = {}
+# LRU cache for metadata lookups to avoid unbounded growth
+@lru_cache(maxsize=512)
+def get_cached_metadata(asin, region, api_url):
+    try:
+        resp = requests.get(f"{api_url}/{asin}", params={'region': region})
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get('asin'):
+            return clean_metadata(data)
+    except Exception as e:
+        logging.error(f"Error fetching ASIN {asin}/{region}: {e}")
+    return None
 
 # Levenshtein distance implementation for best-match logic
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -171,22 +182,10 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
     api_url = config.get('audnex', {}).get('api_url', '').rstrip('/')
 
     for region in seq:
-        cache_key = (asin, region)
-        if cache_key in CACHE:
-            logging.debug(f"Cache hit for {asin}/{region}")
-            return CACHE[cache_key]
-
-        # 1) Try ASIN endpoint
-        try:
-            resp = requests.get(f"{api_url}/{asin}", params={'region': region})
-            resp.raise_for_status()
-            data = resp.json()
-            if data.get('asin'):
-                meta = clean_metadata(data)
-                CACHE[cache_key] = meta
-                return meta
-        except Exception as e:
-            logging.error(f"Error fetching ASIN {asin}/{region}: {e}")
+        meta = get_cached_metadata(asin, region, api_url)
+        if meta:
+            logging.debug(f"Cache hit or fresh fetch for {asin}/{region}")
+            return meta
 
         # 2) Fallback: search via Audible catalog
         try:
@@ -207,21 +206,13 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
             asin2 = prod.get('asin')
             if not asin2:
                 continue
-            key2 = (asin2, region)
-            if key2 in CACHE:
-                cand = CACHE[key2]
-            else:
-                try:
-                    r2 = requests.get(f"{api_url}/{asin2}", params={'region': region})
-                    r2.raise_for_status()
-                    cand = r2.json() if r2.json().get('asin') else None
-                except Exception:
-                    cand = None
-                if cand:
-                    CACHE[key2] = clean_metadata(cand)
+            cand = get_cached_metadata(asin2, region, api_url)
             if not cand:
                 continue
-            title_cand = cand.get('title','').lower()
+            title_cand_val = cand.get('title', '')
+            if not isinstance(title_cand_val, str):
+                continue
+            title_cand = title_cand_val.lower()
             dist = levenshtein_distance(title_cand, title.lower())
             if dist < best_dist:
                 best_item = cand
@@ -229,9 +220,7 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
                 if dist == 0:
                     break
         if best_item:
-            result = clean_metadata(best_item)
-            CACHE[(best_item.get('asin').upper(), region)] = result
-            return result
+            return best_item
 
     raise ValueError(f"Could not fetch metadata for '{name}' [{asin}]")
 
