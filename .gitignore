@@ -42,3 +42,4 @@ config/config.yaml
 !config/config.yaml.example
 logs/
 db.sqlite
+tests/

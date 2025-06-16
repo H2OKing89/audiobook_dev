@@ -10,7 +10,7 @@ A modular, production-ready FastAPI microservice for secure, stylish, and automa
 - **Metadata enrichment** via Audnex API and Audible scraping
 - **Persistent SQLite storage** for tokens and metadata
 - **Time-limited, one-time-use approval tokens**
-- **Rich notifications**: Pushover (with cover), Discord (embed), Gotify (markdown, cover)
+- **Rich notifications**: Pushover (with cover), Discord (embed), Gotify (markdown, cover), ntfy
 - **Modern, mobile-friendly web UI**: Approve/reject, cyberpunk/anime style, light/dark mode
 - **Dynamic OG/Twitter meta tags** for all major pages (social sharing)
 - **Robust qBittorrent integration**: .torrent download with MAM cookie, config-driven options
@@ -32,7 +32,8 @@ audiobook_dev/
 │   ├── notify/
 │   │   ├── pushover.py   # Pushover notification
 │   │   ├── gotify.py     # Gotify notification
-│   │   └── discord.py    # Discord notification
+│   │   ├── discord.py    # Discord notification
+│   │   ├── ntfy.py       # ntfy notification
 │   ├── qbittorrent.py    # qBittorrent integration
 │   ├── webui.py          # Web UI endpoints
 │   ├── db.py             # Persistent SQLite storage
@@ -44,114 +45,94 @@ audiobook_dev/
 │   └── config.yaml       # Main configuration
 ├── .env                  # Secrets (never commit)
 ├── requirements.txt      # Python dependencies
-├── README.md
-├── logs/                 # Rotating log files
-├── db.sqlite             # SQLite database
-└── tests/                # Unit/integration tests
+├── tests/                # Pytest-based tests
+└── README.md
 ```
 
 ---
 
-## Setup & Usage
+## Setup
 
-1. **Clone the repository:**
+1. **Clone the repo**
    ```bash
-   git clone <repository-url>
+   git clone <repo-url>
    cd audiobook_dev
    ```
-
-2. **Create a virtual environment:**
+2. **Create and activate a virtualenv**
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
    ```
-
-3. **Install dependencies:**
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-
-4. **Configure environment variables:**
-   - Copy `.env.example` to `.env` and fill in your secrets (tokens, API keys, cookies, etc).
-   - Edit `config/config.yaml` for service options, logging, and qBittorrent settings.
-
-5. **Run the application:**
-   ```bash
-   uvicorn src.main:app --host 0.0.0.0 --port 8000
-   ```
-   - For production, use a process manager (e.g., systemd, supervisord, Docker).
-
-6. **Access the web UI:**
-   - Visit `http://localhost:8000` (or your configured base URL).
+4. **Copy and edit config**
+   - Edit `config/config.yaml` for your environment (API URLs, notification settings, etc).
+   - Create a `.env` file with your secrets (see `.env.example`).
 
 ---
 
-## Endpoints
+## Running
 
-- **Webhook:** `/webhook/audiobook-requests` (configurable)
-- **Approval:** `/approve/{token}`
-- **Approval Action:** `/approve/{token}/action`
-- **Rejection:** `/reject/{token}`
-- **UI Home:** `/`
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
----
-
-## Configuration
-
-- **`config/config.yaml`**: All service, logging, and integration options
-- **`.env`**: Secrets (tokens, API keys, cookies)
-- **Logging**: Rotating, configurable via YAML
-- **qBittorrent**: Host, category, tags, cookie, etc.
-- **Notification**: Enable/disable, custom icons, sounds, priorities
+- The webhook endpoint is set in `config.yaml` (default: `/webhook/audiobook-requests`).
+- The web UI is available at `/`.
 
 ---
 
 ## Notifications
 
-- **Pushover**: Rich HTML, cover image, approval link
-- **Discord**: Embed with all info, cover, approve/reject links
-- **Gotify**: Markdown, emoji, cover as bigImageUrl
+- **Pushover**: Rich HTML, cover image, approval link.
+- **Discord**: Embed with cover, links, and markdown.
+- **Gotify**: Markdown, cover image, action links.
+- **ntfy**: Markdown, cover image, action links.
+
+Configure each in `config/config.yaml` and `.env`.
 
 ---
 
-## Accessibility & UI
+## Metadata
 
-- ARIA labels and color contrast for screen readers
-- Responsive, mobile-friendly, light/dark mode
-- Dynamic OG/Twitter meta tags for all major pages
-- Dedicated favicon for branding
+- Uses Audnex API for fast, reliable metadata.
+- Falls back to Audible scraping if needed.
+- Cleans and normalizes author, narrator, series, and description fields.
+- Caches lookups with LRU cache for efficiency.
 
 ---
 
 ## Testing
 
-- Unit/integration tests in `tests/`
-- Run with:
+- Run all tests:
   ```bash
-  pytest
+  pytest -vv
   ```
+- Tests cover:
+  - Metadata cleaning and validation
+  - Notification formatting
+  - Web UI endpoints
+  - Error cases
+- Fixtures in `tests/conftest.py` for isolation.
 
 ---
 
-## Deployment
+## Development
 
-- For production, use `systemd` or Docker for headless/background operation
-- Example `systemd` service:
-  ```ini
-  [Unit]
-  Description=Audiobook FastAPI Service
-  After=network.target
+- Code style: Black, isort, flake8 recommended.
+- Logging is configurable in `config.yaml`.
+- All user input is sanitized before rendering or sending to notification services.
+- For async/production, consider running with Gunicorn/Uvicorn workers.
 
-  [Service]
-  User=quentin
-  WorkingDirectory=/home/quentin/scripts/audiobook_dev
-  Environment="PATH=/home/quentin/scripts/audiobook_dev/.venv/bin"
-  ExecStart=/home/quentin/scripts/audiobook_dev/.venv/bin/python -m src.main
-  Restart=always
+---
 
-  [Install]
-  WantedBy=multi-user.target
-  ```
+## Security
+
+- Webhook endpoints require a token (set in `.env`).
+- Never commit `.env` or real secrets.
+- All user input is sanitized.
 
 ---
 
