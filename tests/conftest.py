@@ -3,6 +3,14 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
+from src.security import reset_rate_limit_buckets
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    """Reset rate limiting buckets before each test"""
+    reset_rate_limit_buckets()
+    yield
+    reset_rate_limit_buckets()
 
 @pytest.fixture
 def sample_html():

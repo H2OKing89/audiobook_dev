@@ -46,6 +46,13 @@ PUBLIC_ENDPOINTS: Set[str] = {
     "/health"
 }
 
+def reset_rate_limit_buckets():
+    """
+    Reset all rate limit buckets - for testing purposes only.
+    """
+    global token_buckets
+    token_buckets.clear()
+
 def get_config_rate_limits():
     """Get rate limit settings from config."""
     config = load_config()
