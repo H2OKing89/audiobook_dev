@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Audiobook Request System{% endblock %}</title>
+  {% include 'security_headers.html' %}
   <!-- OG & Twitter Meta & Favicon -->
   {# Dynamic OG & Twitter Meta for sharing; fall back to defaults #}
   <meta property="og:type" content="{{ og_type or 'website' }}">
@@ -20,31 +21,14 @@
   <link rel="icon" href="{{ og_image or 'https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png' }}">
   <!-- Orbitron for that cyber vibe; fallback to Inter and JetBrains Mono for code/inputs -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
   {% block head_extra %}{% endblock %}
-  <style>
-    html, body {
-      font-family: 'Orbitron', 'Inter', 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #18192b 70%, #28234a 100%);
-      color: #f0e8ff;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-    }
-    code, pre, input, textarea {
-      font-family: 'JetBrains Mono', 'Fira Mono', monospace;
-    }
-    a {
-      color: #ff69b4;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    a:hover {
-      color: #9be7ff;
-      text-shadow: 0 0 2px #ff69b4;
-    }
-  </style>
 </head>
 <body>
   {% block content %}{% endblock %}
+  
+  <!-- JavaScript -->
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

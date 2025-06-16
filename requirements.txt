@@ -11,3 +11,10 @@ httpx
 cachetools
 lxml
 html5lib
+slowapi
+fastapi-limiter
+pydantic>=2.0.0
+python-multipart
+itsdangerous
+idna
+cryptography

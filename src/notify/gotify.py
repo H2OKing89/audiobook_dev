@@ -1,5 +1,6 @@
 import re
 import requests
+import logging
 from typing import Any, Dict, Optional, Tuple
 from src.utils import get_notification_fields
 
@@ -92,7 +93,16 @@ def send_gotify(
             payload_data["extras"] = {}
         payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}
 
-    response = requests.post(f"{gotify_url}/message?token={gotify_token}", json=payload_data)
-    if response.status_code != 200:
-        raise Exception(f"Failed to send notification: {response.text}")
-    return response.status_code, response.json()
+    try:
+        response = requests.post(
+            f"{gotify_url}/message?token={gotify_token}", 
+            json=payload_data, 
+            timeout=15
+        )
+        response.raise_for_status()
+        logging.info(f"Gotify notification sent successfully: status={response.status_code}")
+        return response.status_code, response.json()
+    except requests.RequestException as e:
+        error_msg = f"Failed to send Gotify notification: {e}"
+        logging.error(error_msg)
+        return 0, {"error": error_msg}

@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, Response, status
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from src.metadata import fetch_metadata
 from src.token_gen import generate_token, verify_token
 from src.notify.pushover import send_pushover
@@ -10,6 +13,7 @@ from src.qbittorrent import add_torrent
 from src.db import save_request  # switch to persistent DB store
 from src.webui import router as webui_router  # add web UI router import
 from src.config import load_config  # add import for config
+from src.security import require_api_key, rate_limit_token_generation, rate_limit_exceeded_handler, get_csp_header
 import os
 from dotenv import load_dotenv
 import logging
@@ -38,9 +42,10 @@ class RequestIdFilter(logging.Filter):
 # Dynamic logging configuration from config.yaml
 log_cfg = config.get('logging', {})
 level = getattr(logging, log_cfg.get('level', 'INFO').upper(), logging.INFO)
-# Prepend request_id to the configured log format
-base_fmt = log_cfg.get('format', '%(asctime)s [%(levelname)s] %(message)s')
-fmt = f"%(asctime)s - %(request_id)s - {base_fmt}"
+# Create a format that includes request_id without duplicating timestamp
+base_fmt = log_cfg.get('format', '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Replace the base format to include request_id in the right place
+fmt = base_fmt.replace('%(asctime)s', '%(asctime)s - %(request_id)s')
 log_path = Path(log_cfg.get('file', 'log/audiobook_requests.log'))
 # Ensure log directory exists
 log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,8 +82,46 @@ logger.handlers.clear()
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
-app = FastAPI()
+app = FastAPI(
+    title="Audiobook Approval Service",
+    description="A secure audiobook approval workflow with notifications",
+    version="1.0.0"
+)
+
+# Add CORS middleware with secure defaults
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[server_cfg.get('base_url', '*')],  # Restrict origins to base_url if set, otherwise allow all
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["X-Request-ID", "X-API-Key", "Content-Type"],
+    expose_headers=["X-Request-ID"]
+)
+
+# Add security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Add security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = get_csp_header()
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+# Exception handler for too many requests
+from src.security import RateLimitExceeded  # Ensure this import exists
+
+@app.exception_handler(429)
+async def too_many_requests_handler(request: Request, exc: RateLimitExceeded):
+    return await rate_limit_exceeded_handler(request, exc)
+
 app.include_router(webui_router)  # mount web UI routes
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Middleware to set request_id from path token or generate new one
 @app.middleware("http")
@@ -113,14 +156,38 @@ async def add_request_id(request: Request, call_next):
 # Use dynamic autobrr endpoint from config
 @app.post(autobrr_endpoint)
 async def webhook(request: Request):
+    # Get client IP for rate limiting
+    xff = request.headers.get('x-forwarded-for')
+    client_ip = xff.split(',')[0].strip() if xff else (request.client.host if request.client else 'unknown')
+    
+    # Rate limit token generation
+    if not rate_limit_token_generation(client_ip):
+        logging.warning(f"Rate limit exceeded for token generation: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please try again later."
+        )
+    
     # Validate Autobrr token
     autobrr_token = os.getenv('AUTOBRR_TOKEN')
     header_token = request.headers.get('X-Autobrr-Token')
     if autobrr_token and header_token != autobrr_token:
-        logging.warning(f"Invalid Autobrr token received")
+        logging.warning(f"Invalid Autobrr token received from {client_ip}")
         request_id = request_id_ctx_var.get() or '-'
-        raise HTTPException(status_code=401, detail=f"Invalid Autobrr token (Request ID: {request_id})")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Autobrr token (Request ID: {request_id})")
+    
     payload = await request.json()
+    
+    # Validate payload has minimum required fields
+    required_fields = ["name", "url", "download_url"]
+    missing_fields = [field for field in required_fields if field not in payload]
+    if missing_fields:
+        logging.warning(f"Missing required fields in payload: {missing_fields}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required fields: {', '.join(missing_fields)}"
+        )
+    
     # Generate one-time-use token and use as request ID for logs
     token = generate_token()
     log_prefix = f"[token={token}] "
@@ -173,25 +240,36 @@ async def webhook(request: Request):
 
     # Send notifications with granular error handling
     notification_errors = []
+    notifications_sent = 0
+    
+    logging.info(log_prefix + f"Sending notifications: pushover={'enabled' if pushover_enabled else 'disabled'}, gotify={'enabled' if gotify_url and gotify_token else 'disabled'}, discord={'enabled' if discord_webhook else 'disabled'}, ntfy={'enabled' if ntfy_enabled else 'disabled'}")
+    
     if pushover_enabled:
         if pushover_user is None or pushover_token is None:
             error_msg = "Pushover user key or token is not set in environment variables."
-            logging.error(error_msg)
+            logging.error(log_prefix + error_msg)
             notification_errors.append(f"Pushover: {error_msg}")
         else:
             try:
-                send_pushover(
+                status_code, response = send_pushover(
                     metadata, payload, token, base_url,
                     pushover_user, pushover_token,
                     pushover_sound, pushover_html, pushover_priority
                 )
-                logging.info(log_prefix + "Pushover notification sent successfully.")
+                if status_code >= 200 and status_code < 300:
+                    logging.info(log_prefix + "Pushover notification sent successfully.")
+                    notifications_sent += 1
+                else:
+                    logging.error(log_prefix + f"Pushover notification failed with status {status_code}: {response}")
+                    notification_errors.append(f"Pushover: HTTP {status_code}")
             except Exception as e:
                 logging.error(log_prefix + f"Pushover notification failed: {e}")
+                logging.exception(log_prefix + "Full Pushover exception traceback:")
                 notification_errors.append(f"Pushover: {e}")
+    
     if gotify_url and gotify_token:
         try:
-            send_gotify(
+            status_code, response = send_gotify(
                 metadata,
                 payload,
                 token,
@@ -199,45 +277,73 @@ async def webhook(request: Request):
                 gotify_url,  # type: ignore
                 gotify_token  # type: ignore
             )
+            if status_code >= 200 and status_code < 300:
+                logging.info(log_prefix + "Gotify notification sent successfully.")
+                notifications_sent += 1
+            else:
+                logging.error(log_prefix + f"Gotify notification failed with status {status_code}: {response}")
+                notification_errors.append(f"Gotify: HTTP {status_code}")
         except Exception as e:
             logging.error(log_prefix + f"Gotify notification failed: {e}")
+            logging.exception(log_prefix + "Full Gotify exception traceback:")
             notification_errors.append(f"Gotify: {e}")
     elif notif_cfg.get('gotify', {}).get('enabled', False):
-        notification_errors.append("Gotify: URL or token not set in environment/config.")
+        error_msg = "Gotify: URL or token not set in environment/config."
+        logging.warning(log_prefix + error_msg)
+        notification_errors.append(error_msg)
 
     if discord_webhook:
         try:
-            send_discord(
+            status_code, response = send_discord(
                 metadata,
                 payload,
                 token,
                 base_url,
                 discord_webhook  # type: ignore
             )
+            if status_code >= 200 and status_code < 300:
+                logging.info(log_prefix + "Discord notification sent successfully.")
+                notifications_sent += 1
+            else:
+                logging.error(log_prefix + f"Discord notification failed with status {status_code}: {response}")
+                notification_errors.append(f"Discord: HTTP {status_code}")
         except Exception as e:
             logging.error(log_prefix + f"Discord notification failed: {e}")
+            logging.exception(log_prefix + "Full Discord exception traceback:")
             notification_errors.append(f"Discord: {e}")
     elif notif_cfg.get('discord', {}).get('enabled', False):
-        notification_errors.append("Discord: webhook URL not set in environment/config.")
+        error_msg = "Discord: webhook URL not set in environment/config."
+        logging.warning(log_prefix + error_msg)
+        notification_errors.append(error_msg)
     try:
         if ntfy_enabled:
             if not ntfy_topic:
                 error_msg = "ntfy topic is not set in config.yaml."
-                logging.error(error_msg)
+                logging.error(log_prefix + error_msg)
                 notification_errors.append(f"ntfy: {error_msg}")
             else:
-                send_ntfy(
+                status_code, response = send_ntfy(
                     metadata, payload, token, base_url,
                     ntfy_topic, ntfy_url, ntfy_user, ntfy_pass
                 )
-                logging.info(log_prefix + "ntfy notification sent successfully.")
+                if status_code >= 200 and status_code < 300:
+                    logging.info(log_prefix + "ntfy notification sent successfully.")
+                    notifications_sent += 1
+                else:
+                    logging.error(log_prefix + f"ntfy notification failed with status {status_code}: {response}")
+                    notification_errors.append(f"ntfy: HTTP {status_code}")
     except Exception as e:
         logging.error(log_prefix + f"ntfy notification failed: {e}")
+        logging.exception(log_prefix + "Full ntfy exception traceback:")
         notification_errors.append(f"ntfy: {e}")
 
+    # Log summary of notification results
+    logging.info(log_prefix + f"Notification summary: {notifications_sent} sent successfully, {len(notification_errors)} failed")
+    
     if notification_errors:
-        return {"message": "Webhook received, but some notifications failed.", "errors": notification_errors}
-    return {"message": "Webhook received and notifications sent."}
+        logging.warning(log_prefix + f"Notification errors: {'; '.join(notification_errors)}")
+        return {"message": "Webhook received, but some notifications failed.", "errors": notification_errors, "sent": notifications_sent}
+    return {"message": "Webhook received and all notifications sent successfully.", "sent": notifications_sent}
 
 # Commented out legacy handlers; using webui router instead
 # @app.get("/approve/{token}", response_class=HTMLResponse)

@@ -2,18 +2,9 @@ from datetime import datetime
 from html import escape
 from typing import Any, Dict, List, Optional
 import re
+import logging
 
 
-def log_message(message: str) -> None:
-    """
-    Deprecated: Use the central logger instead of writing to app.log.
-    """
-    # Deprecated: remove this function or redirect to logging
-    import logging
-
-    logging.warning('log_message is deprecated; use logging module instead')
-    with open("app.log", "a") as log_file:
-        log_file.write(f"{message}\n")
 
 
 def format_metadata(metadata: Dict[str, Any]) -> str:
@@ -22,7 +13,13 @@ def format_metadata(metadata: Dict[str, Any]) -> str:
 
 
 def validate_payload(payload: Dict[str, Any], required_keys: List[str]) -> bool:
-    return all(key in payload for key in required_keys)
+    """Validate that payload contains all required keys"""
+    missing_keys = [key for key in required_keys if key not in payload]
+    if missing_keys:
+        logging.warning(f"Payload validation failed: missing keys {missing_keys}")
+        return False
+    logging.debug(f"Payload validation successful: all required keys present")
+    return True
 
 
 def format_release_date(date_str: str) -> str:
@@ -34,10 +31,13 @@ def format_release_date(date_str: str) -> str:
 
 
 def format_size(size_bytes: Any) -> str:
+    """Format file size in bytes to human readable format"""
     try:
         if size_bytes is None:
+            logging.debug("Size formatting: size_bytes is None")
             return "?"
         size = float(size_bytes)
+        logging.debug(f"Formatting size: {size} bytes")
         if size < 1024:
             return f"{size:.0f} B"
         elif size < 1024 ** 2:
@@ -46,7 +46,8 @@ def format_size(size_bytes: Any) -> str:
             return f"{size / 1024 ** 2:.2f} MB"
         else:
             return f"{size / 1024 ** 3:.2f} GB"
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Size formatting failed for {size_bytes}: {e}")
         return "?"
 
 
@@ -54,20 +55,33 @@ def clean_author_list(authors: List[Dict[str, Any]]) -> List[str]:
     """
     Return only authors, not illustrators or translators.
     """
+    if not authors:
+        logging.debug("Author list is empty")
+        return []
+        
     filtered = []
+    excluded_count = 0
     for author in authors:
         name = author.get('name', '')
-        if not any(term in name.lower() for term in (
-            'illustrator', 'translator', 'adapter', 'contributor', 'editor'
-        )):
+        # Skip illustrators and translators 
+        if any(keyword in name.lower() for keyword in ['illustrator', 'translator', 'narrator']):
+            excluded_count += 1
+            continue
+        if name:
             filtered.append(name)
+    
+    logging.debug(f"Author filtering: {len(filtered)} kept, {excluded_count} excluded")
     return filtered
 
 
 def clean_light_novel(text: Optional[str]) -> Optional[str]:
+    """Remove '(Light Novel)' suffixes from text"""
     if not text:
         return text
-    return text.replace('(Light Novel)', '').replace('(light novel)', '').strip()
+    cleaned = text.replace('(Light Novel)', '').replace('(light novel)', '').strip()
+    if cleaned != text:
+        logging.debug(f"Light novel title cleaned: '{text}' -> '{cleaned}'")
+    return cleaned
 
 
 def strip_html_tags(text: Optional[str]) -> str:

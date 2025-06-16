@@ -1,8 +1,8 @@
-import os
-import requests
-import logging
 from typing import Any, Dict, Optional, Tuple, List
 from src.utils import get_notification_fields
+import requests
+import os
+import logging
 
 
 def send_ntfy(
@@ -100,12 +100,19 @@ def send_ntfy(
         # Fallback to topic endpoint
         fallback_url = f"{base}/{ntfy_topic}"
         logging.info(f"Falling back to ntfy topic endpoint: {fallback_url}")
-        resp2 = requests.post(
-            fallback_url,
-            data=message.encode('utf-8'),
-            headers=headers,
-            auth=auth
-        )
-        resp2.raise_for_status()
-        logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
-        return resp2.status_code, resp2.json()
+        try:
+            resp2 = requests.post(
+                fallback_url,
+                data=message.encode('utf-8'),
+                headers=headers,
+                auth=auth,
+                timeout=15
+            )
+            resp2.raise_for_status()
+            logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
+            return resp2.status_code, resp2.json()
+        except requests.RequestException as e2:
+            error_msg = f"ntfy fallback publish also failed: {e2}"
+            logging.error(error_msg)
+            # Return the original error plus the fallback error
+            return 0, {"error": f"Primary: {e}, Fallback: {e2}"}

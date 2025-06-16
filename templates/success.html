@@ -17,58 +17,10 @@
     <meta name="twitter:description" content="Your request has been processed successfully.">
     <meta name="twitter:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
 
-    <style>
-        body { font-family: Arial, sans-serif; background: #f6fff6; text-align: center; padding-top: 60px; margin:0; }
-        .box {
-            background: #e0ffe0;
-            display: inline-block;
-            padding: 32px 48px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px #b2dfb2;
-            animation: popIn 0.7s;
-        }
-        @keyframes popIn { 0% {transform:scale(0.85); opacity:0.2;} 80% {transform:scale(1.05);} 100% {transform:scale(1);opacity:1;} }
-        h1 { color: #2e7d32; margin: 0 0 16px; }
-        p { margin: 0 0 24px; font-size: 1.1em; }
-        .mascot {
-            width:72px; height:72px; border-radius:50%; margin-bottom:10px;
-            box-shadow:0 0 0 3px #4cff4c,0 1px 8px #0006;
-        }
-        #success-quote { color:#4cff4c; font-size:1em; margin-top:12px; }
-        a.button {
-            display: inline-block;
-            padding: 10px 24px;
-            background: #2e7d32;
-            color: #fff;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 16px;
-            transition: background 0.2s, transform 0.12s, box-shadow 0.13s;
-        }
-        a.button:hover {
-            background: #fff;
-            color: #4cff4c;
-            transform: scale(1.07);
-            box-shadow: 0 0 12px #4cff4caa;
-        }
-        .footer {
-            margin-top: 38px;
-            color: #bbb;
-            font-size: 13px;
-            text-align: center;
-        }
-        @media (prefers-color-scheme: dark) {
-            body { background: linear-gradient(140deg, #18192b 70%, #28234a 100%); color: #eaffea; }
-            .box { background: #1e2a1e; color: #eaffea; box-shadow: 0 2px 12px #000a; }
-            h1 { color: #4cff4c; }
-            #success-quote { color:#bbffbb; }
-            a.button { background: #4cff4c; color: #23243a !important; }
-            a.button:hover { background: #fff; color: #4cff4c !important; }
-        }
-    </style>
+    <!-- External Stylesheets -->
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body>
+<body class="success-page">
     <div class="box" aria-label="Action Successful" role="status" aria-live="polite">
         <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png" 
              alt="Success Mascot" class="mascot" loading="eager" draggable="false">
@@ -78,17 +30,10 @@
         <a href="/" class="button" aria-label="Return Home">🏠 Return Home</a>
     </div>
     <div class="footer">
-      Automated by Quentin’s Overkill Automation™ 🤖
+      Automated by Quentin's Overkill Automation™ 🤖
     </div>
-    <script>
-      const jokes = [
-        "Automation win unlocked! 🎧",
-        "That was smoother than a freshly buttered cat.",
-        "Mission accomplished. Quentin would be proud.",
-        "All green lights, no manual intervention needed.",
-        "You did it! (Or at least, the robot did.)"
-      ];
-      document.getElementById('success-quote').innerText = jokes[Math.floor(Math.random()*jokes.length)];
-    </script>
+    
+    <!-- External JavaScript -->
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 import re
 import requests
+import logging
 from datetime import datetime, UTC
 from typing import Any, Dict, Optional, Tuple
 from src.config import load_config
@@ -95,9 +96,17 @@ def send_discord(
     # Remove None values (Discord API does not accept them)
     embed = {k: v for k, v in embed.items() if v is not None}
     data = {"embeds": [embed]}
-    response = requests.post(webhook_url, json=data)
+    
     try:
-        resp_json = response.json()
-    except Exception:
-        resp_json = {"text": response.text}
-    return response.status_code, resp_json
+        response = requests.post(webhook_url, json=data, timeout=15)
+        response.raise_for_status()
+        try:
+            resp_json = response.json()
+        except ValueError:
+            resp_json = {"text": response.text}
+        logging.info(f"Discord notification sent successfully: status={response.status_code}")
+        return response.status_code, resp_json
+    except requests.RequestException as e:
+        error_msg = f"Failed to send Discord notification: {e}"
+        logging.error(error_msg)
+        return 0, {"error": error_msg}

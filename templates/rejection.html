@@ -3,121 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Rejected</title>
+    <title>Request Rejected - Better Luck Next Time!</title>
     <!-- Favicon & Social Meta -->
     <link rel="icon" type="image/png" href="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Request Rejected">
-    <meta property="og:description" content="Your audiobook request has been rejected.">
+    <meta property="og:title" content="Request Rejected - Better Luck Next Time!">
+    <meta property="og:description" content="Your audiobook request didn't make the cut this time.">
     <meta property="og:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
     <meta property="og:image:alt" content="Quentin mascot looking apologetic">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Request Rejected">
-    <meta name="twitter:description" content="Your audiobook request has been rejected.">
+    <meta name="twitter:title" content="Request Rejected - Better Luck Next Time!">
+    <meta name="twitter:description" content="Your audiobook request didn't make the cut this time.">
     <meta name="twitter:image" content="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png">
-    <style>
-        body {
-            font-family: Arial, 'Segoe UI', sans-serif;
-            background: linear-gradient(140deg, #2b1818 70%, #4a2323 100%);
-            color: #ffe8e8;
-            max-width: 480px;
-            margin: 24px auto;
-        }
-        h2 {
-            color: #ff3b3b;
-            text-shadow: 0 0 3px #ff3b3b, 0 0 6px #222;
-            text-align: center;
-        }
-        .mascot {
-            width:72px; height:72px; border-radius:50%; margin:12px auto 4px auto; display:block;
-            box-shadow:0 0 0 3px #ff3b3b,0 1px 8px #0006;
-            background:#3a2323;
-        }
-        .info-box {
-            background: #3a2323;
-            border-radius: 14px;
-            box-shadow: 0 2px 12px #000a;
-            padding: 22px 20px;
-            margin: 22px 0;
-            font-size: 1.12em;
-            line-height: 1.7;
-            text-align: center;
-            animation: popIn 0.7s;
-        }
-        @keyframes popIn { 0% {transform:scale(0.85); opacity:0.2;} 80% {transform:scale(1.05);} 100% {transform:scale(1);opacity:1;} }
-        .btn-link {
-            display: inline-block;
-            background: #ff3b3b;
-            color: #fff !important;
-            border-radius: 7px;
-            padding: 6px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            text-decoration: none;
-            box-shadow: 0 1px 6px #18192b44;
-            transition: background 0.15s, color 0.15s, transform 0.13s;
-            margin-top: 18px;
-        }
-        .btn-link:hover {
-            background: #fff;
-            color: #ff3b3b !important;
-            box-shadow: 0 0 8px #ff3b3bcc;
-            text-shadow: none;
-            transform: scale(1.07);
-        }
-        #rejected-quote {
-            color:#ffb2b2; font-size:1em; margin-top:10px; min-height:24px;
-        }
-        @media (prefers-color-scheme: light) {
-            body {
-                background: linear-gradient(135deg, #fff 65%, #fae2e2 100%);
-                color: #2b1818;
-            }
-            .info-box {
-                background: #fae2e2;
-                color: #222;
-            }
-            .mascot { background: #fae2e2; }
-            #rejected-quote { color:#ff3b3b; }
-        }
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(140deg, #2b1818 70%, #4a2323 100%);
-                color: #ffe8e8;
-            }
-            .info-box {
-                background: #3a2323;
-                color: #ffe8e8;
-            }
-            .mascot { background: #3a2323; }
-            #rejected-quote { color:#ffb2b2; }
-        }
-    </style>
+    
+    <!-- External Stylesheets -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
-    <h2>Request Rejected</h2>
-    <div class="info-box" aria-label="Request Rejected" role="status" aria-live="polite">
-        <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png"
-             alt="Rejected Mascot" class="mascot" loading="eager" draggable="false">
-        <div style="font-size:2.5em;">❌</div>
-        <p>Your audiobook request has been <b>rejected</b>.</p>
-        <p>If you believe this is a mistake, please contact the administrator.</p>
-        <p id="rejected-quote"></p>
-        <a href="/" class="btn-link" aria-label="Return Home">🏠 Return Home</a>
+<body class="rejection-page">
+    <div class="particles" id="particles"></div>
+    
+    <div class="rejection-container">
+        <h1 class="rejection-title">NOPE!</h1>
+        <p class="rejection-subtitle">That request didn't quite make the cut...</p>
+        
+        <div class="mascot-container">
+            <img src="https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.png"
+                 alt="Quentin looking sheepish" class="mascot" loading="eager" draggable="false">
+        </div>
+        
+        <div class="rejection-emoji">🚫</div>
+        
+        <div class="rejection-message">
+            Your audiobook request has been <strong>rejected</strong> by the digital overlords.
+        </div>
+        
+        <div class="rejection-reason">
+            <strong>💡 Pro Tip:</strong> Even the best algorithms have bad days. If you think this was a mistake, don't hesitate to reach out to the human behind the curtain!
+        </div>
+        
+        <div class="witty-quote" id="rejected-quote">
+            Loading philosophical wisdom about rejection...
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/" class="btn-link" aria-label="Return Home">
+                🏠 Return to Base
+            </a>
+            <a href="mailto:admin@example.com" class="btn-link btn-secondary" aria-label="Contact Admin">
+                📧 Appeal to Humans
+            </a>
+        </div>
+        
+        <div class="footer-section">
+            {% if footer %}{{ footer }}{% else %}Powered by Quentin's Slightly Judgmental AI&trade; &#x1F916;{% endif %}
+        </div>
     </div>
-    <div style="margin-top:32px;font-size:13px;color:#888;text-align:center;">
-        {{ footer|default('Automated by Quentin’s Overkill Automation™ 🤖') }}
-    </div>
-    <script>
-      const jokes = [
-        "Sorry, your request got snapped like Thanos was in IT.",
-        "Rejected—but at least you didn’t get isekai’d. Try again!",
-        "This audiobook didn’t make the cut. Quentin still likes you, though.",
-        "Not all heroes wear capes. Some just reject requests.",
-        "The council of robots has spoken. Rejection it is.",
-        "Better luck next time! (No audiobooks were harmed.)"
-      ];
-      document.getElementById('rejected-quote').innerText = jokes[Math.floor(Math.random()*jokes.length)];
-    </script>
+    
+    <div class="easter-egg" onclick="showSecretMessage()" title="Click for consolation">🎭</div>
+    
+    <!-- External JavaScript -->
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

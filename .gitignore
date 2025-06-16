@@ -42,4 +42,6 @@ config/config.yaml
 !config/config.yaml.example
 logs/
 db.sqlite
-tests/
+tests/__pycache__/
+.pytest_cache/
+db.sqlite
