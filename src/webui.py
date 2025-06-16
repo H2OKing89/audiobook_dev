@@ -146,3 +146,14 @@ async def reject(token: str, request: Request) -> HTMLResponse:
     }
     response = render_template(request, 'rejection.html', context)
     return response
+
+@router.post("/reject/{token}", response_class=HTMLResponse)
+async def reject_post(token: str, request: Request) -> HTMLResponse:
+    # Reuse the same logic as the GET handler
+    return await reject(token, request)
+
+@router.post("/approve/{token}", response_class=HTMLResponse)
+async def approve_post(token: str, request: Request) -> HTMLResponse:
+    # For the test_token_lifecycle_complete test
+    # This should mirror the functionality of approve_action
+    return await approve_action(token, request)
