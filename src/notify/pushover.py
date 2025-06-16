@@ -1,3 +1,4 @@
+import requests
 from typing import Any, Dict, Optional, Tuple
 from src.utils import build_notification_message
 import os
@@ -20,8 +21,6 @@ def send_pushover(
     Returns (status_code, response_json).
     Raises requests.RequestException for network errors.
     """
-    import requests
-
     message = build_notification_message(metadata, payload, token, base_url)
     url = "https://api.pushover.net/1/messages.json"
     payload_data = {

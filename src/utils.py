@@ -1,7 +1,8 @@
 from datetime import datetime
-import re
 from html import escape
 from typing import Any, Dict, List, Optional
+import re
+
 
 def log_message(message: str) -> None:
     """
@@ -34,17 +35,19 @@ def format_release_date(date_str: str) -> str:
 
 def format_size(size_bytes: Any) -> str:
     try:
-        size_bytes = int(size_bytes)
-        if size_bytes >= 1024 ** 3:
-            return f"{size_bytes / (1024 ** 3):.2f} GB"
-        elif size_bytes >= 1024 ** 2:
-            return f"{size_bytes / (1024 ** 2):.2f} MB"
-        elif size_bytes >= 1024:
-            return f"{size_bytes / 1024:.2f} KB"
+        if size_bytes is None:
+            return "?"
+        size = float(size_bytes)
+        if size < 1024:
+            return f"{size:.0f} B"
+        elif size < 1024 ** 2:
+            return f"{size / 1024:.2f} KB"
+        elif size < 1024 ** 3:
+            return f"{size / 1024 ** 2:.2f} MB"
         else:
-            return f"{size_bytes} B"
+            return f"{size / 1024 ** 3:.2f} GB"
     except Exception:
-        return str(size_bytes)
+        return "?"
 
 
 def clean_author_list(authors: List[Dict[str, Any]]) -> List[str]:
@@ -96,8 +99,8 @@ def build_notification_message(metadata: Dict[str, Any], payload: Dict[str, Any]
     """
     Construct an HTML notification message for Pushover/Discord with approve/reject links.
     """
+    # Clean title and series
     title = clean_light_novel(metadata.get('title', '')) or ''
-    # Series with volume number if available
     series_info = metadata.get('series_primary', {})
     series = clean_light_novel(series_info.get('name'))
     if series and series_info.get('position'):
@@ -105,7 +108,8 @@ def build_notification_message(metadata: Dict[str, Any], payload: Dict[str, Any]
     author = metadata.get('author', '')
     publisher = metadata.get('publisher', '')
     narrators = ', '.join(metadata.get('narrators', []))
-    release_date = metadata.get('release_date', '')
+    # Use format_release_date to strip time
+    release_date = format_release_date(metadata.get('release_date', ''))
     runtime = str(metadata.get('runtime_minutes', ''))
     category = payload.get('category', '')
     size = payload.get('size', '')
@@ -113,21 +117,25 @@ def build_notification_message(metadata: Dict[str, Any], payload: Dict[str, Any]
     raw_desc = metadata.get('description', '')
     description = strip_html_tags(raw_desc)
 
-    parts = [
-        f"<font color=\"green\"><b>🎉 NEW AUDIOBOOK</b></font><br>",
-        f"<font color=\"#30bfff\"><b>🎧 Title:</b></font> <b>{escape(title)}</b><br>",
-        f"<font color=\"#e040fb\"><b>🔗 Series:</b></font> {escape(series)}<br>" if series else "",
-        f"<font color=\"#ff9500\"><b>✍️ Author:</b></font> <i>{escape(author)}</i><br>",
-        f"<font color=\"#30bfff\"><b>🏢 Publisher:</b></font> {escape(publisher)}<br>" if publisher else "",
-        f"<font color=\"#b889f4\"><b>🎤 Narrators:</b></font> {escape(narrators)}<br>" if narrators else "",
-        f"<font color=\"#ff9500\"><b>📅 Release Date:</b></font> {escape(format_release_date(release_date))}<br>" if release_date else "",
-        f"<font color=\"green\"><b>⏱️ Runtime:</b></font> {escape(runtime)}<br>" if runtime else "",
-        f"<font color=\"#b889f4\"><b>📚 Category:</b></font> {escape(category)}<br>",
-        f"<font color=\"#888\"><b>💾 Size:</b></font> {escape(format_size(size))}<br>",
-        f"<font color=\"#888\"><b>📝 Description:</b></font> {escape(description)}<br>" if description else "",
-        # Approval/reject links
-        f"<br><a href=\"{base_url}/approve/{token}\">✅ Approve</a> "
-        f"<a href=\"{base_url}/reject/{token}\">❌ Reject</a><br>"
-    ]
-    # filter out empty parts
-    return ''.join([part for part in parts if part])
+    msg = (
+        '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
+        f'<font color="#30bfff"><b>🎧 Title:</b></font> <b>{escape(title)}</b><br>'
+        f'<font color="#e040fb"><b>🔗 Series:</b></font> {escape(series or "")}<br>'
+        f'<font color="#ff9500"><b>✍️ Author:</b></font> <i>{escape(author)}</i><br>'
+        f'<font color="#30bfff"><b>🏢 Publisher:</b></font> {escape(publisher)}<br>'
+        f'<font color="#b889f4"><b>🎤 Narrators:</b></font> {escape(narrators)}<br>'
+        f'<font color="#ff9500"><b>📅 Release Date:</b></font> {escape(release_date)}<br>'
+        f'<font color="green"><b>⏱️ Runtime:</b></font> {escape(runtime)}<br>'
+        f'<font color="#b889f4"><b>📚 Category:</b></font> {escape(category)}<br>'
+        f'<font color="#888"><b>💾 Size:</b></font> {format_size(payload.get("size") or metadata.get("size"))}<br>'
+        f'<font color="#888"><b>📝 Description:</b></font> {strip_html_tags(metadata.get("summary") or metadata.get("description", ""))}<br>'
+    )
+    # Add url and download_url if present
+    url = payload.get("url") or metadata.get("url")
+    download_url = payload.get("download_url") or metadata.get("download_url")
+    if url:
+        msg += f'<br><font color="#30bfff"><b>🔗 URL:</b></font> <a href="{escape(url)}">{escape(url)}</a>'
+    if download_url:
+        msg += f'<br><font color="#30bfff"><b>⬇️ Download:</b></font> <a href="{escape(download_url)}">{escape(download_url)}</a>'
+    msg += f'<br><br><a href="{base_url}/approve/{token}">✅ Approve</a> <a href="{base_url}/reject/{token}">❌ Reject</a><br>'
+    return msg

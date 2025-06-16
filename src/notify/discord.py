@@ -1,4 +1,6 @@
 import re
+import requests
+from datetime import datetime, UTC
 from typing import Any, Dict, Optional, Tuple
 from src.config import load_config
 from src.utils import format_size, format_release_date, strip_html_tags
@@ -18,7 +20,6 @@ def send_discord(
     base_url: str,
     webhook_url: str
 ) -> Tuple[int, Any]:
-    import requests
     config = load_config()
     server_cfg = config.get('server', {})
     discord_cfg = config.get('notifications', {}).get('discord', {})
@@ -99,7 +100,7 @@ def send_discord(
         },
         "image": {"url": cover_url} if cover_url else None,
         "footer": {"text": footer_text, "icon_url": footer_icon_url},
-        "timestamp": __import__('datetime').datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
     # Remove None values (Discord API does not accept them)
     embed = {k: v for k, v in embed.items() if v is not None}

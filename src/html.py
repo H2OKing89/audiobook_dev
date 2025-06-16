@@ -11,4 +11,4 @@ def render_template(request: Request, template_name: str, context: dict) -> 'Tem
     # Inject 'request' into the template context as required by Jinja2Templates
     full_context = {"request": request}
     full_context.update(context or {})
-    return templates.TemplateResponse(template_name, full_context)
+    return templates.TemplateResponse(request, template_name, full_context)
