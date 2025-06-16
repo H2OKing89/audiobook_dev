@@ -55,7 +55,7 @@ def send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token):
     # Message body: Markdown, cover image included if present
     body_lines = [
         f"**{emoji} NEW AUDIOBOOK**",
-        f"![cover]({cover_url})" if cover_url else None,  # Markdown image line
+        f"**🎧 Title:** ***{escape_md(title)}***",
         f"**🔗 Series:** {escape_md(series)}" if series else None,
         f"**✍️ Author:** _{escape_md(author)}_" if author else None,
         f"**🏢 Publisher:** {escape_md(publisher)}" if publisher else None,
@@ -65,7 +65,7 @@ def send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token):
         f"**📚 Category:** {escape_md(category)}" if category else None,
         f"**💾 Size:** {escape_md(size_fmt)}" if size_fmt else None,
         f"**📝 Description:** {escape_md(description)}" if description else None,
-        f"**🎧 Title:** ***{escape_md(title)}***",
+        f"![cover]({cover_url})" if cover_url else None,  # Markdown image line
         f"[🌐 View]({view_url})",
         f"[📥 Download]({download_url})",
         '',
