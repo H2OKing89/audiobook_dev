@@ -11,7 +11,7 @@ from src.utils import format_release_date, format_size
 import logging
 from datetime import datetime
 from starlette.concurrency import run_in_threadpool
-from src.security import generate_csrf_token
+from src.security import generate_csrf_token, get_client_ip
 from src.config import load_config
 import re
 import html
@@ -38,7 +38,7 @@ def sanitize_input(text: Optional[str]) -> str:
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
     """Serve the home page"""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.info(f"Home page accessed from IP: {client_ip}")
     
     # Add CSRF token if protection is enabled
@@ -57,7 +57,7 @@ async def home(request: Request) -> HTMLResponse:
 async def approve(token: str, request: Request) -> HTMLResponse:
     """Display the approval page for a given token"""
     # Log client IP for security monitoring
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.debug(f"Approve page accessed from IP: {client_ip} for token: {token}")
     
     try:
@@ -113,7 +113,7 @@ async def approve(token: str, request: Request) -> HTMLResponse:
 @router.get("/approve/{token}/action", response_class=HTMLResponse)
 async def approve_action(token: str, request: Request) -> HTMLResponse:
     """Process the approval action for a given token"""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.info(f"Approval action triggered from IP: {client_ip} for token: {token}")
     
     try:
@@ -211,7 +211,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
 async def reject(token: str, request: Request) -> HTMLResponse:
     """Display the rejection page and process rejection for a given token"""
     # Log client IP for security monitoring
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.debug(f"Reject page accessed from IP: {client_ip} for token: {token}")
     
     try:
@@ -259,7 +259,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
 @router.post("/reject/{token}", response_class=HTMLResponse)
 async def reject_post(token: str, request: Request) -> HTMLResponse:
     """Handle POST request for token rejection with CSRF validation"""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.info(f"Reject POST request from IP: {client_ip} for token: {token}")
     
     try:
@@ -288,7 +288,7 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
 @router.post("/approve/{token}", response_class=HTMLResponse)
 async def approve_post(token: str, request: Request) -> HTMLResponse:
     """Handle POST request for token approval with CSRF validation"""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     logging.info(f"Approve POST request from IP: {client_ip} for token: {token}")
     
     try:
@@ -313,4 +313,53 @@ async def approve_post(token: str, request: Request) -> HTMLResponse:
     except Exception as e:
         logging.error(f"Error processing approve POST for token {token}: {e}")
         logging.exception(f"Full exception traceback for approve POST {token}:")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(request: Request) -> HTMLResponse:
+    """Admin dashboard - protected endpoint that requires API key authentication"""
+    # This endpoint will be protected by the middleware
+    # If users try to access without proper auth, they'll get the 401 page
+    
+    client_ip = get_client_ip(request)
+    logging.info(f"Admin dashboard accessed from IP: {client_ip}")
+    
+    # Simple admin dashboard content
+    context = {
+        'title': 'Admin Dashboard',
+        'message': 'Welcome to the admin area!',
+        'client_ip': client_ip
+    }
+    
+    try:
+        # For demonstration, we'll create a simple admin template inline
+        admin_html = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Admin Dashboard</title>
+            <link rel="stylesheet" href="/static/css/style.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔐 Admin Dashboard</h1>
+                <p>You have successfully accessed the protected admin area!</p>
+                <p>Client IP: {{ client_ip }}</p>
+                <p>This page is only accessible with proper authentication.</p>
+                <a href="/" class="btn-home">Return Home</a>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Basic template rendering
+        for key, value in context.items():
+            admin_html = admin_html.replace(f"{{{{ {key} }}}}", str(value))
+        
+        return HTMLResponse(content=admin_html)
+        
+    except Exception as e:
+        logging.error(f"Failed to render admin dashboard: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

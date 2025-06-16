@@ -7,12 +7,28 @@
     
     <!-- External Stylesheets -->
     <link rel="stylesheet" href="/static/css/style.css">
+    
+    <!-- Security Headers -->
+    {% include 'security_headers.html' %}
 </head>
 <body class="error-page">
     <div class="error-container">
-        <h1>401 - Unauthorized</h1>
+        <h1>401 - Unauthorized Access</h1>
         <p>You don't have permission to access this resource.</p>
-        <a href="/" class="btn-home">Return Home</a>
+        {% if requested_path %}
+        <p class="error-details">Requested path: <code>{{ requested_path }}</code></p>
+        {% endif %}
+        <p class="error-help">
+            If you believe you should have access to this resource, please:
+            <ul>
+                <li>Check that you have provided a valid API key</li>
+                <li>Ensure you're accessing the correct endpoint</li>
+                <li>Contact the administrator if you need access</li>
+            </ul>
+        </p>
+        <div class="error-actions">
+            <a href="/" class="btn-home">Return Home</a>
+        </div>
     </div>
     
     <!-- External JavaScript -->

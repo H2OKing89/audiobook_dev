@@ -13,7 +13,8 @@ from src.qbittorrent import add_torrent
 from src.db import save_request  # switch to persistent DB store
 from src.webui import router as webui_router  # add web UI router import
 from src.config import load_config  # add import for config
-from src.security import require_api_key, rate_limit_token_generation, rate_limit_exceeded_handler, get_csp_header
+from src.security import require_api_key, rate_limit_token_generation, rate_limit_exceeded_handler, get_csp_header, check_endpoint_authorization, get_client_ip
+from src.utils import validate_payload, format_size
 import os
 from dotenv import load_dotenv
 import logging
@@ -88,6 +89,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add HTTPS enforcement middleware (must be first)
+security_config = config.get('security', {})
+if security_config.get('force_https', False):
+    from src.security import HTTPSRedirectMiddleware
+    app.add_middleware(HTTPSRedirectMiddleware, force_https=True)
+
 # Add CORS middleware with secure defaults
 app.add_middleware(
     CORSMiddleware,
@@ -109,6 +116,18 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = get_csp_header()
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+# Add endpoint authorization middleware
+@app.middleware("http")
+async def endpoint_authorization_middleware(request: Request, call_next):
+    # Check if the endpoint requires authorization
+    auth_response = await check_endpoint_authorization(request)
+    if auth_response:
+        return auth_response
+    
+    # If authorization passes, continue with the request
+    response = await call_next(request)
     return response
 
 # Exception handler for too many requests
@@ -137,13 +156,8 @@ async def add_request_id(request: Request, call_next):
         token = request.headers.get('X-Request-ID') or uuid.uuid4().hex
     # Store in contextvar
     request_id_ctx_var.set(token)
-    # Get client IP address, respecting X-Forwarded-For if present
-    xff = request.headers.get('x-forwarded-for')
-    if xff:
-        # X-Forwarded-For may be a comma-separated list; take the first (original client)
-        client_ip = xff.split(',')[0].strip()
-    else:
-        client_ip = request.client.host if request.client else 'unknown'
+    # Get client IP address using centralized function
+    client_ip = get_client_ip(request)
     # Log the incoming request with IP and token
     logging.info(f"Incoming request: path={request.url.path} ip={client_ip} token={token}")
     # Proceed with request
@@ -153,12 +167,10 @@ async def add_request_id(request: Request, call_next):
     response.headers['X-Client-IP'] = client_ip
     return response
 
-# Use dynamic autobrr endpoint from config
 @app.post(autobrr_endpoint)
 async def webhook(request: Request):
     # Get client IP for rate limiting
-    xff = request.headers.get('x-forwarded-for')
-    client_ip = xff.split(',')[0].strip() if xff else (request.client.host if request.client else 'unknown')
+    client_ip = get_client_ip(request)
     
     # Rate limit token generation
     if not rate_limit_token_generation(client_ip):
