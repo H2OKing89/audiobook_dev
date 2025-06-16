@@ -38,14 +38,18 @@ def test_endpoint_discovery():
     
     for endpoint, method in endpoints:
         try:
+            response = None
             if method == "GET":
                 response = client.get(endpoint)
             elif method == "POST":
                 response = client.post(endpoint, json={"test": "data"})
             
-            status = response.status_code
-            status_emoji = "✅" if status < 400 else "❌" if status >= 500 else "⚠️"
-            print(f"{status_emoji} {method} {endpoint}: {status}")
+            if response:
+                status = response.status_code
+                status_emoji = "✅" if status < 400 else "❌" if status >= 500 else "⚠️"
+                print(f"{status_emoji} {method} {endpoint}: {status}")
+            else:
+                print(f"❌ {method} {endpoint}: Unsupported method")
             
         except Exception as e:
             print(f"❌ {method} {endpoint}: ERROR - {e}")
