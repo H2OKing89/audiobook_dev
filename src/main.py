@@ -22,7 +22,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import uuid
 import contextvars
-from typing import Optional
+import asyncio
+import time
+from typing import Optional, Dict, Any
 
 load_dotenv()
 
@@ -89,6 +91,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Global metadata processing queue
+metadata_queue = asyncio.Queue(maxsize=50)  # Allow up to 50 pending requests
+metadata_worker_running = False
+metadata_coordinator = None  # Single shared coordinator instance
+
 # Add HTTPS enforcement middleware (must be first)
 security_config = config.get('security', {})
 if security_config.get('force_https', False):
@@ -142,6 +149,44 @@ app.include_router(webui_router)  # mount web UI routes
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Add startup event to initialize worker
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the metadata worker on app startup"""
+    await init_metadata_worker()
+    logging.info("🚀 Audiobook service started with queue-based processing")
+
+# Queue status endpoint for monitoring (internal use only)
+@app.get("/queue/status")
+async def queue_status(request: Request):
+    """Get current queue status for monitoring - INTERNAL USE ONLY"""
+    # Check if request is from local network or has API key
+    client_ip = get_client_ip(request)
+    
+    # Allow local/internal IPs
+    local_ips = ["127.0.0.1", "::1", "10.1.60.11", "localhost"]
+    is_local = any(client_ip.startswith(ip.split('/')[0]) for ip in ["127.", "10.", "192.168.", "172.16."]) or client_ip in local_ips
+    
+    # Check for API key (optional additional security)
+    api_key = request.headers.get("X-API-Key")
+    internal_api_key = os.getenv('INTERNAL_API_KEY')  # Set this for additional security
+    
+    if not is_local and (not internal_api_key or api_key != internal_api_key):
+        logging.warning(f"Unauthorized queue status access attempt from {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied - internal endpoint"
+        )
+    
+    return {
+        "queue_size": metadata_queue.qsize(),
+        "queue_maxsize": metadata_queue.maxsize,
+        "queue_full": metadata_queue.full(),
+        "worker_running": metadata_worker_running,
+        "coordinator_initialized": metadata_coordinator is not None,
+        "timestamp": time.time()
+    }
+
 # Middleware to set request_id from path token or generate new one
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
@@ -169,6 +214,7 @@ async def add_request_id(request: Request, call_next):
 
 @app.post(autobrr_endpoint)
 async def webhook(request: Request):
+    """Webhook endpoint that enqueues requests for background processing"""
     # Get client IP for rate limiting
     client_ip = get_client_ip(request)
     
@@ -200,64 +246,149 @@ async def webhook(request: Request):
             detail=f"Missing required fields: {', '.join(missing_fields)}"
         )
     
-    # Generate one-time-use token and use as request ID for logs
+    # Generate one-time-use token for this request
     token = generate_token()
     log_prefix = f"[token={token}] "
     logging.info(log_prefix + f"Received webhook payload: {payload}")
 
-    # Fetch and validate metadata using the new modular coordinator
-    coordinator = MetadataCoordinator()
     try:
-        metadata = await coordinator.get_metadata_from_webhook(payload)
-        if metadata:
-            # Enhance metadata with additional information
-            metadata = coordinator.get_enhanced_metadata(metadata)
-        else:
-            raise ValueError("No metadata found from any source")
-    except Exception as e:
-        logging.error(log_prefix + f"Metadata fetch failed: {e}")
-        # Don't raise an exception, just continue with empty metadata for testing
-        name = payload.get("name", "Unknown Title")
-        # Extract the title without ASIN suffix if present
-        import re
-        title = name
-        if re.search(r'\[[A-Z0-9]+\]$', name):
-            title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
-        metadata = {
-            "title": title,
-            "author": "Unknown Author",
-            "asin": "B000000000",
-            "description": f"Fallback metadata for {title}",
-            "cover": "",
-            "publisher": "Unknown Publisher",
-            "publishedYear": "",
-            "duration": 0,
-            "narrator": "Unknown Narrator",
-            "series": None,
-            "genres": None,
-            "tags": None,
-            "language": "English",
-            "rating": None,
-            "abridged": False,
-            "source": "fallback",
-            "workflow_path": "fallback"
+        # Check if queue is full
+        if metadata_queue.full():
+            logging.warning(log_prefix + f"Metadata queue is full ({metadata_queue.maxsize} items), rejecting request")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Server is busy processing other requests. Please try again later."
+            )
+        
+        # Enqueue the request for background processing
+        request_data = {
+            'token': token,
+            'payload': payload,
+            'timestamp': time.time()
         }
-        logging.warning(log_prefix + f"Using fallback metadata due to fetch error: {metadata}")
-    logging.info(log_prefix + f"Fetched metadata: {metadata}")
+        
+        await metadata_queue.put(request_data)
+        
+        logging.info(log_prefix + f"Request enqueued for background processing (queue size: {metadata_queue.qsize()})")
+        
+        # Return immediately - processing will happen in background
+        return {
+            "message": "Webhook received and queued for processing",
+            "token": token,
+            "queue_size": metadata_queue.qsize()
+        }
+        
+    except asyncio.QueueFull:
+        logging.error(log_prefix + "Failed to enqueue request - queue is full")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Server is busy processing other requests. Please try again later."
+        )
 
+async def init_metadata_worker():
+    """Initialize the shared metadata coordinator and start worker if needed"""
+    global metadata_coordinator, metadata_worker_running
+    
+    if metadata_coordinator is None:
+        metadata_coordinator = MetadataCoordinator()
+        logging.info("Shared metadata coordinator initialized")
+    
+    if not metadata_worker_running:
+        asyncio.create_task(metadata_worker())
+        metadata_worker_running = True
+        logging.info("Metadata worker started")
+
+async def metadata_worker():
+    """Background worker to process metadata requests sequentially"""
+    global metadata_coordinator
+    
+    logging.info("Metadata worker started - processing requests sequentially")
+    
+    while True:
+        try:
+            # Get next request from queue
+            request_data = await metadata_queue.get()
+            
+            token = request_data['token']
+            payload = request_data['payload']
+            timestamp = request_data['timestamp']
+            
+            log_prefix = f"[token={token}] "
+            wait_time = time.time() - timestamp
+            
+            logging.info(log_prefix + f"Processing metadata request (waited {wait_time:.1f}s in queue)")
+            
+            # Ensure coordinator exists
+            if metadata_coordinator is None:
+                metadata_coordinator = MetadataCoordinator()
+                logging.info("Created metadata coordinator in worker")
+            
+            # Process metadata using shared coordinator
+            try:
+                metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
+                if metadata:
+                    # Enhance metadata with additional information
+                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                    logging.info(log_prefix + f"✅ Metadata processed successfully")
+                else:
+                    raise ValueError("No metadata found from any source")
+                    
+            except Exception as e:
+                logging.error(log_prefix + f"Metadata fetch failed: {e}")
+                # Create fallback metadata
+                name = payload.get("name", "Unknown Title")
+                import re
+                title = name
+                if re.search(r'\[[A-Z0-9]+\]$', name):
+                    title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
+                metadata = {
+                    "title": title,
+                    "author": "Unknown Author",
+                    "asin": "B000000000",
+                    "description": f"Fallback metadata for {title}",
+                    "cover": "",
+                    "publisher": "Unknown Publisher",
+                    "publishedYear": "",
+                    "duration": 0,
+                    "narrator": "Unknown Narrator",
+                    "series": None,
+                    "genres": None,
+                    "tags": None,
+                    "language": "English",
+                    "rating": None,
+                    "abridged": False,
+                    "source": "fallback",
+                    "workflow_path": "fallback"
+                }
+                logging.warning(log_prefix + f"Using fallback metadata due to fetch error")
+            
+            # Continue with the rest of the processing (notifications, etc.)
+            await process_metadata_and_notify(token, metadata, payload)
+            
+            # Mark task as done
+            metadata_queue.task_done()
+            
+        except Exception as e:
+            logging.error(f"Error in metadata worker: {e}")
+            # Mark task as done even on error to prevent queue blocking
+            try:
+                metadata_queue.task_done()
+            except ValueError:
+                pass  # task_done() called more times than get()
+
+async def process_metadata_and_notify(token: str, metadata: Dict[str, Any], payload: Dict[str, Any]):
+    """Process metadata and send notifications (simplified synchronous version)"""
+    log_prefix = f"[token={token}] "
+    
     # Persist token, metadata, and original payload
     save_request(token, metadata, payload)
     logging.info(log_prefix + f"Saved request with token: {token}")
 
-    # Prepare notification settings
+    # Get notification settings
     base_url = server_cfg.get('base_url')
     notif_cfg = config.get('notifications', {})
-    pushover_cfg = notif_cfg.get('pushover', {})
-    pushover_enabled = pushover_cfg.get('enabled', False)
-    pushover_sound = pushover_cfg.get('sound')
-    pushover_html = pushover_cfg.get('html')
-    pushover_priority = pushover_cfg.get('priority')
-
+    
+    # Get environment variables for notification services
     pushover_token = os.getenv('PUSHOVER_TOKEN')
     pushover_user = os.getenv('PUSHOVER_USER')
     discord_webhook = os.getenv('DISCORD_WEBHOOK_URL')
@@ -268,37 +399,38 @@ async def webhook(request: Request):
     ntfy_topic = ntfy_cfg.get('topic')
     ntfy_url = ntfy_cfg.get('url', 'https://ntfy.sh')
     ntfy_user = os.getenv('NTFY_USER')
-    ntfy_pass = os.getenv('NTFY_PASS')
+    ntfy_password = os.getenv('NTFY_PASS')
 
-    # Send notifications with granular error handling
-    notification_errors = []
     notifications_sent = 0
-    
-    logging.info(log_prefix + f"Sending notifications: pushover={'enabled' if pushover_enabled else 'disabled'}, gotify={'enabled' if gotify_url and gotify_token else 'disabled'}, discord={'enabled' if discord_webhook else 'disabled'}, ntfy={'enabled' if ntfy_enabled else 'disabled'}")
-    
-    if pushover_enabled:
-        if pushover_user is None or pushover_token is None:
-            error_msg = "Pushover user key or token is not set in environment variables."
-            logging.error(log_prefix + error_msg)
-            notification_errors.append(f"Pushover: {error_msg}")
-        else:
-            try:
-                status_code, response = send_pushover(
-                    metadata, payload, token, base_url,
-                    pushover_user, pushover_token,
-                    pushover_sound, pushover_html, pushover_priority
-                )
-                if status_code >= 200 and status_code < 300:
-                    logging.info(log_prefix + "Pushover notification sent successfully.")
-                    notifications_sent += 1
-                else:
-                    logging.error(log_prefix + f"Pushover notification failed with status {status_code}: {response}")
-                    notification_errors.append(f"Pushover: HTTP {status_code}")
-            except Exception as e:
-                logging.error(log_prefix + f"Pushover notification failed: {e}")
-                logging.exception(log_prefix + "Full Pushover exception traceback:")
-                notification_errors.append(f"Pushover: {e}")
-    
+    notification_errors = []
+
+    # Send Pushover notification
+    pushover_cfg = notif_cfg.get('pushover', {})
+    pushover_enabled = pushover_cfg.get('enabled', False)
+    if pushover_enabled and pushover_token and pushover_user:
+        try:
+            status_code, response = send_pushover(
+                metadata,
+                payload,
+                token,
+                base_url,
+                pushover_user,
+                pushover_token,
+                sound=pushover_cfg.get('sound'),
+                html=pushover_cfg.get('html'),
+                priority=pushover_cfg.get('priority')
+            )
+            if status_code >= 200 and status_code < 300:
+                logging.info(log_prefix + "Pushover notification sent successfully.")
+                notifications_sent += 1
+            else:
+                logging.error(log_prefix + f"Pushover notification failed with status {status_code}: {response}")
+                notification_errors.append(f"Pushover: HTTP {status_code}")
+        except Exception as e:
+            logging.error(log_prefix + f"Pushover notification failed: {e}")
+            notification_errors.append(f"Pushover: {e}")
+
+    # Send Gotify notification
     if gotify_url and gotify_token:
         try:
             status_code, response = send_gotify(
@@ -306,8 +438,8 @@ async def webhook(request: Request):
                 payload,
                 token,
                 base_url,
-                gotify_url,  # type: ignore
-                gotify_token  # type: ignore
+                gotify_url,
+                gotify_token
             )
             if status_code >= 200 and status_code < 300:
                 logging.info(log_prefix + "Gotify notification sent successfully.")
@@ -317,13 +449,9 @@ async def webhook(request: Request):
                 notification_errors.append(f"Gotify: HTTP {status_code}")
         except Exception as e:
             logging.error(log_prefix + f"Gotify notification failed: {e}")
-            logging.exception(log_prefix + "Full Gotify exception traceback:")
             notification_errors.append(f"Gotify: {e}")
-    elif notif_cfg.get('gotify', {}).get('enabled', False):
-        error_msg = "Gotify: URL or token not set in environment/config."
-        logging.warning(log_prefix + error_msg)
-        notification_errors.append(error_msg)
 
+    # Send Discord notification
     if discord_webhook:
         try:
             status_code, response = send_discord(
@@ -331,7 +459,7 @@ async def webhook(request: Request):
                 payload,
                 token,
                 base_url,
-                discord_webhook  # type: ignore
+                discord_webhook
             )
             if status_code >= 200 and status_code < 300:
                 logging.info(log_prefix + "Discord notification sent successfully.")
@@ -341,41 +469,36 @@ async def webhook(request: Request):
                 notification_errors.append(f"Discord: HTTP {status_code}")
         except Exception as e:
             logging.error(log_prefix + f"Discord notification failed: {e}")
-            logging.exception(log_prefix + "Full Discord exception traceback:")
             notification_errors.append(f"Discord: {e}")
-    elif notif_cfg.get('discord', {}).get('enabled', False):
-        error_msg = "Discord: webhook URL not set in environment/config."
-        logging.warning(log_prefix + error_msg)
-        notification_errors.append(error_msg)
-    try:
-        if ntfy_enabled:
-            if not ntfy_topic:
-                error_msg = "ntfy topic is not set in config.yaml."
-                logging.error(log_prefix + error_msg)
-                notification_errors.append(f"ntfy: {error_msg}")
-            else:
-                status_code, response = send_ntfy(
-                    metadata, payload, token, base_url,
-                    ntfy_topic, ntfy_url, ntfy_user, ntfy_pass
-                )
-                if status_code >= 200 and status_code < 300:
-                    logging.info(log_prefix + "ntfy notification sent successfully.")
-                    notifications_sent += 1
-                else:
-                    logging.error(log_prefix + f"ntfy notification failed with status {status_code}: {response}")
-                    notification_errors.append(f"ntfy: HTTP {status_code}")
-    except Exception as e:
-        logging.error(log_prefix + f"ntfy notification failed: {e}")
-        logging.exception(log_prefix + "Full ntfy exception traceback:")
-        notification_errors.append(f"ntfy: {e}")
 
-    # Log summary of notification results
-    logging.info(log_prefix + f"Notification summary: {notifications_sent} sent successfully, {len(notification_errors)} failed")
-    
+    # Send ntfy notification
+    if ntfy_enabled and ntfy_topic:
+        try:
+            status_code, response = send_ntfy(
+                metadata,
+                payload,
+                token,
+                base_url,
+                ntfy_topic,
+                ntfy_url,
+                ntfy_user=ntfy_user,
+                ntfy_pass=ntfy_password
+            )
+            if status_code >= 200 and status_code < 300:
+                logging.info(log_prefix + "ntfy notification sent successfully.")
+                notifications_sent += 1
+            else:
+                logging.error(log_prefix + f"ntfy notification failed with status {status_code}: {response}")
+                notification_errors.append(f"ntfy: HTTP {status_code}")
+        except Exception as e:
+            logging.error(log_prefix + f"ntfy notification failed: {e}")
+            notification_errors.append(f"ntfy: {e}")
+
+    # Log summary
+    if notifications_sent > 0:
+        logging.info(log_prefix + f"Sent {notifications_sent} notifications successfully")
     if notification_errors:
         logging.warning(log_prefix + f"Notification errors: {'; '.join(notification_errors)}")
-        return {"message": "Webhook received, but some notifications failed.", "errors": notification_errors, "sent": notifications_sent}
-    return {"message": "Webhook received and all notifications sent successfully.", "sent": notifications_sent}
 
 # Commented out legacy handlers; using webui router instead
 # @app.get("/approve/{token}", response_class=HTMLResponse)
@@ -398,12 +521,22 @@ async def webhook(request: Request):
 #     # Handle rejection logic (to be implemented)
 #     return f"<h1>Rejected Audiobook</h1><p>Token: {token}</p>"
 
+# Public health check endpoint (safe for monitoring)
+@app.get("/health")
+async def health_check():
+    """Basic health check - safe for public access"""
+    return {
+        "status": "healthy",
+        "service": "audiobook-approval-service",
+        "timestamp": time.time()
+    }
+
 if __name__ == "__main__":
     import uvicorn
     config = load_config().get('server', {})
     uvicorn.run(
         "src.main:app",
-        host=config.get('host', '0.0.0.0'),
+        host=config.get('host', '0.0.0'),
         port=config.get('port', 8000),
         reload=config.get('reload', True)
     )
