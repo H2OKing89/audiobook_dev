@@ -343,77 +343,53 @@ class Audnexus:
 # Main fetch metadata function compatible with existing code
 def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
     """
-    Enhanced fetch using AudioBookShelf-style logic
+    Compatibility wrapper: Enhanced fetch using the new modular coordinator
     """
-    config = load_config()
-    req_keys = config.get('payload', {}).get('required_keys', [])
-    if not validate_payload(payload, req_keys):
-        raise ValueError(f"Payload missing required keys: {req_keys}")
+    from src.metadata_coordinator import MetadataCoordinator
+    
+    coordinator = MetadataCoordinator()
+    import asyncio
+    metadata = asyncio.run(coordinator.get_metadata_from_webhook(payload))
+    
+    if metadata:
+        # Get enhanced metadata with chapters
+        return coordinator.get_enhanced_metadata(metadata)
+    else:
+        # Fallback to original logic for compatibility
+        config = load_config()
+        req_keys = config.get('payload', {}).get('required_keys', [])
+        if not validate_payload(payload, req_keys):
+            raise ValueError(f"Payload missing required keys: {req_keys}")
 
-    name = payload.get('name', '')
-    title = payload.get('title') or name
-    author = payload.get('author', '')
-    
-    # Extract ASIN from name if present
-    asin_regex = config.get('payload', {}).get('asin_regex')
-    match = re.search(asin_regex, name) if asin_regex else None
-    asin = match.group(0) if match else None
-    
-    # Use provided regions or default sequence
-    if not regions:
-        regions = ['us', 'ca', 'uk', 'au', 'fr', 'de', 'jp', 'it', 'in', 'es']
-    
-    audible = Audible()
-    
-    # Try each region until we get results
-    for region in regions:
-        try:
-            results = audible.search(title=title, author=author, asin=asin or '', region=region)
-            if results:
-                # Return the first (best) result
-                return results[0]
-        except Exception as e:
-            logging.error(f"Error searching region {region}: {e}")
-            continue
-    
-    raise ValueError(f"Could not fetch metadata for '{name}' [{asin}]")
-
-
-def fetch_metadata_audiobookshelf(payload: dict, region: str = 'us') -> Optional[dict]:
-    """
-    Direct AudioBookShelf-style metadata fetch
-    """
-    asin = payload.get('asin')
-    title = payload.get('title')
-    author = payload.get('author')
-    
-    audible = Audible()
-    results = audible.search(title=title or '', author=author or '', asin=asin or '', region=region)
-    
-    return results[0] if results else None
-
-
-# Compatibility functions for existing code
-def get_audible_asin(title: str, author: str) -> Optional[str]:
-    """
-    Get ASIN by searching Audible - simplified version
-    """
-    try:
+        name = payload.get('name', '')
+        title = payload.get('title') or name
+        author = payload.get('author', '')
+        
+        # Extract ASIN from name if present
+        asin_regex = config.get('payload', {}).get('asin_regex')
+        match = re.search(asin_regex, name) if asin_regex else None
+        asin = match.group(0) if match else None
+        
+        # Use provided regions or default sequence
+        if not regions:
+            regions = ['us', 'ca', 'uk', 'au', 'fr', 'de', 'jp', 'it', 'in', 'es']
+        
         audible = Audible()
-        results = audible.search(title=title, author=author, region='us')
-        if results:
-            return results[0].get('asin')
-    except Exception as e:
-        logging.error(f"Error getting ASIN for '{title}' by '{author}': {e}")
-    return None
+        
+        # Try each region until we get results
+        for region in regions:
+            try:
+                results = audible.search(title=title, author=author, asin=asin or '', region=region)
+                if results:
+                    # Return the first (best) result
+                    return results[0]
+            except Exception as e:
+                logging.error(f"Error searching region {region}: {e}")
+                continue
+        
+        raise ValueError(f"Could not fetch metadata for '{name}' [{asin}]")
 
-
-def clean_series_sequence(series_name: str, sequence: str) -> str:
-    """Compatibility function - use Audible class method"""
-    audible = Audible()
-    return audible.clean_series_sequence(series_name, sequence)
-
-
+# Additional compatibility functions for existing tests and code
 def clean_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
     """Compatibility function - use Audible class method"""
     audible = Audible()

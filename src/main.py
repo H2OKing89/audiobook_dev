@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
-from src.metadata import fetch_metadata
+from src.metadata_coordinator import MetadataCoordinator
 from src.token_gen import generate_token, verify_token
 from src.notify.pushover import send_pushover
 from src.notify.gotify import send_gotify
@@ -205,9 +205,15 @@ async def webhook(request: Request):
     log_prefix = f"[token={token}] "
     logging.info(log_prefix + f"Received webhook payload: {payload}")
 
-    # Fetch and validate metadata
+    # Fetch and validate metadata using the new modular coordinator
+    coordinator = MetadataCoordinator()
     try:
-        metadata = fetch_metadata(payload)
+        metadata = await coordinator.get_metadata_from_webhook(payload)
+        if metadata:
+            # Enhance metadata with additional information
+            metadata = coordinator.get_enhanced_metadata(metadata)
+        else:
+            raise ValueError("No metadata found from any source")
     except Exception as e:
         logging.error(log_prefix + f"Metadata fetch failed: {e}")
         # Don't raise an exception, just continue with empty metadata for testing
@@ -220,7 +226,21 @@ async def webhook(request: Request):
         metadata = {
             "title": title,
             "author": "Unknown Author",
-            "asin": "B000000000"
+            "asin": "B000000000",
+            "description": f"Fallback metadata for {title}",
+            "cover": "",
+            "publisher": "Unknown Publisher",
+            "publishedYear": "",
+            "duration": 0,
+            "narrator": "Unknown Narrator",
+            "series": None,
+            "genres": None,
+            "tags": None,
+            "language": "English",
+            "rating": None,
+            "abridged": False,
+            "source": "fallback",
+            "workflow_path": "fallback"
         }
         logging.warning(log_prefix + f"Using fallback metadata due to fetch error: {metadata}")
     logging.info(log_prefix + f"Fetched metadata: {metadata}")

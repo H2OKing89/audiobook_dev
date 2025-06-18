@@ -4,7 +4,7 @@ MyAnonamouse.net ASIN scraper
 Extracts ASIN from MAM torrent pages using Playwright
 """
 
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from datetime import datetime
 import json
 import logging
@@ -75,46 +75,46 @@ class MAMScraper:
             logging.error(f"Failed to save MAM config: {e}")
             raise
 
-    def login_and_get_cookies(self, email: str, password: str) -> Dict[str, str]:
+    async def login_and_get_cookies(self, email: str, password: str) -> Dict[str, str]:
         """Login to MAM and retrieve session cookies."""
         logging.info("Starting MAM login process...")
         
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
             )
             
             try:
-                page = context.new_page()
+                page = await context.new_page()
                 
                 # Go to login page
                 logging.info(f"Navigating to login page: {self.login_url}")
-                page.goto(self.login_url)
-                page.wait_for_load_state("networkidle")
+                await page.goto(self.login_url)
+                await page.wait_for_load_state("networkidle")
                 
                 # Check if we're already on the login form
-                if page.locator("input[name='email']").count() == 0:
+                if await page.locator("input[name='email']").count() == 0:
                     # Try going to the main page
                     logging.info(f"Trying main page: {self.base_url}")
-                    page.goto(self.base_url)
-                    page.wait_for_load_state("networkidle")
+                    await page.goto(self.base_url)
+                    await page.wait_for_load_state("networkidle")
                 
                 # Look for login form
                 email_input = page.locator("input[name='email'], input[type='email'], input[name='username']")
                 password_input = page.locator("input[name='password'], input[type='password']")
                 
-                if email_input.count() == 0:
+                if await email_input.count() == 0:
                     logging.error("Could not find email input field")
                     with open('logs/login_page_debug.html', 'w', encoding='utf-8') as f:
-                        f.write(page.content())
+                        f.write(await page.content())
                     raise Exception("Login form not found")
                 
                 logging.info("Found login form, filling credentials...")
                 
                 # Fill in credentials
-                email_input.fill(email)
-                password_input.fill(password)
+                await email_input.fill(email)
+                await password_input.fill(password)
                 
                 # Look for "Keep me logged in" checkbox
                 keep_logged_in_selectors = [
@@ -126,30 +126,30 @@ class MAMScraper:
                 
                 for selector in keep_logged_in_selectors:
                     checkbox = page.locator(selector)
-                    if checkbox.count() > 0:
+                    if await checkbox.count() > 0:
                         logging.info(f"Found keep-logged-in checkbox with selector: {selector}")
-                        checkbox.check()
+                        await checkbox.check()
                         break
                 
                 # Submit the form
                 submit_button = page.locator("input[type='submit'], button[type='submit']").first
                 
-                if submit_button.count() > 0:
+                if await submit_button.count() > 0:
                     logging.info("Submitting login form...")
-                    submit_button.click()
+                    await submit_button.click()
                 else:
                     logging.info("No submit button found, trying Enter key")
-                    password_input.press("Enter")
+                    await password_input.press("Enter")
                 
                 # Wait for navigation after login
-                page.wait_for_load_state("networkidle", timeout=10000)
+                await page.wait_for_load_state("networkidle", timeout=10000)
                 
                 # Check if login was successful
                 current_url = page.url
                 logging.info(f"After login, current URL: {current_url}")
                 
                 # Look for signs of successful login
-                if page.locator("text=logout").count() > 0 or page.locator("text=Logout").count() > 0:
+                if await page.locator("text=logout").count() > 0 or await page.locator("text=Logout").count() > 0:
                     logging.info("✅ Login successful! Found logout link")
                 elif "login" in current_url.lower():
                     logging.error("❌ Login failed - still on login page")
@@ -158,7 +158,7 @@ class MAMScraper:
                     logging.info("Login appears successful (URL changed)")
                 
                 # Get cookies
-                cookies = context.cookies()
+                cookies = await context.cookies()
                 logging.info(f"Retrieved {len(cookies)} cookies")
                 
                 # Extract session cookies
@@ -180,7 +180,7 @@ class MAMScraper:
                 logging.error(f"Login process failed: {e}")
                 raise
             finally:
-                browser.close()
+                await browser.close()
 
     def extract_asin_from_page(self, page_source: str) -> Optional[str]:
         """Extract ASIN from page source."""
@@ -213,7 +213,7 @@ class MAMScraper:
         logging.warning("No ASIN found in page source")
         return None
 
-    def scrape_asin_from_url(self, url: str, force_login: bool = False) -> Optional[str]:
+    async def scrape_asin_from_url(self, url: str, force_login: bool = False) -> Optional[str]:
         """Main method to scrape ASIN from MAM URL."""
         logging.info(f"Starting ASIN scraping for URL: {url}")
         
@@ -237,7 +237,7 @@ class MAMScraper:
                 return None
             
             try:
-                cookies = self.login_and_get_cookies(email, password)
+                cookies = await self.login_and_get_cookies(email, password)
                 mam_config['cookies'] = cookies
                 mam_config['last_login'] = datetime.now().isoformat()
                 self.save_mam_config(mam_config)
@@ -247,15 +247,15 @@ class MAMScraper:
                 return None
         
         # Now scrape with cookies
-        return self._scrape_with_cookies(url, cookies)
+        return await self._scrape_with_cookies(url, cookies)
 
-    def _scrape_with_cookies(self, url: str, cookies: Dict[str, str]) -> Optional[str]:
+    async def _scrape_with_cookies(self, url: str, cookies: Dict[str, str]) -> Optional[str]:
         """Scrape the torrent page using cookies."""
-        with sync_playwright() as p:
+        async with async_playwright() as p:
             browser = None
             try:
-                browser = p.chromium.launch(headless=True)
-                context = browser.new_context(
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
                 )
                 
@@ -269,16 +269,16 @@ class MAMScraper:
                         'path': '/'
                     })
                 
-                context.add_cookies(cookie_list)
+                await context.add_cookies(cookie_list)
                 logging.info(f"Set {len(cookie_list)} cookies")
                 
-                page = context.new_page()
+                page = await context.new_page()
                 logging.info(f"Navigating to {url}")
                 
                 # Apply global rate limiting
                 self._check_global_rate_limit()
                 
-                response = page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
                 if response:
                     status_code = response.status
@@ -290,17 +290,17 @@ class MAMScraper:
                     logging.warning("No response object received")
                 
                 # Wait for page to fully load
-                page.wait_for_timeout(2000)
+                await page.wait_for_timeout(2000)
                 
                 # Check if we're logged in
-                if page.locator("text=Login").count() > 0:
+                if await page.locator("text=Login").count() > 0:
                     logging.error("❌ Not logged in - login required")
                     return None
-                elif page.locator("text=logout").count() > 0 or page.locator("text=Logout").count() > 0:
+                elif await page.locator("text=logout").count() > 0 or await page.locator("text=Logout").count() > 0:
                     logging.info("✅ Successfully logged in")
                 
                 # Get page content
-                source = page.content()
+                source = await page.content()
                 logging.info(f"Page content retrieved, length: {len(source)} characters")
                 
                 # Extract ASIN
@@ -312,25 +312,30 @@ class MAMScraper:
                 return None
             finally:
                 if browser:
-                    browser.close()
+                    await browser.close()
 
 
 def main():
     """Main function for command line usage."""
-    parser = argparse.ArgumentParser(description="MAM ASIN Scraper")
-    parser.add_argument("url", help="MAM torrent URL to scrape")
-    parser.add_argument("--force-login", action="store_true", help="Force re-login even if cookies exist")
-    args = parser.parse_args()
+    import asyncio
     
-    scraper = MAMScraper()
-    asin = scraper.scrape_asin_from_url(args.url, force_login=args.force_login)
+    async def async_main():
+        parser = argparse.ArgumentParser(description="MAM ASIN Scraper")
+        parser.add_argument("url", help="MAM torrent URL to scrape")
+        parser.add_argument("--force-login", action="store_true", help="Force re-login even if cookies exist")
+        args = parser.parse_args()
+        
+        scraper = MAMScraper()
+        asin = await scraper.scrape_asin_from_url(args.url, force_login=args.force_login)
+        
+        if asin:
+            print(f"✅ ASIN found: {asin}")
+            return asin
+        else:
+            print("❌ No ASIN found")
+            return None
     
-    if asin:
-        print(f"✅ ASIN found: {asin}")
-        return asin
-    else:
-        print("❌ No ASIN found")
-        return None
+    return asyncio.run(async_main())
 
 
 if __name__ == "__main__":

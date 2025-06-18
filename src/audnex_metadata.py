@@ -232,8 +232,9 @@ class AudnexMetadata:
         genres_filtered = [g.get('name') for g in genres if g.get('type') == 'genre']
         tags_filtered = [g.get('name') for g in genres if g.get('type') == 'tag']
         
-        # Build clean metadata object
+        # Build comprehensive metadata object matching original script format
         cleaned = {
+            # Primary book information
             'title': title,
             'subtitle': subtitle or None,
             'author': ', '.join([a.get('name', '') for a in authors]) if authors else None,
@@ -244,22 +245,74 @@ class AudnexMetadata:
             'cover': image,
             'asin': asin,
             'isbn': isbn,
-            'genres': genres_filtered if genres_filtered else None,
-            'tags': ', '.join(tags_filtered) if tags_filtered else None,
-            'series': series if series else None,
             'language': language.capitalize() if language else None,
             'duration': int(runtime_length_min) if runtime_length_min and str(runtime_length_min).isdigit() else 0,
-            'region': item.get('region') or None,
+            'region': item.get('region') or 'us',
             'rating': item.get('rating') or None,
             'abridged': format_type == 'abridged',
             
-            # Additional fields for compatibility
+            # Series information
+            'series': series if series else None,
+            
+            # Genre and categorization
+            'genres': genres_filtered if genres_filtered else None,
+            'tags': ', '.join(tags_filtered) if tags_filtered else None,
+            
+            # Raw data for advanced processing
             'authors_raw': authors,
             'narrators_raw': narrators,
             'series_raw': series,
             'runtime_minutes': runtime_length_min,
             'release_date': release_date,
-            'cover_url': image
+            'cover_url': image,
+            'genres_raw': genres,
+            
+            # Additional fields from original script
+            'formatType': format_type,
+            'runtimeLengthMin': runtime_length_min,
+            'publisherName': publisher_name,
+            'summary': summary,
+            'image': image,
+            'seriesPrimary': series_primary,
+            'seriesSecondary': series_secondary,
+            
+            # Computed fields
+            'author_list': [a.get('name', '') for a in authors] if authors else [],
+            'narrator_list': [n.get('name', '') for n in narrators] if narrators else [],
+            'genre_list': genres_filtered if genres_filtered else [],
+            'tag_list': tags_filtered if tags_filtered else [],
+            
+            # Compatibility fields for notifications and templates
+            'book_title': title,
+            'book_author': ', '.join([a.get('name', '') for a in authors]) if authors else '',
+            'book_narrator': ', '.join([n.get('name', '') for n in narrators]) if narrators else '',
+            'book_publisher': publisher_name or '',
+            'book_description': summary or '',
+            'book_cover': image or '',
+            'book_asin': asin or '',
+            'book_isbn': isbn or '',
+            'book_language': language.capitalize() if language else '',
+            'book_duration': int(runtime_length_min) if runtime_length_min and str(runtime_length_min).isdigit() else 0,
+            'book_rating': item.get('rating') or 0,
+            'book_genres': ', '.join(genres_filtered) if genres_filtered else '',
+            'book_tags': ', '.join(tags_filtered) if tags_filtered else '',
+            
+            # Series information for templates
+            'book_series': series[0]['series'] if series else '',
+            'book_series_sequence': series[0]['sequence'] if series else '',
+            'book_series_info': f"{series[0]['series']} #{series[0]['sequence']}" if series else '',
+            
+            # Publishing information
+            'book_published_year': release_date.split('-')[0] if release_date else '',
+            'book_release_date': release_date or '',
+            'book_format': format_type or '',
+            'book_abridged': format_type == 'abridged',
+            
+            # Technical fields
+            'runtime_length_min': runtime_length_min,
+            'runtime_length_hours': round(runtime_length_min / 60, 1) if runtime_length_min else 0,
+            'file_size_mb': item.get('file_size_mb', 0),  # May not be available from Audnex
+            'quality': item.get('quality', 'Unknown'),     # May not be available from Audnex
         }
         
         return cleaned

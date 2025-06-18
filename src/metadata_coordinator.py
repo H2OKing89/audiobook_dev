@@ -55,7 +55,7 @@ class MetadataCoordinator:
             
         self.last_api_call = time.time()
         
-    def get_metadata_from_webhook(self, webhook_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def get_metadata_from_webhook(self, webhook_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Main workflow: Get metadata from webhook payload.
         
@@ -77,7 +77,7 @@ class MetadataCoordinator:
             logging.info("Step 1: Attempting to extract ASIN from MAM URL...")
             try:
                 self._enforce_rate_limit()
-                asin = self.mam_scraper.scrape_asin_from_url(url)
+                asin = await self.mam_scraper.scrape_asin_from_url(url)
                 if asin:
                     logging.info(f"✅ ASIN extracted from MAM: {asin}")
                 else:
@@ -95,8 +95,14 @@ class MetadataCoordinator:
                 metadata = self.audnex.get_book_by_asin(asin)
                 if metadata:
                     logging.info("✅ Metadata found via Audnex")
+                    # Add source and workflow information
                     metadata['source'] = 'audnex'
                     metadata['asin_source'] = 'mam'
+                    metadata['workflow_path'] = 'mam_asin_audnex'
+                    
+                    # Add webhook payload information
+                    metadata.update(self._add_webhook_info(webhook_payload))
+                    
                     return metadata
                 else:
                     logging.warning("❌ No metadata found in Audnex for extracted ASIN")
@@ -111,8 +117,14 @@ class MetadataCoordinator:
             if results:
                 metadata = results[0]  # Take the first (best) result
                 logging.info("✅ Metadata found via Audible search")
+                # Add source and workflow information
                 metadata['source'] = 'audible'
                 metadata['asin_source'] = 'search'
+                metadata['workflow_path'] = 'audible_search'
+                
+                # Add webhook payload information
+                metadata.update(self._add_webhook_info(webhook_payload))
+                
                 return metadata
             else:
                 logging.warning("❌ No metadata found via Audible search")
@@ -182,74 +194,115 @@ class MetadataCoordinator:
         }
         
         return enhanced
+    
+    def _add_webhook_info(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Add webhook payload information to metadata for notifications and templates."""
+        webhook_info = {
+            # Webhook source information
+            'webhook_name': webhook_payload.get('name', ''),
+            'webhook_url': webhook_payload.get('url', ''),
+            'webhook_download_url': webhook_payload.get('download_url', ''),
+            'webhook_indexer': webhook_payload.get('indexer', ''),
+            'webhook_category': webhook_payload.get('category', ''),
+            'webhook_size': webhook_payload.get('size', 0),
+            'webhook_size_mb': round(int(webhook_payload.get('size', 0)) / (1024*1024), 1) if webhook_payload.get('size') else 0,
+            'webhook_seeders': webhook_payload.get('seeders', 0),
+            'webhook_leechers': webhook_payload.get('leechers', 0),
+            
+            # Torrent information for notifications
+            'torrent_name': webhook_payload.get('name', ''),
+            'torrent_url': webhook_payload.get('url', ''),
+            'torrent_category': webhook_payload.get('category', ''),
+            'torrent_size': webhook_payload.get('size', 0),
+            'torrent_indexer': webhook_payload.get('indexer', ''),
+            
+            # Additional fields that might be in webhook
+            'quality': webhook_payload.get('quality', ''),
+            'format': webhook_payload.get('format', ''),
+            'language': webhook_payload.get('language', ''),
+            'uploader': webhook_payload.get('uploader', ''),
+            'upload_date': webhook_payload.get('upload_date', ''),
+            'freeleech': webhook_payload.get('freeleech', False),
+            
+            # Processing metadata
+            'processing_time': time.time(),
+            'processing_date': time.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        
+        return webhook_info
 
 
 def main():
     """Main function for command line usage."""
-    parser = argparse.ArgumentParser(description="Metadata Coordinator")
-    parser.add_argument("--url", help="MAM URL to process")
-    parser.add_argument("--name", help="Torrent name to parse")
-    parser.add_argument("--asin", help="Direct ASIN lookup")
-    parser.add_argument("--title", help="Title to search for")
-    parser.add_argument("--author", default="", help="Author to search for")
-    parser.add_argument("--region", default="us", help="Audible region")
-    parser.add_argument("--enhanced", action="store_true", help="Get enhanced metadata with chapters")
-    args = parser.parse_args()
+    import asyncio
     
-    coordinator = MetadataCoordinator()
-    metadata = None
+    async def async_main():
+        parser = argparse.ArgumentParser(description="Metadata Coordinator")
+        parser.add_argument("--url", help="MAM URL to process")
+        parser.add_argument("--name", help="Torrent name to parse")
+        parser.add_argument("--asin", help="Direct ASIN lookup")
+        parser.add_argument("--title", help="Title to search for")
+        parser.add_argument("--author", default="", help="Author to search for")
+        parser.add_argument("--region", default="us", help="Audible region")
+        parser.add_argument("--enhanced", action="store_true", help="Get enhanced metadata with chapters")
+        args = parser.parse_args()
+        
+        coordinator = MetadataCoordinator()
+        metadata = None
+        
+        # Determine which method to use
+        if args.url or args.name:
+            # Webhook-style payload
+            payload = {}
+            if args.url:
+                payload['url'] = args.url
+            if args.name:
+                payload['name'] = args.name
+            
+            metadata = await coordinator.get_metadata_from_webhook(payload)
+            
+        elif args.asin:
+            # Direct ASIN lookup
+            metadata = coordinator.get_metadata_by_asin(args.asin, region=args.region)
+            
+        elif args.title:
+            # Title/author search
+            metadata = coordinator.search_metadata(args.title, author=args.author, region=args.region)
+            
+        else:
+            print("Error: Must provide --url/--name, --asin, or --title")
+            return
+        
+        # Display results
+        if metadata:
+            if args.enhanced:
+                metadata = coordinator.get_enhanced_metadata(metadata)
+            
+            print("✅ Metadata found:")
+            print(f"  Title: {metadata.get('title')}")
+            print(f"  Author: {metadata.get('author')}")
+            print(f"  ASIN: {metadata.get('asin')}")
+            print(f"  Publisher: {metadata.get('publisher')}")
+            print(f"  Duration: {metadata.get('duration')} minutes ({metadata.get('duration', 0) / 60:.1f} hours)")
+            print(f"  Published: {metadata.get('publishedYear')}")
+            
+            if metadata.get('series'):
+                for series in metadata['series']:
+                    print(f"  Series: {series['series']} #{series['sequence']}")
+            
+            if metadata.get('chapters'):
+                print(f"  Chapters: {metadata.get('chapter_count', 0)}")
+            
+            print(f"  Source: {metadata.get('source')} (ASIN from: {metadata.get('asin_source')})")
+            
+            if metadata.get('description'):
+                desc = metadata['description'][:200]
+                print(f"  Description: {desc}...")
+            
+        else:
+            print("❌ No metadata found")
     
-    # Determine which method to use
-    if args.url or args.name:
-        # Webhook-style payload
-        payload = {}
-        if args.url:
-            payload['url'] = args.url
-        if args.name:
-            payload['name'] = args.name
-        
-        metadata = coordinator.get_metadata_from_webhook(payload)
-        
-    elif args.asin:
-        # Direct ASIN lookup
-        metadata = coordinator.get_metadata_by_asin(args.asin, region=args.region)
-        
-    elif args.title:
-        # Title/author search
-        metadata = coordinator.search_metadata(args.title, author=args.author, region=args.region)
-        
-    else:
-        print("Error: Must provide --url/--name, --asin, or --title")
-        return
-    
-    # Display results
-    if metadata:
-        if args.enhanced:
-            metadata = coordinator.get_enhanced_metadata(metadata)
-        
-        print("✅ Metadata found:")
-        print(f"  Title: {metadata.get('title')}")
-        print(f"  Author: {metadata.get('author')}")
-        print(f"  ASIN: {metadata.get('asin')}")
-        print(f"  Publisher: {metadata.get('publisher')}")
-        print(f"  Duration: {metadata.get('duration')} minutes ({metadata.get('duration', 0) / 60:.1f} hours)")
-        print(f"  Published: {metadata.get('publishedYear')}")
-        
-        if metadata.get('series'):
-            for series in metadata['series']:
-                print(f"  Series: {series['series']} #{series['sequence']}")
-        
-        if metadata.get('chapters'):
-            print(f"  Chapters: {metadata.get('chapter_count', 0)}")
-        
-        print(f"  Source: {metadata.get('source')} (ASIN from: {metadata.get('asin_source')})")
-        
-        if metadata.get('description'):
-            desc = metadata['description'][:200]
-            print(f"  Description: {desc}...")
-        
-    else:
-        print("❌ No metadata found")
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

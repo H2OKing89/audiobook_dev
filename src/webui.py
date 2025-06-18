@@ -3,7 +3,7 @@ from fastapi.responses import Response, RedirectResponse
 from starlette.responses import Response as StarletteResponse
 from fastapi.responses import HTMLResponse
 from typing import Any, Optional
-from src.metadata import fetch_metadata
+from src.metadata_coordinator import MetadataCoordinator
 from src.token_gen import verify_token
 from src.template_helpers import render_template
 from src.db import get_request  # use persistent DB store
