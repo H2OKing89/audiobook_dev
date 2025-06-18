@@ -25,25 +25,6 @@ const AudiobookApp = {
         updateCountdown();
     },
 
-    // High contrast mode toggle (global accessibility feature)
-    initContrastToggle: function() {
-        const contrastToggle = document.getElementById('contrastToggle');
-        if (!contrastToggle) return;
-
-        // Check for saved preference
-        const savedMode = localStorage.getItem('highContrastMode');
-        if (savedMode === 'true') {
-            document.body.classList.add('high-contrast');
-            contrastToggle.querySelector('span').textContent = '🌙';
-        }
-
-        contrastToggle.addEventListener('click', function() {
-            const isHighContrast = document.body.classList.toggle('high-contrast');
-            contrastToggle.querySelector('span').textContent = isHighContrast ? '🌙' : '💫';
-            localStorage.setItem('highContrastMode', isHighContrast);
-        });
-    },
-
     // Copy to clipboard utility
     copyToClipboard: function(text, successCallback) {
         if (navigator.clipboard && window.isSecureContext) {
@@ -66,8 +47,6 @@ const AudiobookApp = {
 
     // Initialize common features across all pages
     init: function() {
-        this.initContrastToggle();
-        
         // Initialize copy buttons if present
         const copyButtons = document.querySelectorAll('.copy-btn');
         copyButtons.forEach(button => {

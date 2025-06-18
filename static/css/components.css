@@ -186,7 +186,7 @@
 }
 
 /* Easter Eggs and Interactive Elements */
-.easter-egg, .contrast-toggle {
+.easter-egg {
   position: fixed;
   bottom: var(--spacing-lg);
   right: var(--spacing-lg);
@@ -203,14 +203,10 @@
   font-size: 1.2rem;
 }
 
-.easter-egg:hover, .contrast-toggle:hover {
+.easter-egg:hover {
   transform: scale(1.1);
   background: rgba(155, 231, 255, 0.2);
   box-shadow: 0 0 20px rgba(155, 231, 255, 0.5);
-}
-
-.contrast-toggle {
-  bottom: calc(var(--spacing-lg) + 60px);
 }
 
 /* Footer */
@@ -305,15 +301,11 @@
     max-width: 150px;
   }
   
-  .easter-egg, .contrast-toggle {
+  .easter-egg {
     width: 40px;
     height: 40px;
     font-size: 1rem;
     bottom: var(--spacing-md);
     right: var(--spacing-md);
-  }
-  
-  .contrast-toggle {
-    bottom: calc(var(--spacing-md) + 50px);
   }
 }

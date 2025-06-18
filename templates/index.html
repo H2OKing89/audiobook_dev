@@ -4,127 +4,252 @@
 
 {% block head_extra %}
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/pages/home.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Your personal audiobook automation empire - streamlined, cyberpunk-themed, and delightfully over-engineered.">
 {% endblock %}
 
 {% block body_class %}home-page{% endblock %}
 
 {% block content %}
-<div class="home-container">
+<div class="home-container" id="homeContainer">
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing Audiobook Matrix...</div>
+    </div>
+
     <!-- Header Section -->
-    <header class="home-header">
+    <header class="home-header" data-aos="fade-up">
         <div class="mascot-banner">
+            <div class="mascot-glow"></div>
             <img src="https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png"
                  alt="Quentin's Audiobook Automation Mascot"
                  class="mascot-img"
                  draggable="false"
                  loading="eager"
+                 id="mascotImg"
             >
-            <!-- Cat tail Easter egg overlay -->
-            <svg class="cat-tail" viewBox="0 0 21 48" fill="none">
+            <!-- Enhanced Cat tail Easter egg -->
+            <svg class="cat-tail" viewBox="0 0 21 48" fill="none" id="catTail">
                 <path d="M10,0 Q18,22 6,37 Q-2,48 19,47"
                       stroke="#b4916e"
                       stroke-width="3.2"
                       fill="none"/>
             </svg>
+            <div class="mascot-tooltip" id="mascotTooltip">
+                Click me for a surprise! 🐱
+            </div>
         </div>
         
-        <h1 class="main-title">
-            <span class="title-accent">🎧</span>
-            Audiobook Automation HQ
-            <span class="title-accent">🤖</span>
+        <h1 class="main-title" data-aos="fade-up" data-aos-delay="200">
+            <span class="title-accent animate-float">🎧</span>
+            <span class="title-text">Audiobook Automation HQ</span>
+            <span class="title-accent animate-float">🤖</span>
         </h1>
-        <div class="dynamic-tagline" id="dynamicTag">Loading witty automation wisdom...</div>
+        
+        <div class="dynamic-tagline" id="dynamicTag" data-aos="fade-up" data-aos-delay="400">
+            Loading witty automation wisdom...
+        </div>
+        
+        <!-- System Status Bar -->
+        <div class="system-status" data-aos="fade-up" data-aos-delay="600">
+            <div class="status-item">
+                <div class="status-dot online"></div>
+                <span>System Online</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot processing"></div>
+                <span id="processingStatus">Processing Requests</span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot ready"></div>
+                <span>Ready for Action</span>
+            </div>
+        </div>
     </header>
 
     <!-- Main Action Section -->
-    <main class="main-content">
+    <main class="main-content" data-aos="fade-up" data-aos-delay="800">
         <div class="main-box">
-            <div class="status-indicator">
-                <div class="pulse-dot"></div>
-                <span>System Online</span>
+            <div class="box-header">
+                <h2 class="box-title">Command Center</h2>
+                <div class="box-subtitle">Your audiobook automation starts here</div>
             </div>
             
             <div class="quick-links">
-                <a href="/audiobook-requests" class="quick-link-btn primary" aria-label="Request New Audiobook">
+                <a href="/audiobook-requests" 
+                   class="quick-link-btn primary" 
+                   aria-label="Request New Audiobook"
+                   data-btn-text="Request Audiobook"
+                   data-aos="zoom-in" 
+                   data-aos-delay="1000">
+                    <div class="btn-background"></div>
                     <span class="btn-icon">📚</span>
                     <span class="btn-text">Request Audiobook</span>
+                    <div class="btn-sparkle"></div>
                 </a>
-                <a href="/requests" class="quick-link-btn secondary" aria-label="Browse All Requests">
+                
+                <a href="/requests" 
+                   class="quick-link-btn secondary" 
+                   aria-label="Browse All Requests"
+                   data-btn-text="Browse Requests"
+                   data-aos="zoom-in" 
+                   data-aos-delay="1100">
+                    <div class="btn-background"></div>
                     <span class="btn-icon">📋</span>
                     <span class="btn-text">Browse Requests</span>
+                    <div class="btn-sparkle"></div>
                 </a>
-                <a href="https://github.com/kingpaging/audiobook-automation" class="quick-link-btn tertiary" target="_blank" rel="noopener" aria-label="View Documentation">
+                
+                <a href="https://github.com/kingpaging/audiobook-automation" 
+                   class="quick-link-btn tertiary" 
+                   target="_blank" 
+                   rel="noopener" 
+                   aria-label="View Documentation"
+                   data-btn-text="View Docs"
+                   data-aos="zoom-in" 
+                   data-aos-delay="1200">
+                    <div class="btn-background"></div>
                     <span class="btn-icon">🛠️</span>
                     <span class="btn-text">View Docs</span>
+                    <div class="btn-sparkle"></div>
                 </a>
-                <button class="quick-link-btn contact" aria-label="Contact the Overlord" data-action="contact">
+                
+                <button class="quick-link-btn contact" 
+                        aria-label="Contact the Overlord" 
+                        data-action="contact"
+                        data-btn-text="Call Quentin"
+                        data-aos="zoom-in" 
+                        data-aos-delay="1300">
+                    <div class="btn-background"></div>
                     <span class="btn-icon">📞</span>
                     <span class="btn-text">Call Quentin</span>
+                    <div class="btn-sparkle"></div>
                 </button>
             </div>
             
-            <div class="description-section">
-                <p class="main-desc">
-                    Welcome to your personal audiobook automation empire! 🏰 
-                    <br>
-                    This is where requests get processed, algorithms make questionable decisions, 
-                    and your listening queue gets managed with the precision of a caffeinated robot.
-                </p>
+            <div class="description-section" data-aos="fade-up" data-aos-delay="1400">
+                <div class="main-desc">
+                    <p class="desc-intro">
+                        Welcome to your personal audiobook automation empire! 🏰
+                    </p>
+                    <p class="desc-detail">
+                        This is where requests get processed, algorithms make questionable decisions, 
+                        and your listening queue gets managed with the precision of a caffeinated robot.
+                    </p>
+                </div>
                 
                 <div class="call-to-action">
-                    <span class="cta-text">Ready to let the machines handle your audiobook chaos?</span>
-                    <span class="cta-emoji">🤖✨</span>
+                    <div class="cta-content">
+                        <span class="cta-text">Ready to let the machines handle your audiobook chaos?</span>
+                        <span class="cta-emoji">🤖✨</span>
+                    </div>
+                    <div class="cta-arrow">→</div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Stats Section -->
+    <section class="stats-section" data-aos="fade-up" data-aos-delay="1600">
+        <div class="stats-grid">
+            <div class="stat-card" data-stat="requests">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" data-target="1337">0</div>
+                <div class="stat-label">Requests Processed</div>
+            </div>
+            <div class="stat-card" data-stat="uptime">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value" id="uptimeDisplay">99.9%</div>
+                <div class="stat-label">System Uptime</div>
+            </div>
+            <div class="stat-card" data-stat="satisfaction">
+                <div class="stat-icon">😎</div>
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Sass Level</div>
+            </div>
+            <div class="stat-card" data-stat="caffeine">
+                <div class="stat-icon">☕</div>
+                <div class="stat-value" data-target="47">0</div>
+                <div class="stat-label">Cups of Coffee</div>
+            </div>
+        </div>
+    </section>
+
     <!-- Features Section -->
-    <section class="features-section">
+    <section class="features-section" data-aos="fade-up" data-aos-delay="1800">
         <h2 class="section-title">What Makes This Special?</h2>
         <div class="features-grid">
-            <div class="feature-card">
+            <div class="feature-card" data-aos="flip-left" data-aos-delay="2000">
+                <div class="feature-glow"></div>
                 <div class="feature-icon">⚡</div>
                 <h3>Lightning Fast</h3>
                 <p>Automated processing that's faster than you can say "audiobook"</p>
+                <div class="feature-badge">Speed Demon</div>
             </div>
-            <div class="feature-card">
+            <div class="feature-card" data-aos="flip-left" data-aos-delay="2100">
+                <div class="feature-glow"></div>
                 <div class="feature-icon">🧠</div>
                 <h3>Smart Decisions</h3>
                 <p>AI-powered recommendations (that sometimes make sense)</p>
+                <div class="feature-badge">Big Brain</div>
             </div>
-            <div class="feature-card">
+            <div class="feature-card" data-aos="flip-left" data-aos-delay="2200">
+                <div class="feature-glow"></div>
                 <div class="feature-icon">🎨</div>
                 <h3>Cyberpunk Vibes</h3>
                 <p>Because why be boring when you can be neon?</p>
+                <div class="feature-badge">Aesthetic AF</div>
+            </div>
+            <div class="feature-card" data-aos="flip-left" data-aos-delay="2300">
+                <div class="feature-glow"></div>
+                <div class="feature-icon">🔧</div>
+                <h3>Over-Engineered</h3>
+                <p>Maximum complexity for minimum effort - the Quentin way!</p>
+                <div class="feature-badge">Overkill Mode</div>
             </div>
         </div>
     </section>
     
     <!-- About Section -->
-    <section class="about-section">
-        <details class="about-details">
-            <summary class="about-summary">What's this beautiful chaos all about?</summary>
+    <section class="about-section" data-aos="fade-up" data-aos-delay="2400">
+        <details class="about-details" id="aboutDetails">
+            <summary class="about-summary">
+                <span class="summary-text">What's this beautiful chaos all about?</span>
+                <span class="summary-icon">▼</span>
+            </summary>
             <div class="about-content">
                 <div class="about-intro">
-                    <strong>"Built by Quentin during a legendary caffeine bender, this project represents the pinnacle of audiobook automation overkill."</strong>
+                    <div class="quote-mark">"</div>
+                    <p><strong>Built by Quentin during a legendary caffeine bender, this project represents the pinnacle of audiobook automation overkill.</strong></p>
+                    <div class="quote-mark closing">"</div>
                 </div>
                 
-                <div class="about-points">
-                    <div class="about-point">
-                        <span class="point-label">🚀 The Mission:</span>
-                        <p>Transform your audiobook management from a chaotic free-for-all into a well-oiled, automated machine that would make even the most obsessive librarian weep tears of joy.</p>
+                <div class="about-timeline">
+                    <div class="timeline-item" data-aos="slide-right" data-aos-delay="2600">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-label">🚀 The Mission</span>
+                            <p>Transform your audiobook management from a chaotic free-for-all into a well-oiled, automated machine that would make even the most obsessive librarian weep tears of joy.</p>
+                        </div>
                     </div>
                     
-                    <div class="about-point">
-                        <span class="point-label">🎯 The Result:</span>
-                        <p>Approval workflows, smart notifications, rejection handling, and enough automation to make your audiobooks organize themselves (almost).</p>
+                    <div class="timeline-item" data-aos="slide-right" data-aos-delay="2700">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-label">🎯 The Result</span>
+                            <p>Approval workflows, smart notifications, rejection handling, and enough automation to make your audiobooks organize themselves (almost).</p>
+                        </div>
                     </div>
                     
-                    <div class="about-point">
-                        <span class="point-label">🎪 The Experience:</span>
-                        <p>Part productivity tool, part entertainment system, 100% unnecessarily over-engineered for maximum satisfaction.</p>
+                    <div class="timeline-item" data-aos="slide-right" data-aos-delay="2800">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <span class="timeline-label">🎪 The Experience</span>
+                            <p>Part productivity tool, part entertainment system, 100% unnecessarily over-engineered for maximum satisfaction.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -132,56 +257,95 @@
     </section>
     
     <!-- Footer -->
-    <footer class="home-footer">
-        <div class="footer-content" id="footer">Powered by Quentin's Legendary Overkill Engineering™ 🤖</div>
-        <div class="footer-stats">
-            <span class="stat-item">
-                <span class="stat-value" id="uptimeCounter">99.9%</span>
-                <span class="stat-label">Uptime</span>
-            </span>
-            <span class="stat-item">
-                <span class="stat-value">∞</span>
-                <span class="stat-label">Sass Level</span>
-            </span>
+    <footer class="home-footer" data-aos="fade-up" data-aos-delay="3000">
+        <div class="footer-content">
+            <div class="footer-text" id="footerText">Powered by Quentin's Legendary Overkill Engineering™ 🤖</div>
+            <div class="footer-version">v2.0.1 - Now with 300% more sparkles!</div>
+        </div>
+        <div class="footer-links">
+            <a href="https://github.com/kingpaging" target="_blank" rel="noopener" class="footer-link">
+                <span class="link-icon">🐙</span>
+                <span>GitHub</span>
+            </a>
+            <a href="#" class="footer-link" data-action="scroll-top">
+                <span class="link-icon">⬆️</span>
+                <span>Back to Top</span>
+            </a>
         </div>
     </footer>
     
     <!-- Interactive Elements -->
-    <!-- High contrast toggle -->
-    <button class="contrast-toggle" id="contrastToggle" aria-label="Toggle High Contrast Mode" title="Toggle High Contrast">
-        <span>💫</span>
-    </button>
-    
-    <!-- Easter egg tip -->
+    <!-- Enhanced Easter egg tip -->
     <div class="easter-tip" id="easterTip">
-        🎉 Congratulations! You found the secret tail! Your reward: One virtual high-five and the knowledge that you're officially part of the elite tail-finder club. 🐱
+        <div class="tip-content">
+            <div class="tip-icon">🎉</div>
+            <div class="tip-text">
+                <h3>Congratulations!</h3>
+                <p>You found the secret tail! Your reward: One virtual high-five and membership in the elite tail-finder club. 🐱</p>
+            </div>
+            <button class="tip-close" data-action="close-tip">Got it!</button>
+        </div>
     </div>
     
-    <!-- Call Quentin popup -->
-    <div class="call-quentin-popup" id="call-quentin-popup">
-        <div class="popup-backdrop"></div>
+    <!-- Enhanced Call Quentin popup -->
+    <div class="call-quentin-popup" id="callQuentinPopup">
+        <div class="popup-backdrop" data-action="close-popup"></div>
         <div class="popup-content">
             <div class="popup-header">
                 <div class="popup-title">📞 Calling Quentin...</div>
-                <button class="popup-close" data-action="close-popup" aria-label="Close">×</button>
+                <button class="popup-close" data-action="close-popup" aria-label="Close">
+                    <span>×</span>
+                </button>
             </div>
             <div class="popup-body">
+                <div class="popup-avatar">
+                    <div class="avatar-ring"></div>
+                    <div class="avatar-img">🤖</div>
+                </div>
                 <div class="popup-message">
-                    🤖 <strong>Beep boop!</strong> Quentin is currently busy teaching robots how to be more sarcastic. 
-                    <br><br>
-                    💬 In the meantime, you can find him on GitHub, probably arguing with code comments or explaining why his 47-line function "needs to be that way for performance reasons."
-                    <br><br>
-                    🎭 <em>Fun fact:</em> Quentin once spent 3 hours optimizing a function that saved 0.2 milliseconds. He regrets nothing.
+                    <p><strong>🤖 Beep boop!</strong> Quentin is currently busy teaching robots how to be more sarcastic.</p>
+                    <p><strong>💬 In the meantime,</strong> you can find him on GitHub, probably arguing with code comments or explaining why his 47-line function "needs to be that way for performance reasons."</p>
+                    <p><strong>🎭 Fun fact:</strong> Quentin once spent 3 hours optimizing a function that saved 0.2 milliseconds. He regrets nothing.</p>
                 </div>
             </div>
             <div class="popup-footer">
-                <button class="btn popup-btn" data-action="close-popup">Got It, Thanks! 😄</button>
+                <button class="popup-btn primary-btn" data-action="close-popup">
+                    <span class="btn-text">Got It, Thanks! 😄</span>
+                </button>
+                <button class="popup-btn secondary-btn" onclick="window.open('https://github.com/kingpaging', '_blank')">
+                    <span class="btn-text">Visit GitHub 🐙</span>
+                </button>
             </div>
         </div>
     </div>
+
+    <!-- Floating Action Button -->
+    <div class="fab-container">
+        <button class="fab" id="fabButton" aria-label="Quick Actions">
+            <span class="fab-icon">⚡</span>
+        </button>
+        <div class="fab-menu" id="fabMenu">
+            <a href="/audiobook-requests" class="fab-item" data-tooltip="New Request">📚</a>
+            <a href="/requests" class="fab-item" data-tooltip="Browse All">📋</a>
+            <button class="fab-item" data-action="scroll-top" data-tooltip="Scroll to Top">⬆️</button>
+        </div>
+    </div>
+
+    <!-- Particle Effects Container -->
+    <div class="particles-container" id="particlesContainer"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 <script src="/static/js/pages/home.js"></script>
+<script>
+    // Initialize AOS (Animate On Scroll)
+    AOS.init({
+        duration: 800,
+        easing: 'ease-out',
+        once: true,
+        offset: 100
+    });
+</script>
 {% endblock %}
