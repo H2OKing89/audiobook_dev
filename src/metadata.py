@@ -1,23 +1,19 @@
 import re
 import requests
 import logging
+import time
 from typing import Optional, List, Dict, Any
 from functools import lru_cache
+from urllib.parse import urlencode
 from src.config import load_config
 from src.utils import validate_payload, clean_author_list
 
-# LRU cache for metadata lookups to avoid unbounded growth
-@lru_cache(maxsize=512)
-def get_cached_metadata(asin: str, region: str, api_url: str) -> Optional[Dict[str, Any]]:
-    try:
-        resp = requests.get(f"{api_url}/{asin}", params={'region': region})
-        resp.raise_for_status()
-        data = resp.json()
-        if data.get('asin'):
-            return clean_metadata(data)
-    except Exception as e:
-        logging.error(f"Error fetching ASIN {asin}/{region}: {e}")
-    return None
+# ASIN validation
+def is_valid_asin(asin: str) -> bool:
+    """Validate ASIN format (10 characters, alphanumeric)"""
+    if not asin or not isinstance(asin, str):
+        return False
+    return len(asin) == 10 and asin.isalnum()
 
 # Levenshtein distance implementation for best-match logic
 def levenshtein_distance(s1: str, s2: str) -> int:
@@ -36,121 +32,318 @@ def levenshtein_distance(s1: str, s2: str) -> int:
             prev = cur
     return dp[len2]
 
+class Audible:
+    def __init__(self, response_timeout: int = 30000):
+        self.response_timeout = response_timeout
+        self.region_map = {
+            'us': '.com',
+            'ca': '.ca',
+            'uk': '.co.uk',
+            'au': '.com.au',
+            'fr': '.fr',
+            'de': '.de',
+            'jp': '.co.jp',
+            'it': '.it',
+            'in': '.in',
+            'es': '.es'
+        }
 
-def get_audible_asin(title: str, author: str) -> Optional[str]:
-    """
-    Scrape Audible search results to find the first ASIN for the given title and author.
-    """
-    # Requires beautifulsoup4: pip install beautifulsoup4
-    try:
-        from bs4 import BeautifulSoup  # type: ignore
-        from bs4.element import Tag    # type: ignore
-    except ImportError:
-        logging.error("beautifulsoup4 is not installed, cannot scrape Audible.")
+    def clean_series_sequence(self, series_name: str, sequence: str) -> str:
+        """
+        Audible will sometimes send sequences with "Book 1" or "2, Dramatized Adaptation"
+        Clean to extract just the number portion
+        """
+        if not sequence:
+            return ''
+        # match any number with optional decimal (e.g, 1 or 1.5 or .5)
+        match = re.search(r'\.\d+|\d+(?:\.\d+)?', sequence)
+        updated_sequence = match.group(0) if match else sequence
+        if sequence != updated_sequence:
+            logging.debug(f'[Audible] Series "{series_name}" sequence was cleaned from "{sequence}" to "{updated_sequence}"')
+        return updated_sequence
+
+    def clean_result(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean and format the result from Audnex API"""
+        title = item.get('title')
+        subtitle = item.get('subtitle')
+        asin = item.get('asin')
+        authors = item.get('authors', [])
+        narrators = item.get('narrators', [])
+        publisher_name = item.get('publisherName')
+        summary = item.get('summary')
+        release_date = item.get('releaseDate')
+        image = item.get('image')
+        genres = item.get('genres', [])
+        series_primary = item.get('seriesPrimary')
+        series_secondary = item.get('seriesSecondary')
+        language = item.get('language')
+        runtime_length_min = item.get('runtimeLengthMin')
+        format_type = item.get('formatType')
+        isbn = item.get('isbn')
+
+        series = []
+        if series_primary:
+            series.append({
+                'series': series_primary.get('name'),
+                'sequence': self.clean_series_sequence(
+                    series_primary.get('name', ''), 
+                    series_primary.get('position', '')
+                )
+            })
+        if series_secondary:
+            series.append({
+                'series': series_secondary.get('name'),
+                'sequence': self.clean_series_sequence(
+                    series_secondary.get('name', ''), 
+                    series_secondary.get('position', '')
+                )
+            })
+
+        genres_filtered = [g.get('name') for g in genres if g.get('type') == 'genre']
+        tags_filtered = [g.get('name') for g in genres if g.get('type') == 'tag']
+
+        return {
+            'title': title,
+            'subtitle': subtitle or None,
+            'author': ', '.join([a.get('name', '') for a in authors]) if authors else None,
+            'narrator': ', '.join([n.get('name', '') for n in narrators]) if narrators else None,
+            'publisher': publisher_name,
+            'publishedYear': release_date.split('-')[0] if release_date else None,
+            'description': summary or None,
+            'cover': image,
+            'asin': asin,
+            'isbn': isbn,
+            'genres': genres_filtered if genres_filtered else None,
+            'tags': ', '.join(tags_filtered) if tags_filtered else None,
+            'series': series if series else None,
+            'language': language.capitalize() if language else None,
+            'duration': int(runtime_length_min) if runtime_length_min and str(runtime_length_min).isdigit() else 0,
+            'region': item.get('region') or None,
+            'rating': item.get('rating') or None,
+            'abridged': format_type == 'abridged'
+        }
+
+    def asin_search(self, asin: str, region: str = 'us', timeout: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Search for a book by ASIN"""
+        if not asin:
+            return None
+        if not timeout:
+            timeout = self.response_timeout
+
+        asin = asin.upper()
+        region_query = f'?region={region}' if region else ''
+        url = f'https://api.audnex.us/books/{asin}{region_query}'
+        logging.debug(f'[Audible] ASIN url: {url}')
+        
+        try:
+            response = requests.get(url, timeout=timeout/1000)  # Convert ms to seconds
+            response.raise_for_status()
+            data = response.json()
+            if not data.get('asin'):
+                return None
+            return data
+        except Exception as error:
+            logging.error(f'[Audible] ASIN search error: {error}')
+            return None
+
+    def search(self, title: str, author: str = '', asin: str = '', region: str = 'us', timeout: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Search for books using title, author, and/or ASIN"""
+        if region and region not in self.region_map:
+            logging.error(f'[Audible] search: Invalid region {region}')
+            region = 'us'
+        
+        if not timeout:
+            timeout = self.response_timeout
+
+        items = []
+        
+        # Try ASIN search first if valid
+        if asin and is_valid_asin(asin.upper()):
+            item = self.asin_search(asin, region, timeout)
+            if item:
+                items.append(item)
+        
+        # Try title as ASIN if no results and title looks like ASIN
+        if not items and is_valid_asin(title.upper()):
+            item = self.asin_search(title, region, timeout)
+            if item:
+                items.append(item)
+        
+        # Fallback to catalog search
+        if not items:
+            query_obj = {
+                'num_results': '10',
+                'products_sort_by': 'Relevance',
+                'title': title
+            }
+            if author:
+                query_obj['author'] = author
+            
+            query_string = urlencode(query_obj)
+            tld = self.region_map.get(region, '.com')
+            url = f'https://api.audible{tld}/1.0/catalog/products?{query_string}'
+            logging.debug(f'[Audible] Search url: {url}')
+            
+            try:
+                response = requests.get(url, timeout=timeout/1000)
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get('products'):
+                    # Get detailed info for each product
+                    detailed_items = []
+                    for result in data['products']:
+                        if result.get('asin'):
+                            detailed_item = self.asin_search(result['asin'], region, timeout)
+                            if detailed_item:
+                                detailed_items.append(detailed_item)
+                    items = detailed_items
+                else:
+                    items = []
+            except Exception as error:
+                logging.error(f'[Audible] query search error: {error}')
+                items = []
+        
+        # Clean and return results
+        return [self.clean_result(item) for item in items if item]
+
+
+class Audnexus:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if hasattr(self, 'initialized'):
+            return
+        
+        self.base_url = 'https://api.audnex.us'
+        self.request_interval = 0.15  # 150ms between requests
+        self.last_request_time = 0
+        self.initialized = True
+    
+    def _throttle_request(self):
+        """Simple throttling to avoid rate limits"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.request_interval:
+            time.sleep(self.request_interval - time_since_last)
+        self.last_request_time = time.time()
+    
+    def _process_request(self, url: str, max_retries: int = 1) -> Optional[Dict[str, Any]]:
+        """Process request with rate limiting and retry logic"""
+        for attempt in range(max_retries + 1):
+            try:
+                self._throttle_request()
+                response = requests.get(url)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 429:  # Rate limited
+                    retry_after = int(e.response.headers.get('retry-after', 5))
+                    logging.warning(f'[Audnexus] Rate limit exceeded. Retrying in {retry_after} seconds.')
+                    time.sleep(retry_after)
+                    continue
+                else:
+                    logging.error(f'[Audnexus] HTTP error: {e}')
+                    return None
+            except Exception as e:
+                logging.error(f'[Audnexus] Request error: {e}')
+                return None
         return None
+    
+    def author_asins_request(self, name: str, region: str = '') -> List[Dict[str, Any]]:
+        """Get author ASINs by name"""
+        params = {'name': name}
+        if region:
+            params['region'] = region
+        
+        url = f"{self.base_url}/authors?{urlencode(params)}"
+        logging.info(f'[Audnexus] Searching for author "{url}"')
+        
+        result = self._process_request(url)
+        if result is None:
+            return []
+        return result if isinstance(result, list) else [result]
+    
+    def author_request(self, asin: str, region: str = '') -> Optional[Dict[str, Any]]:
+        """Get author details by ASIN"""
+        if not is_valid_asin(asin.upper()):
+            logging.error(f'[Audnexus] Invalid ASIN {asin}')
+            return None
+        
+        asin = asin.upper()
+        params = {'region': region} if region else {}
+        url = f"{self.base_url}/authors/{asin}"
+        if params:
+            url += f"?{urlencode(params)}"
+        
+        logging.info(f'[Audnexus] Searching for author "{url}"')
+        
+        result = self._process_request(url)
+        return result
+    
+    def find_author_by_asin(self, asin: str, region: str = '') -> Optional[Dict[str, Any]]:
+        """Find author by ASIN"""
+        author = self.author_request(asin, region)
+        
+        if author:
+            return {
+                'asin': author.get('asin'),
+                'description': author.get('description'),
+                'image': author.get('image') or None,
+                'name': author.get('name')
+            }
+        return None
+    
+    def find_author_by_name(self, name: str, region: str = '', max_levenshtein: int = 3) -> Optional[Dict[str, Any]]:
+        """Find author by name with fuzzy matching"""
+        logging.debug(f'[Audnexus] Looking up author by name {name}')
+        author_asin_objs = self.author_asins_request(name, region)
+        
+        closest_match = None
+        for author_asin_obj in author_asin_objs:
+            author_name = author_asin_obj.get('name', '')
+            distance = levenshtein_distance(author_name, name)
+            author_asin_obj['levenshtein_distance'] = distance
+            
+            if not closest_match or closest_match['levenshtein_distance'] > distance:
+                closest_match = author_asin_obj
+        
+        if not closest_match or closest_match['levenshtein_distance'] > max_levenshtein:
+            return None
+        
+        author = self.author_request(closest_match.get('asin', ''), region)
+        if not author:
+            return None
+        
+        return {
+            'asin': author.get('asin'),
+            'description': author.get('description'),
+            'image': author.get('image') or None,
+            'name': author.get('name')
+        }
+    
+    def get_chapters_by_asin(self, asin: str, region: str = '') -> Optional[Dict[str, Any]]:
+        """Get chapters for a book by ASIN"""
+        logging.debug(f'[Audnexus] Get chapters for ASIN {asin}/{region}')
+        
+        asin = asin.upper()
+        params = {'region': region} if region else {}
+        url = f"{self.base_url}/books/{asin}/chapters"
+        if params:
+            url += f"?{urlencode(params)}"
+        
+        result = self._process_request(url)
+        return result
 
-    query = f"{title} {author}".strip().replace(" ", "+")
-    url = f"https://www.audible.com/search?keywords={query}"
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    try:
-        resp = requests.get(url, headers=headers)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        for link in soup.find_all('a', href=True):
-            if not isinstance(link, Tag):
-                continue
-            href = link.attrs.get('href')
-            if not isinstance(href, str):
-                continue
-            m = re.search(r'/pd/[^/]+/([A-Z0-9]{10})', href)
-            if m:
-                asin = m.group(1)
-                logging.info(f"Scraped ASIN from Audible: {asin}")
-                return asin
-    except Exception as e:
-        logging.error(f"Error scraping Audible for ASIN: {e}")
-    return None
-
-
-def clean_series_sequence(series_name: str, sequence: str) -> str:
-    import re
-    if not sequence:
-        return ''
-    m = re.search(r'\.\d+|\d+(?:\.\d+)?', sequence)
-    updated_sequence = m.group(0) if m else sequence
-    if sequence != updated_sequence:
-        logging.debug(f'Series "{series_name}" sequence cleaned from "{sequence}" to "{updated_sequence}"')
-    return updated_sequence
-
-
-def clean_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
-    # Series raw
-    series = []
-    if item.get('seriesPrimary'):
-        name = item['seriesPrimary'].get('name')
-        seq = clean_series_sequence(name, item['seriesPrimary'].get('position', ''))
-        series.append({'series': name, 'sequence': seq})
-    if item.get('seriesSecondary'):
-        name = item['seriesSecondary'].get('name')
-        seq = clean_series_sequence(name, item['seriesSecondary'].get('position', ''))
-        series.append({'series': name, 'sequence': seq})
-
-    # Genres and tags
-    genres = [g['name'] for g in item.get('genres', []) if g.get('type') == 'genre']
-    tags = [g['name'] for g in item.get('genres', []) if g.get('type') == 'tag']
-
-    # Authors
-    authors_raw = item.get('authors', [])
-    authors_clean = clean_author_list(authors_raw)
-    author_str = ', '.join(authors_clean) if authors_clean else None
-
-    # Narrators
-    narrators_list = [n.get('name') for n in item.get('narrators', [])] if item.get('narrators') else []
-    narrator_str = ', '.join(narrators_list) if narrators_list else None
-
-    # Build display string for the series (first one only)
-    series_display = ""
-    if series:
-        s = series[0]
-        if s['series'] and s['sequence']:
-            series_display = f"{s['series']} (Vol. {s['sequence']})"
-        elif s['series']:
-            series_display = s['series']
-
-    return {
-        'title': item.get('title'),
-        'subtitle': item.get('subtitle'),
-        'author': author_str,
-        'authors_raw': authors_raw,
-        'narrator': narrator_str,
-        'narrators': narrators_list,
-        'publisher': item.get('publisherName'),
-        'publishedYear': item.get('releaseDate', '').split('-')[0] if item.get('releaseDate') else None,
-        'release_date': item.get('releaseDate'),
-        'description': item.get('summary') or item.get('description'),
-        'cover': item.get('image'),
-        'cover_url': item.get('image'),  # always present
-        'asin': item.get('asin'),
-        'isbn': item.get('isbn'),
-        'genres': genres or None,
-        'tags': ', '.join(tags) if tags else None,
-        'series': series_display,
-        'series_primary': item.get('seriesPrimary', {}),
-        'series_raw': series or None,
-        'language': item.get('language', '').capitalize() if item.get('language') else None,
-        'duration': int(item.get('runtimeLengthMin', 0)) if item.get('runtimeLengthMin') else 0,
-        'runtime_minutes': item.get('runtimeLengthMin', 0),
-        'region': item.get('region'),
-        'rating': item.get('rating'),
-        'abridged': item.get('formatType') == 'abridged'
-    }
-
-
+# Main fetch metadata function compatible with existing code
 def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
     """
-    Enhanced fetch: try ASIN search with region failover, caching, short-circuit on first good match,
-    and best-match via Levenshtein distance for title.
+    Enhanced fetch using AudioBookShelf-style logic
     """
     config = load_config()
     req_keys = config.get('payload', {}).get('required_keys', [])
@@ -160,99 +353,68 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
     name = payload.get('name', '')
     title = payload.get('title') or name
     author = payload.get('author', '')
+    
+    # Extract ASIN from name if present
     asin_regex = config.get('payload', {}).get('asin_regex')
     match = re.search(asin_regex, name) if asin_regex else None
     asin = match.group(0) if match else None
-    if not asin:
-        logging.warning(f"ASIN not in name '{name}', scraping Audible")
-        asin = get_audible_asin(title, author)
-        if not asin:
-            raise ValueError(f"ASIN could not be determined for '{name}'")
-    asin = asin.upper()
-
-    # Build region list: user-specified or default sequence
-    default_regions = ['us','ca','uk','au','fr','de','jp','it','in','es']
-    if regions:
-        seq = [r for r in regions if r]
-        seq += [r for r in default_regions if r not in seq]
-    else:
-        seq = default_regions
-
-    api_url = config.get('audnex', {}).get('api_url', '').rstrip('/')
-
-    for region in seq:
-        meta = get_cached_metadata(asin, region, api_url)
-        if meta:
-            logging.debug(f"Cache hit or fresh fetch for {asin}/{region}")
-            return meta
-
-        # 2) Fallback: search via Audible catalog
+    
+    # Use provided regions or default sequence
+    if not regions:
+        regions = ['us', 'ca', 'uk', 'au', 'fr', 'de', 'jp', 'it', 'in', 'es']
+    
+    audible = Audible()
+    
+    # Try each region until we get results
+    for region in regions:
         try:
-            url = 'https://api.audible.com/1.0/catalog/products'
-            params = {'num_results':'10','products_sort_by':'Relevance','title':title}
-            if author:
-                params['author'] = author
-            resp = requests.get(url, params=params)
-            resp.raise_for_status()
-            products = resp.json().get('products', []) or []
+            results = audible.search(title=title, author=author, asin=asin or '', region=region)
+            if results:
+                # Return the first (best) result
+                return results[0]
         except Exception as e:
-            logging.error(f"Search error for title '{title}' author '{author}': {e}")
-            products = []
-
-        best_item = None
-        best_dist = float('inf')
-        for prod in products:
-            asin2 = prod.get('asin')
-            if not asin2:
-                continue
-            cand = get_cached_metadata(asin2, region, api_url)
-            if not cand:
-                continue
-            title_cand_val = cand.get('title', '')
-            if not isinstance(title_cand_val, str):
-                continue
-            title_cand = title_cand_val.lower()
-            dist = levenshtein_distance(title_cand, title.lower())
-            if dist < best_dist:
-                best_item = cand
-                best_dist = dist
-                if dist == 0:
-                    break
-        if best_item:
-            return best_item
-
+            logging.error(f"Error searching region {region}: {e}")
+            continue
+    
     raise ValueError(f"Could not fetch metadata for '{name}' [{asin}]")
 
+
 def fetch_metadata_audiobookshelf(payload: dict, region: str = 'us') -> Optional[dict]:
+    """
+    Direct AudioBookShelf-style metadata fetch
+    """
     asin = payload.get('asin')
     title = payload.get('title')
     author = payload.get('author')
-    base_url = 'https://api.audnex.us/books/'
+    
+    audible = Audible()
+    results = audible.search(title=title or '', author=author or '', asin=asin or '', region=region)
+    
+    return results[0] if results else None
 
-    # Try ASIN first
-    if asin:
-        url = f"{base_url}{asin}"
-        params = {'region': region}
-        resp = requests.get(url, params=params)
-        if resp.ok and resp.json().get('asin'):
-            return clean_metadata(resp.json())
 
-    # Fallback: search by title/author
-    search_url = f"https://api.audible.com/1.0/catalog/products"
-    params = {
-        'num_results': 10,
-        'products_sort_by': 'Relevance',
-        'title': title
-    }
-    if author:
-        params['author'] = author
-    resp = requests.get(search_url, params=params)
-    if resp.ok and resp.json().get('products'):
-        for product in resp.json()['products']:
-            asin = product.get('asin')
-            if asin:
-                # Fetch full metadata for each ASIN
-                meta_resp = requests.get(f"{base_url}{asin}", params={'region': region})
-                if meta_resp.ok and meta_resp.json().get('asin'):
-                    return clean_metadata(meta_resp.json())
+# Compatibility functions for existing code
+def get_audible_asin(title: str, author: str) -> Optional[str]:
+    """
+    Get ASIN by searching Audible - simplified version
+    """
+    try:
+        audible = Audible()
+        results = audible.search(title=title, author=author, region='us')
+        if results:
+            return results[0].get('asin')
+    except Exception as e:
+        logging.error(f"Error getting ASIN for '{title}' by '{author}': {e}")
     return None
+
+
+def clean_series_sequence(series_name: str, sequence: str) -> str:
+    """Compatibility function - use Audible class method"""
+    audible = Audible()
+    return audible.clean_series_sequence(series_name, sequence)
+
+
+def clean_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Compatibility function - use Audible class method"""
+    audible = Audible()
+    return audible.clean_result(item)
