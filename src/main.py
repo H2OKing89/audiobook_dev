@@ -652,6 +652,126 @@ async def css_test():
 </body>
 </html>"""
 
+# Rejection CSS test endpoint for developers
+@app.get("/rejection-css-test", response_class=HTMLResponse)
+async def rejection_css_test():
+    """Test page for rejection CSS light/dark mode - for development only"""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejection Light/Dark Mode CSS Test</title>
+    <link rel="stylesheet" href="/static/css/pages/rejection.css">
+    <style>
+        .test-container {
+            padding: 20px;
+            margin: 20px;
+            border: 2px solid var(--border-error);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+        .test-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--error-primary);
+        }
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid var(--border-secondary);
+        }
+        .mode-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-error);
+            border-radius: 5px;
+            color: var(--error-primary);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="rejection-page">
+    <div class="mode-indicator">
+        Color Scheme: <span id="scheme">Auto</span>
+    </div>
+    
+    <div class="test-container">
+        <h1 style="color: var(--error-primary);">🚫 Rejection Light/Dark Mode CSS Test</h1>
+        <p>This page tests the CSS variables for the rejection page in both light and dark modes.</p>
+        
+        <div class="test-section">
+            <h3>Background Colors</h3>
+            <p><span class="color-swatch" style="background: var(--bg-primary);"></span>Primary Background</p>
+            <p><span class="color-swatch" style="background: var(--bg-secondary);"></span>Secondary Background</p>
+            <p><span class="color-swatch" style="background: var(--bg-tertiary);"></span>Tertiary Background</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>Text Colors</h3>
+            <p style="color: var(--text-primary);">Primary Text Color</p>
+            <p style="color: var(--text-secondary);">Secondary Text Color</p>
+            <p style="color: var(--text-muted);">Muted Text Color</p>
+            <p style="color: var(--text-footer);">Footer Text Color</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>Error & Accent Colors</h3>
+            <p><span class="color-swatch" style="background: var(--error-primary);"></span>Error Primary</p>
+            <p><span class="color-swatch" style="background: var(--error-secondary);"></span>Error Secondary</p>
+            <p><span class="color-swatch" style="background: var(--accent-cyan);"></span>Cyan Accent</p>
+            <p><span class="color-swatch" style="background: var(--accent-green);"></span>Green Accent</p>
+            <p><span class="color-swatch" style="background: var(--accent-yellow);"></span>Yellow Accent</p>
+            <p><span class="color-swatch" style="background: var(--accent-pink);"></span>Pink Accent</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>Instructions</h3>
+            <p>To test the light/dark mode functionality:</p>
+            <ol>
+                <li>Open this page in a browser</li>
+                <li>Change your system's color scheme preference (dark/light mode)</li>
+                <li>Refresh the page or toggle the preference</li>
+                <li>Observe how the colors adapt automatically</li>
+            </ol>
+            <p><strong>Dark Mode:</strong> Should show dark backgrounds with red errors and bright accents</p>
+            <p><strong>Light Mode:</strong> Should show light backgrounds with darker red errors and muted accents</p>
+        </div>
+    </div>
+    
+    <script>
+        // Detect and display current color scheme
+        function updateSchemeIndicator() {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+            const schemeElement = document.getElementById('scheme');
+            
+            if (isDark) {
+                schemeElement.textContent = 'Dark';
+            } else if (isLight) {
+                schemeElement.textContent = 'Light';
+            } else {
+                schemeElement.textContent = 'Auto';
+            }
+        }
+        
+        // Update on load
+        updateSchemeIndicator();
+        
+        // Listen for changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSchemeIndicator);
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', updateSchemeIndicator);
+    </script>
+</body>
+</html>"""
+
 if __name__ == "__main__":
     import uvicorn
     config = load_config().get('server', {})

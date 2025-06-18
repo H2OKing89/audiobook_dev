@@ -31,10 +31,11 @@
 - **Size Formatting**: Human-readable file size display
 
 ### 🎨 **UI/UX Enhancements**
-- **Automatic Light/Dark Mode**: CSS adapts to browser's `prefers-color-scheme`
-- **CSS Variables**: Complete variable system for consistent theming
-- **Cyberpunk Aesthetic**: Maintained dark theme with light mode compatibility
+- **Automatic Light/Dark Mode**: Both approval AND rejection pages adapt to browser's `prefers-color-scheme`
+- **CSS Variables**: Complete variable system for consistent theming across all pages
+- **Cyberpunk Aesthetic**: Maintained dark theme with light mode compatibility for both approval and rejection
 - **Responsive Design**: Works across different screen sizes
+- **CSS Test Pages**: Development endpoints `/css-test` and `/rejection-css-test` for theme validation
 
 ### 🔒 **Security**
 - **Endpoint Protection**: Queue status restricted to local IPs
@@ -59,7 +60,9 @@
 
 ### UI/Styling
 - `static/css/pages/approval.css` - Light/dark mode with CSS variables
+- `static/css/pages/rejection.css` - Light/dark mode with CSS variables (NEW)
 - `templates/approval.html` - Approval page template
+- `templates/rejection.html` - Rejection page template
 - `templates/css_test.html` - CSS testing page
 
 ### Configuration & Documentation
@@ -78,15 +81,16 @@
 1. **Health Monitoring**: Service responds to health checks
 2. **Queue Processing**: Sequential webhook processing with rate limiting
 3. **Metadata Extraction**: All fields (narrators, series, etc.) properly extracted
-4. **Theme Adaptation**: Automatic light/dark mode switching
+4. **Theme Adaptation**: Automatic light/dark mode switching on BOTH approval and rejection pages
 5. **Security**: Proper endpoint protection and access control
+6. **CSS Test Pages**: Development endpoints for both approval and rejection themes
 
 ### 🔧 **System Status**
 - **Service Running**: ✅ Active on port 8000
 - **Queue Empty**: ✅ 0 pending requests
 - **All Tests Passing**: ✅ 5/5 validation tests successful
-- **Endpoints Active**: ✅ Health, queue status, webhook, and UI endpoints
-- **CSS Variables**: ✅ Complete light/dark mode support
+- **Endpoints Active**: ✅ Health, queue status, webhook, CSS test endpoints all functional
+- **CSS Variables**: ✅ Complete light/dark mode support on BOTH approval and rejection pages
 
 ## 🚦 **NEXT STEPS (Optional)**
 

@@ -61,7 +61,7 @@ function loadDadJoke() {
                     flex-shrink: 0;
                 }
                 .joke-content {
-                    color: #ffbd2e;
+                    color: var(--accent-yellow);
                     font-style: italic;
                     line-height: 1.4;
                     flex: 1;
@@ -70,12 +70,12 @@ function loadDadJoke() {
                     display: flex;
                     justify-content: space-between;
                     font-size: 0.8rem;
-                    color: #888;
+                    color: var(--text-muted);
                     border-top: 1px solid rgba(255, 189, 46, 0.2);
                     padding-top: 0.5rem;
                 }
                 .rating-value {
-                    color: #00ff88;
+                    color: var(--accent-green);
                     font-weight: bold;
                 }
             `;
@@ -157,10 +157,10 @@ function showTemporaryMessage(title, message, type = 'info') {
         left: 50%;
         transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.95);
-        border: 2px solid ${type === 'info' ? '#00f5ff' : '#ff006e'};
+        border: 2px solid ${type === 'info' ? 'var(--accent-cyan)' : 'var(--accent-pink)'};
         border-radius: 12px;
         padding: 2rem;
-        box-shadow: 0 0 30px ${type === 'info' ? 'rgba(0, 245, 255, 0.5)' : 'rgba(255, 0, 110, 0.5)'};
+        box-shadow: 0 0 30px ${type === 'info' ? 'var(--shadow-cyan)' : 'var(--alert-bg)'};
         text-align: center;
         z-index: 1001;
         max-width: 400px;
@@ -168,10 +168,10 @@ function showTemporaryMessage(title, message, type = 'info') {
     `;
     
     overlay.innerHTML = `
-        <h3 style="color: ${type === 'info' ? '#00f5ff' : '#ff006e'}; margin: 0 0 1rem 0; text-shadow: 0 0 10px ${type === 'info' ? 'rgba(0, 245, 255, 0.5)' : 'rgba(255, 0, 110, 0.5)'};">
+        <h3 style="color: ${type === 'info' ? 'var(--accent-cyan)' : 'var(--accent-pink)'}; margin: 0 0 1rem 0; text-shadow: 0 0 10px ${type === 'info' ? 'var(--shadow-cyan)' : 'var(--alert-bg)'};">
             ${title}
         </h3>
-        <p style="color: #fff; margin: 0; font-size: 1rem; line-height: 1.4;">
+        <p style="color: var(--text-primary); margin: 0; font-size: 1rem; line-height: 1.4;">
             ${message}
         </p>
     `;

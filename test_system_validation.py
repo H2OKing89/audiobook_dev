@@ -110,14 +110,23 @@ def test_css_variables():
     """Test that CSS variables are properly defined for light/dark mode"""
     print("🎨 Testing CSS variables for light/dark mode...")
     try:
-        css_file = Path("static/css/pages/approval.css")
-        if not css_file.exists():
-            print("✗ CSS file not found")
+        # Test approval CSS
+        approval_css = Path("static/css/pages/approval.css")
+        if not approval_css.exists():
+            print("✗ Approval CSS file not found")
             return False
         
-        css_content = css_file.read_text()
+        approval_content = approval_css.read_text()
         
-        # Check for CSS variables
+        # Test rejection CSS
+        rejection_css = Path("static/css/pages/rejection.css")
+        if not rejection_css.exists():
+            print("✗ Rejection CSS file not found")
+            return False
+        
+        rejection_content = rejection_css.read_text()
+        
+        # Check for CSS variables in both files
         required_vars = [
             '--bg-primary',
             '--bg-secondary',
@@ -127,25 +136,45 @@ def test_css_variables():
             '--border-primary'
         ]
         
-        # Check for light mode media query
-        has_light_mode = '@media (prefers-color-scheme: light)' in css_content
-        if has_light_mode:
-            print("  ✓ Light mode media query found")
+        # Check for light mode media query in both files
+        approval_has_light = '@media (prefers-color-scheme: light)' in approval_content
+        rejection_has_light = '@media (prefers-color-scheme: light)' in rejection_content
+        
+        if approval_has_light and rejection_has_light:
+            print("  ✓ Light mode media queries found in both CSS files")
         else:
-            print("  ✗ Light mode media query missing")
+            print(f"  ✗ Light mode media query missing - Approval: {approval_has_light}, Rejection: {rejection_has_light}")
             return False
         
-        # Check for CSS variables
-        missing_vars = []
+        # Check for CSS variables in both files
+        approval_missing = []
+        rejection_missing = []
+        
         for var in required_vars:
-            if var not in css_content:
-                missing_vars.append(var)
+            if var not in approval_content:
+                approval_missing.append(var)
+            if var not in rejection_content:
+                rejection_missing.append(var)
         
-        if missing_vars:
-            print(f"  ✗ Missing CSS variables: {missing_vars}")
+        if approval_missing or rejection_missing:
+            print(f"  ✗ Missing CSS variables - Approval: {approval_missing}, Rejection: {rejection_missing}")
             return False
         else:
-            print(f"  ✓ All {len(required_vars)} CSS variables found")
+            print(f"  ✓ All {len(required_vars)} CSS variables found in both files")
+        
+        # Test CSS endpoints
+        try:
+            response1 = requests.get("http://10.1.60.11:8000/css-test", timeout=5)
+            response2 = requests.get("http://10.1.60.11:8000/rejection-css-test", timeout=5)
+            
+            if response1.status_code == 200 and response2.status_code == 200:
+                print("  ✓ Both CSS test endpoints accessible")
+            else:
+                print(f"  ✗ CSS test endpoints failed - Approval: {response1.status_code}, Rejection: {response2.status_code}")
+                return False
+        except Exception as e:
+            print(f"  ✗ CSS endpoints test error: {e}")
+            return False
         
         return True
         
