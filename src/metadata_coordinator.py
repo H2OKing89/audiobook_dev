@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+"""
+Metadata Coordinator
+Orchestrates the metadata fetching workflow:
+1. Try to extract ASIN from MAM URL
+2. Use ASIN to get metadata from Audnex
+3. Fallback to Audible search if no ASIN found
+"""
+
+import logging
+import sys
+import argparse
+import time
+from typing import Optional, Dict, Any, List
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.config import load_config
+from src.mam_scraper import MAMScraper
+from src.audnex_metadata import AudnexMetadata
+from src.audible_scraper import AudibleScraper
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('logs/metadata_coordinator.log')
+    ]
+)
+
+class MetadataCoordinator:
+    def __init__(self):
+        self.config = load_config()
+        self.mam_scraper = MAMScraper()
+        self.audnex = AudnexMetadata()
+        self.audible = AudibleScraper()
+        
+        # Global rate limiting
+        self.last_api_call = 0
+        self.rate_limit_seconds = self.config.get('metadata', {}).get('rate_limit_seconds', 120)
+        logging.info(f"Metadata coordinator initialized with {self.rate_limit_seconds}s rate limit")
+        
+    def _enforce_rate_limit(self):
+        """Enforce global rate limiting between API calls"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_api_call
+        
+        if time_since_last < self.rate_limit_seconds:
+            wait_time = self.rate_limit_seconds - time_since_last
+            logging.info(f"Rate limiting: waiting {wait_time:.1f}s before next API call")
+            time.sleep(wait_time)
+            
+        self.last_api_call = time.time()
+        
+    def get_metadata_from_webhook(self, webhook_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Main workflow: Get metadata from webhook payload.
+        
+        Args:
+            webhook_payload: Dict containing 'url', 'name', etc.
+            
+        Returns:
+            Dict with metadata or None if not found
+        """
+        url = webhook_payload.get('url')
+        name = webhook_payload.get('name', '')
+        
+        logging.info(f"Starting metadata workflow for: {name}")
+        logging.info(f"Source URL: {url}")
+        
+        # Step 1: Try to extract ASIN from MAM URL if it's a MAM URL
+        asin = None
+        if url and 'myanonamouse.net' in url:
+            logging.info("Step 1: Attempting to extract ASIN from MAM URL...")
+            try:
+                self._enforce_rate_limit()
+                asin = self.mam_scraper.scrape_asin_from_url(url)
+                if asin:
+                    logging.info(f"✅ ASIN extracted from MAM: {asin}")
+                else:
+                    logging.warning("❌ No ASIN found on MAM page")
+            except Exception as e:
+                logging.error(f"Error scraping MAM: {e}")
+        else:
+            logging.info("Step 1: Skipped (not a MAM URL)")
+        
+        # Step 2: If we have an ASIN, get metadata from Audnex
+        if asin:
+            logging.info(f"Step 2: Getting metadata from Audnex for ASIN: {asin}")
+            try:
+                self._enforce_rate_limit()
+                metadata = self.audnex.get_book_by_asin(asin)
+                if metadata:
+                    logging.info("✅ Metadata found via Audnex")
+                    metadata['source'] = 'audnex'
+                    metadata['asin_source'] = 'mam'
+                    return metadata
+                else:
+                    logging.warning("❌ No metadata found in Audnex for extracted ASIN")
+            except Exception as e:
+                logging.error(f"Error fetching from Audnex: {e}")
+        
+        # Step 3: Fallback to Audible search using title/author from name
+        logging.info("Step 3: Falling back to Audible search...")
+        try:
+            self._enforce_rate_limit()
+            results = self.audible.search_from_webhook_name(name)
+            if results:
+                metadata = results[0]  # Take the first (best) result
+                logging.info("✅ Metadata found via Audible search")
+                metadata['source'] = 'audible'
+                metadata['asin_source'] = 'search'
+                return metadata
+            else:
+                logging.warning("❌ No metadata found via Audible search")
+        except Exception as e:
+            logging.error(f"Error searching Audible: {e}")
+        
+        logging.error("❌ All metadata sources exhausted - no metadata found")
+        return None
+    
+    def get_metadata_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
+        """Get metadata directly by ASIN."""
+        logging.info(f"Getting metadata for ASIN: {asin} (region: {region})")
+        
+        try:
+            metadata = self.audnex.get_book_by_asin(asin, region=region)
+            if metadata:
+                logging.info("✅ Metadata found via Audnex")
+                metadata['source'] = 'audnex'
+                metadata['asin_source'] = 'direct'
+                return metadata
+        except Exception as e:
+            logging.error(f"Error fetching from Audnex: {e}")
+        
+        logging.error("❌ No metadata found for ASIN")
+        return None
+    
+    def search_metadata(self, title: str, author: str = '', region: str = 'us') -> Optional[Dict[str, Any]]:
+        """Search for metadata by title and author."""
+        logging.info(f"Searching metadata: title='{title}', author='{author}', region={region}")
+        
+        try:
+            results = self.audible.search(title=title, author=author, region=region)
+            if results:
+                metadata = results[0]  # Take the first (best) result
+                logging.info("✅ Metadata found via search")
+                metadata['source'] = 'audible'
+                metadata['asin_source'] = 'search'
+                return metadata
+        except Exception as e:
+            logging.error(f"Error searching: {e}")
+        
+        logging.error("❌ No metadata found via search")
+        return None
+    
+    def get_enhanced_metadata(self, basic_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhance basic metadata with additional information."""
+        enhanced = basic_metadata.copy()
+        
+        # Try to get chapters if we have an ASIN
+        asin = enhanced.get('asin')
+        if asin:
+            try:
+                chapters = self.audnex.get_chapters_by_asin(asin)
+                if chapters:
+                    enhanced['chapters'] = chapters
+                    enhanced['chapter_count'] = len(chapters.get('chapters', []))
+                    logging.info(f"Added {enhanced.get('chapter_count', 0)} chapters to metadata")
+            except Exception as e:
+                logging.error(f"Error fetching chapters: {e}")
+        
+        # Add workflow information
+        enhanced['metadata_workflow'] = {
+            'coordinator_version': '1.0',
+            'sources_tried': ['mam', 'audnex', 'audible'],
+            'final_source': enhanced.get('source', 'unknown'),
+            'asin_source': enhanced.get('asin_source', 'unknown')
+        }
+        
+        return enhanced
+
+
+def main():
+    """Main function for command line usage."""
+    parser = argparse.ArgumentParser(description="Metadata Coordinator")
+    parser.add_argument("--url", help="MAM URL to process")
+    parser.add_argument("--name", help="Torrent name to parse")
+    parser.add_argument("--asin", help="Direct ASIN lookup")
+    parser.add_argument("--title", help="Title to search for")
+    parser.add_argument("--author", default="", help="Author to search for")
+    parser.add_argument("--region", default="us", help="Audible region")
+    parser.add_argument("--enhanced", action="store_true", help="Get enhanced metadata with chapters")
+    args = parser.parse_args()
+    
+    coordinator = MetadataCoordinator()
+    metadata = None
+    
+    # Determine which method to use
+    if args.url or args.name:
+        # Webhook-style payload
+        payload = {}
+        if args.url:
+            payload['url'] = args.url
+        if args.name:
+            payload['name'] = args.name
+        
+        metadata = coordinator.get_metadata_from_webhook(payload)
+        
+    elif args.asin:
+        # Direct ASIN lookup
+        metadata = coordinator.get_metadata_by_asin(args.asin, region=args.region)
+        
+    elif args.title:
+        # Title/author search
+        metadata = coordinator.search_metadata(args.title, author=args.author, region=args.region)
+        
+    else:
+        print("Error: Must provide --url/--name, --asin, or --title")
+        return
+    
+    # Display results
+    if metadata:
+        if args.enhanced:
+            metadata = coordinator.get_enhanced_metadata(metadata)
+        
+        print("✅ Metadata found:")
+        print(f"  Title: {metadata.get('title')}")
+        print(f"  Author: {metadata.get('author')}")
+        print(f"  ASIN: {metadata.get('asin')}")
+        print(f"  Publisher: {metadata.get('publisher')}")
+        print(f"  Duration: {metadata.get('duration')} minutes ({metadata.get('duration', 0) / 60:.1f} hours)")
+        print(f"  Published: {metadata.get('publishedYear')}")
+        
+        if metadata.get('series'):
+            for series in metadata['series']:
+                print(f"  Series: {series['series']} #{series['sequence']}")
+        
+        if metadata.get('chapters'):
+            print(f"  Chapters: {metadata.get('chapter_count', 0)}")
+        
+        print(f"  Source: {metadata.get('source')} (ASIN from: {metadata.get('asin_source')})")
+        
+        if metadata.get('description'):
+            desc = metadata['description'][:200]
+            print(f"  Description: {desc}...")
+        
+    else:
+        print("❌ No metadata found")
+
+
+if __name__ == "__main__":
+    main()

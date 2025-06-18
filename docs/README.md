@@ -1,33 +1,75 @@
 # 📚 Audiobook Automation Documentation
 
-Welcome to the comprehensive documentation for Quentin's Audiobook Automation System! This documentation is organized to help both users and developers understand, use, and contribute to the system.
+Welcome to the comprehensive documentation for the Audiobook Automation System! This documentation is organized to help both users and developers understand, use, and contribute to the system.
 
-## 📖 Documentation Structure
+## � Quick Start
+
+New to the system? Start here:
+1. [Getting Started](user-guide/getting-started.md) - Installation and basic setup
+2. [Configuration](user-guide/configuration.md) - Configure the system for your needs
+3. [Web Interface](user-guide/web-interface.md) - Using the web UI
+
+## �📖 Documentation Structure
 
 ### 🎯 User Guide (`user-guide/`)
 Documentation for end users who want to use the audiobook automation system.
 
-- [Getting Started](user-guide/getting-started.md) - Quick start guide
-- [Configuration](user-guide/configuration.md) - How to configure the system
-- [Web Interface](user-guide/web-interface.md) - Using the web UI
-- [Notifications](user-guide/notifications.md) - Setting up notifications
-- [Troubleshooting](user-guide/troubleshooting.md) - Common issues and solutions
+- **[Getting Started](user-guide/getting-started.md)** - Installation, setup, and first run
+- **[Configuration](user-guide/configuration.md)** - Configuration options and examples
+- **[Web Interface](user-guide/web-interface.md)** - Using the web UI for approvals and monitoring
+- **[Notifications](user-guide/notifications.md)** - Setting up Discord, Pushover, etc.
+- **[Troubleshooting](user-guide/troubleshooting.md)** - Common issues and solutions
 
 ### 🛠️ Development (`development/`)
 Documentation for developers who want to understand, modify, or contribute to the codebase.
 
-- [Architecture](development/architecture.md) - System architecture overview
-- [Security](development/SECURITY.md) - Security considerations and implementations
-- [Interactive Fixes](development/INTERACTIVE_FIXES.md) - UI/UX improvements and fixes
-- [Logging Improvements](development/LOGGING_IMPROVEMENTS.md) - Enhanced logging system
-- [Testing](development/testing.md) - Testing strategies and guidelines
-- [Contributing](development/contributing.md) - How to contribute to the project
+- **[Architecture](development/architecture.md)** - System architecture and design overview
+- **[Security](development/SECURITY.md)** - Security considerations and best practices  
+- **[Testing](development/testing.md)** - Testing strategies, test suite, and guidelines
+- **[Contributing](development/contributing.md)** - How to contribute to the project
 
 ### 🔌 API Reference (`api/`)
 Technical API documentation for integrations and advanced usage.
 
-- [REST API](api/rest-api.md) - HTTP API endpoints
-- [Webhooks](api/webhooks.md) - Webhook configurations
+- **[REST API](api/rest-api.md)** - HTTP API endpoints and examples
+- **[Configuration Reference](api/config-reference.md)** - Complete configuration options
+
+## 🎯 Key Features Documented
+
+### ✅ Core System
+- **Audiobook Request Processing** - Automated processing of audiobook requests
+- **MAM Integration** - MyAnonaMouse scraping and ASIN extraction
+- **Metadata Enrichment** - Audnex and Audible metadata fetching
+- **Web Interface** - Modern approval/rejection interface
+- **Security** - CSRF protection, rate limiting, input validation
+
+### ✅ Advanced Features  
+- **Rate Limiting** - Configurable API rate limiting (30s test, 120s production)
+- **Fallback Systems** - Multiple metadata sources with intelligent fallbacks
+- **Notification Systems** - Discord, Pushover, Gotify, NTFY support
+- **Webhook Integration** - Autobrr and other webhook sources
+
+## 📊 System Status
+
+- ✅ **Production Ready** - All core features tested and working
+- ✅ **Security Audited** - Comprehensive security testing completed
+- ✅ **Well Tested** - Full test suite with real data validation
+- ✅ **Documented** - Complete documentation for users and developers
+
+## 🔗 External Resources
+
+- **MyAnonaMouse** - Primary torrent source for audiobooks
+- **Audnex API** - Rich audiobook metadata and chapter information
+- **Audible API** - Fallback metadata source
+
+## 📁 Archive
+
+Historical development documentation and implementation logs are stored in `archive/` for reference but are not part of the current documentation.
+
+---
+
+**Last Updated**: June 2025  
+**System Version**: Production v1.0
 - [Database Schema](api/database.md) - Database structure
 - [Configuration Reference](api/config-reference.md) - Complete configuration options
 

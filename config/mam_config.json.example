@@ -1,0 +1,9 @@
+{
+  "username": "your_mam_username",
+  "password": "your_mam_password",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+  "viewport": {"width": 1920, "height": 1080},
+  "timeout": 30000,
+  "wait_for_login": 5000,
+  "cookie_file": "mam_cookies.json"
+}

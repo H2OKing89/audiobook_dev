@@ -40,8 +40,29 @@ htmlcov/
 # Ignore config secrets
 config/config.yaml
 !config/config.yaml.example
+config/mam_config.json
+mam_cookies.json
+!config/mam_config.json.example
 logs/
 db.sqlite
 tests/__pycache__/
 .pytest_cache/
 db.sqlite
+*_new.py
+*_old.py
+
+# Real webhook test files (contain actual MAM URLs/torrent IDs)
+test_*_real.py
+test_real_*.py
+*_real_webhook*.py
+webhook_payload_real*.json
+
+# Generated metadata test results with real data
+*_metadata_real_*.json
+logs/*_real_*.log
+logs/*real*.json
+
+# Debug files (temporary HTML dumps, etc.)
+logs/*.html
+logs/*_debug_*.html
+logs/page_source*.html
