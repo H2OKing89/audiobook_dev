@@ -163,21 +163,81 @@ def get_notification_fields(metadata: Dict[str, Any], payload: Dict[str, Any]) -
     Extract and sanitize common fields for notification formatting.
     """
     title = clean_light_novel(metadata.get('title', '')) or ''
-    series_info = metadata.get('series_primary', {})
-    series = clean_light_novel(series_info.get('name', ''))
-    if series and series_info.get('position'):
-        series = f"{series} (Vol. {series_info['position']})"
-    author = metadata.get('author', '')
-    publisher = metadata.get('publisher', '')
-    narrators = payload.get('narrators', metadata.get('narrators', []))
-    release_date = format_release_date(metadata.get('release_date', ''))
-    runtime = str(metadata.get('runtime_minutes', ''))
+    
+    # Series handling - try multiple field names
+    series = ''
+    if metadata.get('book_series'):
+        series_name = metadata.get('book_series')
+        series_seq = metadata.get('book_series_sequence', '')
+        if series_seq:
+            series = f"{series_name} (Vol. {series_seq})"
+        else:
+            series = series_name
+    elif metadata.get('series'):
+        # Handle series as array or string
+        series_data = metadata.get('series')
+        if isinstance(series_data, list) and series_data:
+            s = series_data[0]
+            if isinstance(s, dict):
+                series_name = s.get('series', '')
+                series_seq = s.get('sequence', '')
+                if series_name and series_seq:
+                    series = f"{series_name} (Vol. {series_seq})"
+                elif series_name:
+                    series = series_name
+        elif isinstance(series_data, str):
+            series = series_data
+    elif metadata.get('series_primary'):
+        # Legacy format
+        series_info = metadata.get('series_primary', {})
+        series_name = clean_light_novel(series_info.get('name', ''))
+        if series_name and series_info.get('position'):
+            series = f"{series_name} (Vol. {series_info['position']})"
+        elif series_name:
+            series = series_name
+    
+    # Clean series name
+    series = clean_light_novel(series) or ''
+    
+    author = metadata.get('author', '') or metadata.get('book_author', '')
+    publisher = metadata.get('publisher', '') or metadata.get('book_publisher', '')
+    
+    # Narrator handling - try multiple field names
+    narrators = []
+    if metadata.get('narrator_list'):
+        narrators = metadata.get('narrator_list', [])
+    elif metadata.get('narrator'):
+        # Split comma-separated narrator string
+        narrator_str = metadata.get('narrator', '')
+        if narrator_str:
+            narrators = [n.strip() for n in narrator_str.split(',')]
+    elif metadata.get('book_narrator'):
+        # Split comma-separated narrator string
+        narrator_str = metadata.get('book_narrator', '')
+        if narrator_str:
+            narrators = [n.strip() for n in narrator_str.split(',')]
+    elif metadata.get('narrators_raw'):
+        # Extract names from raw narrator objects
+        narrators_raw = metadata.get('narrators_raw', [])
+        narrators = [n.get('name', '') for n in narrators_raw if n.get('name')]
+    
+    # Fallback to payload if no narrators found
+    if not narrators:
+        narrators = payload.get('narrators', [])
+    
+    release_date = format_release_date(metadata.get('release_date', '') or metadata.get('book_release_date', ''))
+    runtime = str(metadata.get('runtime_minutes', '') or metadata.get('book_duration', ''))
     category = payload.get('category', '')
     size = format_size(payload.get('size') or metadata.get('size'))
-    description = strip_html_tags(metadata.get('summary') or metadata.get('description', ''))
+    description = strip_html_tags(
+        metadata.get('summary') or 
+        metadata.get('description', '') or 
+        metadata.get('book_description', '')
+    )
     url = payload.get('url') or metadata.get('url')
     download_url = payload.get('download_url') or metadata.get('download_url')
-    cover_url = metadata.get('cover_url') or metadata.get('image')
+    cover_url = metadata.get('cover_url') or metadata.get('image') or metadata.get('cover') or metadata.get('book_cover')
+    
     return {
         'title': title,
         'series': series,
