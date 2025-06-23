@@ -50,7 +50,7 @@ def send_ntfy(
         f"- 📚 **Category:** {category}" if category else None,
         f"- 💾 **Size:** {size_fmt}" if size_fmt else None,
         f" ---\n",
-        f"> 📝 **Description:** {description}" if description else None,
+        "> 📝 **Description:**\n```\n" + description + "\n```" if description else None,
         (f"[🌐 View]({url})" if url else "") + (f" | [📥 Download]({download_url})" if download_url else ""),
     ]
     if cover_url:
