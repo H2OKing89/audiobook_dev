@@ -70,59 +70,79 @@ class AudibleScraper:
             return False
         return len(asin) == 10 and asin.isalnum()
     
+    def _product_to_book(self, product: dict) -> dict:
+        """Convert Audible API product to a structured book dictionary."""
+        return {
+            "asin": product.get("asin"),
+            "title": product.get("title"),
+            "subtitle": product.get("subtitle"),
+            "description": product.get("publisher_summary"),
+            "length": product.get("runtime_length_min"),
+            "authors": [a.get("name") for a in product.get("authors", [])],
+            "narrators": [n.get("name") for n in product.get("narrators", [])],
+            "publisher": product.get("publisher_name"),
+            "publishYear": product.get("publication_datetime"),
+            "releaseDate": product.get("issue_date"),
+            "series": [
+                {"title": s.get("title"), "sequence": s.get("sequence")}
+                for s in product.get("series", [])
+            ],
+            "language": product.get("language"),
+            "genres": [
+                item["name"]
+                for cl in product.get("category_ladders", [])
+                for i, item in enumerate(cl.get("ladder", [])) if i == 0
+            ],
+            "tags": [
+                item["name"]
+                for cl in product.get("category_ladders", [])
+                for i, item in enumerate(cl.get("ladder", [])) if i > 0
+            ],
+        }
+
     def search_by_title_author(self, title: str, author: str = '', region: str = 'us') -> List[Dict[str, Any]]:
-        """Search for audiobooks by title and author using Audible's catalog API."""
+        """Search for audiobooks by title and author using Audible's catalog API, only English results."""
         if region not in self.region_map:
             logging.error(f"Invalid region: {region}")
             region = 'us'
-        
         self._check_global_rate_limit()
-        
-        # Build search parameters
         params = {
             'num_results': '10',
             'products_sort_by': 'Relevance',
             'title': title
         }
-        
         if author:
             params['author'] = author
-        
-        # Build URL for the specific region
         tld = self.region_map[region]
         url = f"https://api.audible{tld}{self.search_endpoint}?{urlencode(params)}"
-        
         logging.info(f"Searching Audible catalog: title='{title}', author='{author}', region={region}")
         logging.debug(f"Search URL: {url}")
-        
         try:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
             data = response.json()
-            
             products = data.get('products', [])
             logging.info(f"Found {len(products)} products from Audible search")
-            
             if not products:
                 return []
-            
-            # Get detailed metadata for each product via Audnex
             detailed_results = []
             for product in products:
+                # Only include English books
+                if product.get("language", "").lower() != "english":
+                    continue
                 asin = product.get('asin')
                 if not asin:
                     continue
-                
                 # Get detailed metadata from Audnex
                 metadata = self.audnex.get_book_by_asin(asin, region=region)
-                if metadata:
-                    detailed_results.append(metadata)
+                if metadata and metadata.get("language", "").lower() == "english":
+                    detailed_results.append(self._product_to_book(metadata))
                     logging.debug(f"Got detailed metadata for ASIN: {asin}")
-                else:
-                    logging.debug(f"No detailed metadata for ASIN: {asin}")
-            
+                elif not metadata:
+                    # Fallback to product if Audnex fails
+                    detailed_results.append(self._product_to_book(product))
+                    logging.debug(f"No detailed metadata for ASIN: {asin}, using fallback product data")
             return detailed_results
-            
         except requests.exceptions.RequestException as e:
             logging.error(f"Audible search error: {e}")
             return []
@@ -236,10 +256,10 @@ def main():
             print(f"  Author: {result.get('author')}")
             print(f"  ASIN: {result.get('asin')}")
             print(f"  Publisher: {result.get('publisher')}")
-            print(f"  Duration: {result.get('duration')} minutes")
+            print(f"  Duration: {result.get('length')} minutes")
             if result.get('series'):
                 for series in result['series']:
-                    print(f"  Series: {series['series']} #{series['sequence']}")
+                    print(f"  Series: {series['title']} #{series['sequence']}")
     else:
         print("❌ No results found")
 
