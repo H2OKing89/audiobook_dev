@@ -62,7 +62,8 @@ const HomePage = {
         processingIndex: 0,
         intervals: {},
         isPopupOpen: false,
-        isFabMenuOpen: false
+        isFabMenuOpen: false,
+        popupPreloaded: false // Add preload flag
     },
 
     // Initialize loading screen and fade out
@@ -74,17 +75,19 @@ const HomePage = {
             // Hide home container initially
             homeContainer.style.opacity = '0';
             
-            // Simulate loading time and fade out
-            setTimeout(() => {
-                loadingScreen.classList.add('hidden');
-                homeContainer.style.transition = 'opacity 1s ease-in';
-                homeContainer.style.opacity = '1';
-                
-                // Start animations after loading screen disappears
+            // Use requestAnimationFrame for smoother transitions
+            requestAnimationFrame(() => {
                 setTimeout(() => {
-                    this.startDynamicContent();
-                }, 500);
-            }, 2000);
+                    loadingScreen.classList.add('hidden');
+                    homeContainer.style.transition = 'opacity 1s ease-in';
+                    homeContainer.style.opacity = '1';
+                    
+                    // Start animations after loading screen disappears
+                    requestIdleCallback(() => {
+                        this.startDynamicContent();
+                    }, { timeout: 500 });
+                }, 1500); // Reduced from 2000ms
+            });
         }
     },
 
@@ -200,7 +203,7 @@ const HomePage = {
         }
     },
 
-    // Enhanced popup functionality with smooth animations
+    // Enhanced popup functionality with smooth animations and preloading
     initPopupFunctionality: function() {
         const contactButton = document.querySelector('[data-action="contact"]');
         const popup = document.getElementById('callQuentinPopup');
@@ -208,7 +211,15 @@ const HomePage = {
         const backdrop = document.querySelector('.popup-backdrop');
 
         if (contactButton && popup) {
-            contactButton.addEventListener('click', () => {
+            // Preload popup on hover for instant response
+            contactButton.addEventListener('mouseenter', () => {
+                if (!this.state.popupPreloaded) {
+                    this.preloadPopup(popup);
+                }
+            });
+
+            contactButton.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.openPopup(popup);
             });
         }
@@ -234,15 +245,30 @@ const HomePage = {
         });
     },
 
+    preloadPopup: function(popup) {
+        if (popup && !this.state.popupPreloaded) {
+            popup.style.display = 'block';
+            popup.style.visibility = 'hidden';
+            
+            // Force browser to render the popup
+            popup.offsetHeight;
+            
+            popup.style.display = 'none';
+            popup.style.visibility = '';
+            this.state.popupPreloaded = true;
+        }
+    },
+
     openPopup: function(popup) {
         if (popup) {
             popup.style.display = 'flex';
             this.state.isPopupOpen = true;
             document.body.style.overflow = 'hidden';
             
-            setTimeout(() => {
+            // Use requestAnimationFrame for smoother animation
+            requestAnimationFrame(() => {
                 popup.classList.add('show');
-            }, 10);
+            });
         }
     },
 
@@ -378,7 +404,7 @@ const HomePage = {
         }
     },
 
-    // Smooth scrolling functionality
+    // Smooth scrolling functionality with debouncing
     initSmoothScrolling: function() {
         document.querySelectorAll('[data-action="scroll-top"]').forEach(anchor => {
             anchor.addEventListener('click', (e) => {
@@ -390,9 +416,11 @@ const HomePage = {
             });
         });
 
-        // Auto-hide/show FAB based on scroll position
+        // Debounced scroll handler
+        let scrollTimeout;
         let lastScrollTop = 0;
-        window.addEventListener('scroll', () => {
+        
+        const handleScroll = () => {
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             const fabContainer = document.querySelector('.fab-container');
             
@@ -407,7 +435,17 @@ const HomePage = {
             }
             
             lastScrollTop = scrollTop;
-        });
+        };
+
+        window.addEventListener('scroll', () => {
+            if (scrollTimeout) {
+                window.cancelAnimationFrame(scrollTimeout);
+            }
+            
+            scrollTimeout = window.requestAnimationFrame(() => {
+                handleScroll();
+            });
+        }, { passive: true });
     },
 
     // Enhanced feature card interactions
@@ -438,17 +476,22 @@ const HomePage = {
         });
     },
 
-    // Button enhancement effects
+    // Button enhancement effects with optimized ripple
     initButtonEffects: function() {
         const buttons = document.querySelectorAll('.quick-link-btn');
         
         buttons.forEach(button => {
-            // Add ripple effect
+            // Prepare button for ripple effect
+            button.style.position = 'relative';
+            button.style.overflow = 'hidden';
+            
+            // Add ripple effect with optimization
             button.addEventListener('click', (e) => {
-                this.createRipple(e, button);
+                requestAnimationFrame(() => {
+                    this.createRipple(e, button);
+                });
             });
 
-            // Add sound feedback (optional)
             button.addEventListener('mouseenter', () => {
                 button.style.transform = 'translateY(-3px) scale(1.02)';
             });
@@ -488,12 +531,17 @@ const HomePage = {
         }, 600);
     },
 
-    // Particle effects system
+    // Particle effects system with performance optimization
     initParticleEffects: function() {
         const container = document.getElementById('particlesContainer');
         if (!container) return;
 
+        // Reduce particle frequency on low-end devices
+        const particleInterval = window.matchMedia('(max-width: 768px)').matches ? 5000 : 3000;
+
         const createParticle = () => {
+            if (document.hidden) return; // Don't create particles when tab is hidden
+            
             const particle = document.createElement('div');
             particle.classList.add('particle');
             
@@ -515,17 +563,26 @@ const HomePage = {
         };
 
         // Create particles periodically
-        this.state.intervals.particles = setInterval(createParticle, 3000);
+        this.state.intervals.particles = setInterval(createParticle, particleInterval);
+        
+        // Limit number of particles
+        setInterval(() => {
+            const particles = container.querySelectorAll('.particle');
+            if (particles.length > 10) {
+                particles[0].remove();
+            }
+        }, 1000);
     },
 
-    // Start all dynamic content after loading
+    // Start all dynamic content after loading with staggered initialization
     startDynamicContent: function() {
-        this.initTaglineCycling();
-        this.initFooterCycling();
-        this.initProcessingStatus();
-        this.initStatCounters();
-        this.initUptimeCounter();
-        this.initParticleEffects();
+        // Use requestIdleCallback for non-critical features
+        requestIdleCallback(() => this.initTaglineCycling(), { timeout: 100 });
+        requestIdleCallback(() => this.initFooterCycling(), { timeout: 200 });
+        requestIdleCallback(() => this.initProcessingStatus(), { timeout: 300 });
+        requestIdleCallback(() => this.initStatCounters(), { timeout: 400 });
+        requestIdleCallback(() => this.initUptimeCounter(), { timeout: 500 });
+        requestIdleCallback(() => this.initParticleEffects(), { timeout: 600 });
     },
 
     // Cleanup function for intervals
@@ -560,7 +617,7 @@ const HomePage = {
         console.log('✅ Enhanced Homepage initialization complete!');
     },
 
-    // Add dynamic CSS animations
+    // Add dynamic CSS animations with performance hints
     addDynamicStyles: function() {
         const style = document.createElement('style');
         style.textContent = `
@@ -572,9 +629,24 @@ const HomePage = {
             .tagline-fade { opacity: 0.3; transform: translateY(5px); }
             .footer-fade { opacity: 0.3; transform: scale(0.98); }
             
-            .fab-container { transition: transform 0.3s ease; }
-            .quick-link-btn { transition: all 0.3s ease; }
-            .feature-card { transition: all 0.3s ease; }
+            .fab-container { 
+                transition: transform 0.3s ease; 
+                will-change: transform;
+            }
+            .quick-link-btn { 
+                transition: all 0.3s ease;
+                will-change: transform;
+            }
+            .feature-card { 
+                transition: all 0.3s ease;
+                will-change: transform;
+            }
+            .call-quentin-popup {
+                will-change: opacity, visibility;
+            }
+            .popup-content {
+                will-change: transform;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -603,3 +675,16 @@ document.addEventListener('visibilitychange', () => {
 
 // Expose HomePage for debugging
 window.HomePage = HomePage;
+
+// Add requestIdleCallback polyfill for older browsers
+window.requestIdleCallback = window.requestIdleCallback || function(cb) {
+    const start = Date.now();
+    return setTimeout(function() {
+        cb({
+            didTimeout: false,
+            timeRemaining: function() {
+                return Math.max(0, 50 - (Date.now() - start));
+            }
+        });
+    }, 1);
+};

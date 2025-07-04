@@ -3,8 +3,10 @@
 {% block title %}Audiobook Automation HQ - Welcome to the Future!{% endblock %}
 
 {% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+<link rel="preload" href="/static/css/pages/home.css" as="style">
 <link rel="stylesheet" href="/static/css/pages/home.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Your personal audiobook automation empire - streamlined, cyberpunk-themed, and delightfully over-engineered.">
@@ -29,6 +31,9 @@
                  class="mascot-img"
                  draggable="false"
                  loading="eager"
+                 decoding="async"
+                 width="120"
+                 height="120"
                  id="mascotImg"
             >
             <!-- Enhanced Cat tail Easter egg -->
@@ -287,8 +292,8 @@
         </div>
     </div>
     
-    <!-- Enhanced Call Quentin popup -->
-    <div class="call-quentin-popup" id="callQuentinPopup">
+    <!-- Enhanced Call Quentin popup (preload critical elements) -->
+    <div class="call-quentin-popup" id="callQuentinPopup" style="display: none;">
         <div class="popup-backdrop" data-action="close-popup"></div>
         <div class="popup-content">
             <div class="popup-header">
@@ -337,15 +342,22 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script src="/static/js/pages/home.js"></script>
+<!-- Defer non-critical scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js" defer></script>
+<script src="/static/js/pages/home.js" defer></script>
 <script>
-    // Initialize AOS (Animate On Scroll)
-    AOS.init({
-        duration: 800,
-        easing: 'ease-out',
-        once: true,
-        offset: 100
+    // Critical inline script for immediate execution
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize AOS when ready
+        if (typeof AOS !== 'undefined') {
+            AOS.init({
+                duration: 600, // Reduced from 800
+                easing: 'ease-out',
+                once: true,
+                offset: 50, // Reduced from 100
+                disable: 'mobile' // Disable on mobile for performance
+            });
+        }
     });
 </script>
 {% endblock %}

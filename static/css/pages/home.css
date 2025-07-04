@@ -293,9 +293,12 @@
   text-decoration: none;
   color: white;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease; /* Optimized transitions */
   position: relative;
   overflow: hidden;
+  will-change: transform;
+  backface-visibility: hidden; /* Prevent flickering */
+  -webkit-font-smoothing: antialiased; /* Smoother text rendering */
 }
 
 .quick-link-btn::before {
@@ -420,8 +423,10 @@
   border-radius: 16px;
   padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   backdrop-filter: blur(10px);
+  will-change: transform;
+  transform: translateZ(0); /* Enable hardware acceleration */
 }
 
 .feature-card:hover {
@@ -612,23 +617,15 @@
   bottom: 0;
   z-index: 1001;
   display: none;
+  will-change: opacity;
+  contain: layout style paint; /* Optimize rendering */
 }
 
 .call-quentin-popup.show {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: modal-appear 0.3s ease-out;
-}
-
-.popup-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
+  animation: modal-appear 0.2s ease-out; /* Reduced from 0.3s */
 }
 
 .popup-content {
@@ -641,6 +638,8 @@
   max-height: 80vh;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Enable hardware acceleration */
 }
 
 .popup-header {
@@ -726,7 +725,8 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease; /* Reduced from 0.5s */
+  will-change: opacity, visibility;
 }
 
 .loading-screen.hidden {
@@ -963,10 +963,12 @@
   border-radius: 16px;
   padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  will-change: transform;
+  contain: layout style paint;
 }
 
 .stat-card::before {
@@ -1358,17 +1360,18 @@
   border-radius: 50%;
   opacity: 0.6;
   animation: float-particle 6s infinite ease-in-out;
+  will-change: transform, opacity;
+  pointer-events: none;
+  contain: layout style paint;
 }
 
+/* Reduce animation complexity for better performance */
 @keyframes float-particle {
-  0%, 100% {
+  0% {
     transform: translateY(0) translateX(0);
     opacity: 0;
   }
-  10% {
-    opacity: 0.6;
-  }
-  90% {
+  10%, 90% {
     opacity: 0.6;
   }
   100% {
