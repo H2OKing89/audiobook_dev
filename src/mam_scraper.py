@@ -246,8 +246,37 @@ class MAMScraper:
                 logging.error(f"Login failed: {e}")
                 return None
         
-        # Now scrape with cookies
-        return await self._scrape_with_cookies(url, cookies)
+        # Try to scrape with current cookies
+        result = await self._scrape_with_cookies(url, cookies)
+        
+        # If we got a login-required result and haven't already tried to re-login, attempt auto re-login
+        if result is None and not force_login:
+            logging.info("Scraping failed, possibly due to expired cookies. Attempting auto re-login...")
+            
+            email = mam_config.get('email')
+            password = mam_config.get('password')
+            
+            if email and password:
+                try:
+                    logging.info("Performing automatic re-login to refresh cookies...")
+                    fresh_cookies = await self.login_and_get_cookies(email, password)
+                    mam_config['cookies'] = fresh_cookies
+                    mam_config['last_login'] = datetime.now().isoformat()
+                    self.save_mam_config(mam_config)
+                    logging.info("Auto re-login successful, retrying scrape with fresh cookies...")
+                    
+                    # Retry with fresh cookies
+                    result = await self._scrape_with_cookies(url, fresh_cookies)
+                    if result:
+                        logging.info("✅ Auto re-login and retry successful!")
+                    else:
+                        logging.warning("❌ Retry after auto re-login still failed")
+                except Exception as e:
+                    logging.error(f"Auto re-login failed: {e}")
+            else:
+                logging.error("Cannot perform auto re-login: missing email or password in config")
+        
+        return result
 
     async def _scrape_with_cookies(self, url: str, cookies: Dict[str, str]) -> Optional[str]:
         """Scrape the torrent page using cookies."""
@@ -298,6 +327,14 @@ class MAMScraper:
                     return None
                 elif await page.locator("text=logout").count() > 0 or await page.locator("text=Logout").count() > 0:
                     logging.info("✅ Successfully logged in")
+                else:
+                    # Additional check for login indicators in page content
+                    page_content = await page.content()
+                    if "login" in page_content.lower() and "password" in page_content.lower():
+                        logging.error("❌ Login form detected in page - not logged in")
+                        return None
+                    else:
+                        logging.info("✅ Login status unclear but proceeding (no obvious login form)")
                 
                 # Get page content
                 source = await page.content()
