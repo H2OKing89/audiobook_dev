@@ -288,7 +288,12 @@ def main():
             
             if metadata.get('series'):
                 for series in metadata['series']:
-                    print(f"  Series: {series['series']} #{series['sequence']}")
+                    if isinstance(series, dict):
+                        title = series.get('title', '')
+                        sequence = series.get('sequence', '')
+                        print(f"  Series: {title} #{sequence}")
+                    else:
+                        print(f"  Series: {series}")
             
             if metadata.get('chapters'):
                 print(f"  Chapters: {metadata.get('chapter_count', 0)}")
