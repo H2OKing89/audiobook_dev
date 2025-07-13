@@ -173,11 +173,11 @@ def get_csp_header() -> str:
     use_external_js = security_cfg.get('use_external_js', True)
     
     if use_external_js:
-        # Stricter CSP - no inline scripts
-        return "default-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self';"
+        # CSP with Alpine.js CDN support
+        return "default-src 'self'; img-src 'self' https://picsur.kingpaging.com https: data:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self'; script-src 'self' https://unpkg.com https://*.unpkg.com 'unsafe-eval'; connect-src 'self';"
     else:
         # Allow inline scripts for legacy support
-        return "default-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
+        return "default-src 'self'; img-src 'self' https://picsur.kingpaging.com https: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';"
 
 # Custom rate limit handler
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
