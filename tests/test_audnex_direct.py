@@ -24,6 +24,10 @@ logging.basicConfig(
     ]
 )
 
+import os
+import pytest
+
+@pytest.mark.skipif(os.getenv('RUN_AUDNEX_DIRECT') != '1', reason='Audnex direct tests are skipped by default')
 def test_audnex_with_known_asin():
     """Test Audnex API with ASINs we found from Audible search"""
     logging.info("🧪 Testing Audnex API with Known ASINs")

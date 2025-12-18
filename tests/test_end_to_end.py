@@ -27,7 +27,10 @@ class TestEndToEndIntegration:
         with patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}), \
              patch("src.metadata.fetch_metadata") as mock_fetch, \
              patch("src.notify.pushover.send_pushover") as mock_pushover, \
-             patch("src.notify.discord.send_discord") as mock_discord:
+             patch("src.notify.discord.send_discord") as mock_discord, \
+             patch("src.config.load_config") as mock_config:
+            # Ensure qBittorrent is enabled for the approval workflow test
+            mock_config.return_value = {'qbittorrent': {'enabled': True}}
             
             # Mock metadata response
             mock_fetch.return_value = {
@@ -50,14 +53,9 @@ class TestEndToEndIntegration:
             )
             
             assert resp.status_code == 200
-            
-            # Step 2: Find the generated token in database
-            all_tokens = list_tokens()
-            assert len(all_tokens) > 0
-            
-            # Get the most recent token
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
+            # Use token returned in response to avoid race conditions when tests run concurrently
+            token = resp.json().get('token')
+            assert token is not None
             
             # Step 3: Access approval page
             approval_resp = client.get(f"/approve/{token}")
@@ -102,17 +100,14 @@ class TestEndToEndIntegration:
             )
             
             assert resp.status_code == 200
-            
-            # Step 2: Get the token
-            all_tokens = list_tokens()
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
-            
+            token = resp.json().get('token')
+            assert token is not None
+
             # Step 3: Submit rejection
             reject_resp = client.post(f"/reject/{token}")
             assert reject_resp.status_code == 200
             assert "rejected" in reject_resp.text.lower()
-            
+
             # Step 4: Verify token is consumed/deleted
             token_data = get_request(token)
             assert token_data is None  # Token should be deleted after rejection
@@ -255,9 +250,8 @@ class TestEndToEndIntegration:
             assert resp.status_code == 200
             
             # Step 2: Verify token exists and is valid
-            all_tokens = list_tokens()
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
+            token = resp.json().get('token')
+            assert token is not None
             
             token_data = get_request(token)
             assert token_data is not None
@@ -383,7 +377,9 @@ class TestEndToEndIntegration:
         }
         
         with patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}), \
-             patch("src.metadata.fetch_metadata", return_value={"title": "qBittorrent Book"}):
+             patch("src.metadata.fetch_metadata", return_value={"title": "qBittorrent Book"}), \
+             patch("src.config.load_config") as mock_config:
+            mock_config.return_value = {'qbittorrent': {'enabled': True}}
             
             # Submit webhook
             resp = client.post(
@@ -393,11 +389,8 @@ class TestEndToEndIntegration:
             )
             
             assert resp.status_code == 200
-            
-            # Get token
-            all_tokens = list_tokens()
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
+            token = resp.json().get('token')
+            assert token is not None
             
             # Test approval with qBittorrent success
             with patch("src.qbittorrent.get_client") as mock_client, \
@@ -439,9 +432,8 @@ class TestEndToEndIntegration:
             assert resp.status_code == 200
             
             # Get token
-            all_tokens = list_tokens()
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
+            token = resp.json().get('token')
+            assert token is not None
             
             # Wait for expiration
             time.sleep(2)
@@ -495,11 +487,10 @@ class TestEndToEndIntegration:
             
             assert resp.status_code == 200
             
-            # Get token and test approval page with Unicode
-            all_tokens = list_tokens()
-            latest_token = max(all_tokens, key=lambda x: x['timestamp'])
-            token = latest_token['token']
-            
+            # Use token returned in response to avoid race conditions
+            token = resp.json().get('token')
+            assert token is not None
+
             approval_resp = client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
             # Unicode should be preserved in the page

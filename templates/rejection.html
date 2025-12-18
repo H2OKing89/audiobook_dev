@@ -108,6 +108,10 @@
           </div>
           
           <div class="action-grid">
+            <!-- Hidden CSRF form for POST rejection (used by JS or tests) -->
+            <form id="hiddenRejectForm" method="post" action="/reject/{{ token }}" style="display:none;">
+              {% include 'csrf_input.html' %}
+            </form>
             <a href="/" class="action-cmd primary-cmd">
               <div class="cmd-icon">🏠</div>
               <div class="cmd-text">
@@ -126,7 +130,7 @@
               <div class="cmd-hotkey">[A]</div>
             </a>
 
-            <button class="action-cmd retry-cmd" onclick="showRetryMessage()">
+            <button class="action-cmd retry-cmd" data-action="retry">
               <div class="cmd-icon">🔄</div>
               <div class="cmd-text">
                 <div class="cmd-name">RETRY.EXE</div>
@@ -135,7 +139,7 @@
               <div class="cmd-hotkey">[R]</div>
             </button>
 
-            <button class="action-cmd easter-cmd" onclick="triggerEasterEgg()">
+            <button class="action-cmd easter-cmd" data-action="easter">
               <div class="cmd-icon">🎮</div>
               <div class="cmd-text">
                 <div class="cmd-name">SECRET.EXE</div>

@@ -8,7 +8,7 @@ function initializeAlpine() {
     if (typeof Alpine !== 'undefined') {
         window.Alpine = Alpine;
         Alpine.start();
-        console.log('Alpine.js initialized successfully');
+        debugLog('Alpine.js initialized successfully');
         return true;
     }
     return false;

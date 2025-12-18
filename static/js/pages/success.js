@@ -287,11 +287,17 @@ class QuoteGenerator {
                 <div class="quote-text" id="quote-text"></div>
                 <div class="quote-author" id="quote-author"></div>
             </div>
-            <button class="quote-refresh" onclick="quoteGenerator.generateNewQuote()" title="Generate new quote [Q]">
+            <button class="quote-refresh" title="Generate new quote [Q]">
                 <span class="refresh-icon">🔄</span>
                 <span class="refresh-text">NEW_QUOTE.EXE</span>
             </button>
         `;
+
+        // Attach click handler to refresh button
+        const refreshBtn = this.quoteElement.querySelector('.quote-refresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.generateNewQuote());
+        }
 
         const textElement = document.getElementById('quote-text');
         const authorElement = document.getElementById('quote-author');
@@ -395,9 +401,37 @@ class SuccessPageController {
         const buttons = document.querySelectorAll('.action-cmd');
         buttons.forEach(button => {
             button.addEventListener('click', (e) => this.addRippleEffect(e));
+            // Delegate actions from data-action attributes
+            const action = button.dataset.action;
+            if (action === 'status') {
+                button.addEventListener('click', () => this.showStatusUpdate());
+            } else if (action === 'celebrate') {
+                button.addEventListener('click', () => this.celebrationEngine.startConfetti());
+            } else if (action === 'easter') {
+                button.addEventListener('click', () => this.triggerEasterEgg());
+            }
         });
 
+
         // Auto-start some celebration effects
+
+        // Implement UI action handlers
+        this.showStatusUpdate = function() {
+            // Simple status overlay or alert if not available
+            const overlay = document.getElementById('successOverlay');
+            if (overlay) {
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.display = 'none', 3000);
+            } else {
+                alert('Status: Download progress is being monitored.');
+            }
+        };
+
+        this.triggerEasterEgg = function() {
+            this.celebrationEngine.createFirework(window.innerWidth/2, window.innerHeight/2);
+            this.celebrationEngine.startConfetti();
+        };
+
         setTimeout(() => {
             this.autoStartCelebration();
         }, 1000);
@@ -769,6 +803,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(style);
     }
     
-    console.log('🎉 Success page loaded! Ready for celebration! 🎉');
-    console.log('💡 Tip: Try pressing Q for a new quote, P for party mode, or the Konami code! 🎮');
+    debugLog('🎉 Success page loaded! Ready for celebration! 🎉');
+    debugLog('💡 Tip: Try pressing Q for a new quote, P for party mode, or the Konami code! 🎮');
 });

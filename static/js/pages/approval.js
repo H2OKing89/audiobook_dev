@@ -15,7 +15,7 @@ function initApprovalPage() {
     // Add keyboard shortcuts
     addKeyboardShortcuts();
     
-    console.log('Approval page initialized');
+    debugLog('Approval page initialized');
 }
 
 function addActionConfirmations() {
@@ -27,7 +27,10 @@ function addActionConfirmations() {
             const confirmed = confirm('Are you sure you want to approve this audiobook request?');
             if (!confirmed) {
                 e.preventDefault();
+                return;
             }
+            // Show loading state while the request is processed
+            setButtonLoading(approveBtn, true);
         });
     }
     
@@ -36,7 +39,10 @@ function addActionConfirmations() {
             const confirmed = confirm('Are you sure you want to reject this audiobook request?');
             if (!confirmed) {
                 e.preventDefault();
+                return;
             }
+            // Show loading state while the request is processed
+            setButtonLoading(rejectBtn, true);
         });
     }
 }

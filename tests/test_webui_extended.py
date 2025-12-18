@@ -72,6 +72,45 @@ class TestWebUIEndpoints:
         finally:
             delete_request(token)
 
+    def test_approve_post_with_csrf(self):
+        token = "test_post_token"
+        metadata = {"title": "Post Test"}
+        payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
+        save_request(token, metadata, payload)
+        try:
+            # GET the approve page to get CSRF token
+            resp = client.get(f"/approve/{token}")
+            assert resp.status_code == 200
+            import re
+            m = re.search(r'name="csrf_token" value="(?P<val>[0-9a-f]+)"', resp.text)
+            assert m, "CSRF token not found in approve page"
+            csrf_val = m.group('val')
+            from unittest.mock import patch
+            with patch('src.qbittorrent.add_torrent_file_with_cookie', return_value=True):
+                post = client.post(f"/approve/{token}", data={"csrf_token": csrf_val})
+                assert post.status_code == 200
+                assert "approved" in post.text.lower() or "success" in post.text.lower()
+        finally:
+            delete_request(token)
+
+    def test_reject_post_with_csrf(self):
+        token = "test_reject_post_token"
+        metadata = {"title": "Reject Post Test"}
+        payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
+        save_request(token, metadata, payload)
+        try:
+            resp = client.get(f"/reject/{token}")
+            assert resp.status_code == 200
+            import re
+            m = re.search(r'name="csrf_token" value="(?P<val>[0-9a-f]+)"', resp.text)
+            assert m, "CSRF token not found in reject page"
+            csrf_val = m.group('val')
+            post = client.post(f"/reject/{token}", data={"csrf_token": csrf_val})
+            assert post.status_code == 200
+            assert "reject" in post.text.lower()
+        finally:
+            delete_request(token)
+
     def test_reject_invalid_token(self):
         resp = client.get("/reject/nonexistent_token")
         assert resp.status_code in (401, 410, 404)
@@ -91,6 +130,21 @@ class TestWebUIEndpoints:
         finally:
             delete_request(token)
 
+    def test_approve_action_missing_download_url(self):
+        # Test when download_url is missing or empty
+        token = "test_missing_download_url"
+        metadata = {"title": "Missing URL Test"}
+        payload = {"url": "http://test.com"}  # no download_url provided
+        save_request(token, metadata, payload)
+
+        try:
+            resp = client.get(f"/approve/{token}/action")
+            assert resp.status_code == 200
+            # Missing download_url should result in a success page with a non-fatal warning
+            assert "No download URL provided" in resp.text or "approved" in resp.text.lower()
+        finally:
+            delete_request(token)
+
     def test_metadata_formatting_in_approval_page(self):
         # Test that metadata is properly formatted and escaped
         token = "test_format_token"
@@ -99,7 +153,8 @@ class TestWebUIEndpoints:
             "author": "Author & Co.",
             "series": "Series (Vol. 1)",
             "release_date": "2020-01-01T00:00:00Z",
-            "size": 1024 * 1024 * 100  # 100 MB
+            "size": 1024 * 1024 * 100,  # 100 MB
+            "description": "<script>alert(1)</script>Line1\n\nLine2"
         }
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
         save_request(token, metadata, payload)
@@ -107,11 +162,19 @@ class TestWebUIEndpoints:
         try:
             resp = client.get(f"/approve/{token}")
             assert resp.status_code == 200
-            # HTML should be escaped
+            # HTML should be escaped/stripped
             assert "&lt;b&gt;" in resp.text or "Test Title" in resp.text  # HTML escaped or stripped
             assert "Author &amp; Co." in resp.text or "Author & Co." in resp.text
             # Date should be formatted to YYYY-MM-DD
             assert "2020-01-01" in resp.text
+            # Description should not contain script tags or unescaped HTML and should contain content
+            import re
+            m = re.search(r'<div class="description-content"[^>]*>(?P<content>.*?)</div>', resp.text, re.S)
+            assert m, "Description block not found in response"
+            desc_html = m.group('content')
+            assert "<script" not in desc_html.lower()
+            assert "Line1" in desc_html
+            assert "Line2" in desc_html
         finally:
             delete_request(token)
 

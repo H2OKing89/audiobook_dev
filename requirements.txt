@@ -19,3 +19,4 @@ itsdangerous
 idna
 cryptography
 PyYAML
+playwright

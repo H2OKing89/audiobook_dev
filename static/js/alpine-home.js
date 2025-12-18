@@ -17,7 +17,7 @@ function initializeHomePageComponents() {
         }
         return;
     }
-    console.log("Alpine found, initializing home page components...");
+    debugLog("Alpine found, initializing home page components...");
 
     Alpine.data('homePage', () => ({
         // Loading state

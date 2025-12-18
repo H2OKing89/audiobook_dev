@@ -17,7 +17,7 @@ function initializeAlpineComponents() {
         }
         return;
     }
-    console.log("Alpine found, initializing components...");
+    debugLog("Alpine found, initializing components...");
 
     // Main application store
     Alpine.store('app', {

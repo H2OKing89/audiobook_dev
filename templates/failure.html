@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block body_class %}failure-page{% endblock %}
+
+{% block title %}❌ Failure - Something went wrong{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/pages/failure.css">
+<script src="/static/js/pages/failure.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="failure-zone">
+  <div class="failure-panel">
+    <header class="failure-header">
+      <h1>❌ Action Failed</h1>
+      <p class="failure-sub">We encountered an issue processing your request.</p>
+    </header>
+
+    <main class="failure-body">
+      <div class="failure-message">
+        <p><strong>Error:</strong> {{ error_message or 'An unknown error occurred.' }}</p>
+        <p>If you think this is a mistake, please try again or contact the administrator.</p>
+      </div>
+
+      <div class="failure-actions">
+        <a href="/" class="btn primary">Return Home</a>
+        {% if token %}
+        <a href="/approve/{{ token }}" class="btn">View Request</a>
+        {% endif %}
+      </div>
+    </main>
+
+    <footer class="failure-footer">
+      <small>Request token: {{ token or 'N/A' }}</small>
+    </footer>
+  </div>
+</div>
+{% endblock %}

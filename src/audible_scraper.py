@@ -283,7 +283,8 @@ class AudibleScraper:
             
         except requests.exceptions.RequestException as e:
             logging.error(f"Audible search error: {e}")
-            return []
+            # Propagate network-related errors so callers/tests can handle them uniformly
+            raise
     
     def search_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
         """Search for audiobook by ASIN (delegates to Audnex)."""

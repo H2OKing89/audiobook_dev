@@ -7,6 +7,7 @@ client = TestClient(app)
 
 
 class TestMainAppIntegration:
+    @pytest.mark.allow_notifications
     @patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'})
     def test_webhook_endpoint_valid_token(self):
         # Test the main webhook endpoint with valid token
@@ -121,6 +122,7 @@ class TestMainAppIntegration:
             response_data = resp.json()
             assert "message" in response_data
 
+    @pytest.mark.allow_notifications
     @patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'})
     def test_webhook_endpoint_notification_failure(self):
         # Test when notifications fail but webhook still succeeds

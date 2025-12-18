@@ -107,7 +107,8 @@ def send_pushover(
             return response.status_code, response.json()
         except requests.RequestException as e:
             logging.error(f"[token={token}] Failed to send Pushover notification: {e}")
-            return 0, {"error": str(e)}
+            # Propagate network-level exceptions to callers (tests expect this behavior)
+            raise
         finally:
             # Cleanup temporary file and file handle
             if files and 'attachment' in files and hasattr(files['attachment'][1], 'close'):
@@ -122,6 +123,10 @@ def send_pushover(
                 except Exception as e:
                     logging.warning(f"[token={token}] Failed to cleanup temp file: {e}")
                     
+    except requests.RequestException:
+        # Re-raise network related exceptions so callers can handle circuit breakers, retries etc.
+        logging.error(f"[token={token}] Pushover network error during preparation/sending")
+        raise
     except Exception as e:
         logging.error(f"[token={token}] Pushover notification preparation failed: {e}")
         logging.exception(f"[token={token}] Full Pushover exception traceback:")

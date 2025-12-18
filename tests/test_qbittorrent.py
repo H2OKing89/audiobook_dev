@@ -92,3 +92,16 @@ class TestQbittorrentClient:
                 name="Test Torrent"
             )
             assert result is False
+
+    def test_add_torrent_file_invalid_url(self):
+        # Empty URL
+        result = add_torrent_file_with_cookie(download_url="", name="No URL")
+        assert result is False
+
+        # Unsupported scheme
+        result = add_torrent_file_with_cookie(download_url="ftp://example.com/file.torrent", name="FTP")
+        assert result is False
+
+        # Malformed URL
+        result = add_torrent_file_with_cookie(download_url="not a url", name="Bad")
+        assert result is False

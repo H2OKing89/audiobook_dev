@@ -25,7 +25,8 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent"
         }
         
-        with patch("src.metadata.requests.get") as mock_get:
+        with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
+             patch("src.metadata.requests.get") as mock_get:
             # First call times out, second succeeds
             mock_get.side_effect = [
                 requests.exceptions.Timeout("Request timed out"),
@@ -39,6 +40,7 @@ class TestErrorRecovery:
             # Should be a controlled ValueError, not a crash
             assert "could not fetch metadata" in str(exc_info.value).lower()
 
+    @pytest.mark.allow_notifications
     def test_partial_notification_failure_recovery(self):
         """Test handling when some notifications fail but others succeed"""
         payload = {
@@ -49,8 +51,8 @@ class TestErrorRecovery:
         
         with patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}), \
              patch("src.metadata.fetch_metadata") as mock_fetch, \
-             patch("src.notify.pushover.send_pushover") as mock_pushover, \
-             patch("src.notify.discord.send_discord") as mock_discord:
+             patch("src.main.send_pushover") as mock_pushover, \
+             patch("src.main.send_discord") as mock_discord:
             
             mock_fetch.return_value = {"title": "Test Book"}
             # Pushover fails, Discord succeeds
@@ -108,7 +110,8 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent"
         }
         
-        with patch("src.metadata.requests.get") as mock_get:
+        with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
+             patch("src.metadata.requests.get") as mock_get:
             # Simulate rate limit response
             rate_limit_response = MagicMock()
             rate_limit_response.status_code = 429
@@ -132,7 +135,8 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent"
         }
         
-        with patch("src.metadata.get_cached_metadata") as mock_cached:
+        with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
+             patch("src.metadata.get_cached_metadata") as mock_cached:
             # All API calls fail
             mock_cached.side_effect = requests.exceptions.ConnectionError("Service unavailable")
             
@@ -181,7 +185,8 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent"
         }
         
-        with patch("src.metadata.requests.get") as mock_get:
+        with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
+             patch("src.metadata.requests.get") as mock_get:
             # Return malformed JSON
             malformed_response = MagicMock()
             malformed_response.status_code = 200

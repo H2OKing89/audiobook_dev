@@ -47,6 +47,13 @@ def add_torrent_file_with_cookie(
     """
     tmp: Optional[tempfile._TemporaryFileWrapper[bytes]] = None
     try:
+        # Validate download URL before attempting network call
+        from urllib.parse import urlparse
+        parsed = urlparse(download_url or '')
+        if not (parsed.scheme in ('http', 'https') and parsed.netloc):
+            logging.error(f"Invalid download URL provided: {download_url}")
+            return False
+
         # Download .torrent file
         headers = {"Cookie": cookie} if cookie else {}
         safe_cookie = 'set' if cookie else 'not set'

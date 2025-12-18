@@ -13,6 +13,7 @@ import argparse
 import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
+import requests
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -128,6 +129,16 @@ class MetadataCoordinator:
                 return metadata
             else:
                 logging.warning("❌ No metadata found via Audible search")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Network error searching Audible: {e}")
+            # Surface network errors to callers/tests as a controlled ValueError
+            raise ValueError("Could not fetch metadata") from e
+        except ValueError as e:
+            # Malformed JSON or other parsing errors from upstream APIs should be treated
+            # as controlled metadata fetch failures so callers/tests see a deterministic
+            # ValueError("Could not fetch metadata").
+            logging.error(f"Malformed response searching Audible: {e}")
+            raise ValueError("Could not fetch metadata") from e
         except Exception as e:
             logging.error(f"Error searching Audible: {e}")
         
