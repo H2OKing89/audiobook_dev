@@ -454,7 +454,7 @@ class TestEndToEndIntegration:
             
             # Try to access expired token
             approval_resp = self.client.get(f"/approve/{token}")
-            assert approval_resp.status_code == 404  # Token should be expired
+            assert approval_resp.status_code == 410  # Token should be expired
 
     def test_malformed_data_recovery(self):
         """Test recovery from malformed data throughout pipeline"""
