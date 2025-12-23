@@ -250,7 +250,7 @@ class Audnexus:
 
     def _process_request(self, url: str, max_retries: int = 1) -> dict[str, Any] | None:
         """Process request with rate limiting and retry logic"""
-        for attempt in range(max_retries + 1):
+        for _attempt in range(max_retries + 1):
             try:
                 self._throttle_request()
                 response = httpx.get(url)
@@ -394,8 +394,9 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
     a simple Audible search. If bs4 is not available or parsing fails, return None.
     """
     try:
-        from bs4 import BeautifulSoup  # type: ignore
-    except Exception:
+        import bs4
+        BeautifulSoup = bs4.BeautifulSoup
+    except ImportError:
         return None
 
     try:
