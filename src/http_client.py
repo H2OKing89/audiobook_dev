@@ -342,7 +342,7 @@ class AsyncHttpClient:
             Tuple of (result_dict or None, successful_region or None)
         """
         if validator is None:
-            validator = lambda d: bool(d)  # noqa: E731
+            validator = bool
 
         max_to_try = max_regions or self._config.max_regions_to_try
         regions_to_try = regions[:max_to_try]

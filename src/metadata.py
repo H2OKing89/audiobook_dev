@@ -172,8 +172,14 @@ class Audible:
             "abridged": format_type == "abridged",
         }
 
-    async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:  # noqa: ARG002
-        """Search for a book by ASIN"""
+    async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:
+        """Search for a book by ASIN
+        
+        Args:
+            asin: The ASIN to search for
+            region: The region code (default: us)
+            timeout: Request timeout in seconds (uses client default if None)
+        """
         if not asin:
             return None
 
@@ -183,7 +189,7 @@ class Audible:
         url = f"https://api.audnex.us/books/{asin}{region_query}"
         logger.debug("[Audible] ASIN url: %s", url)
 
-        data = await client.get_json(url)
+        data = await client.get_json(url, timeout=timeout)
         if data and data.get("asin"):
             return data
         return None
@@ -191,7 +197,15 @@ class Audible:
     async def search(
         self, title: str, author: str = "", asin: str = "", region: str = "us", timeout: int | None = None
     ) -> list[dict[str, Any]]:
-        """Search for books using title, author, and/or ASIN"""
+        """Search for books using title, author, and/or ASIN
+        
+        Args:
+            title: Book title to search for
+            author: Author name (optional)
+            asin: ASIN code (optional)
+            region: Region code (default: us)
+            timeout: Request timeout in seconds (uses client default if None)
+        """
         if region and region not in self.region_map:
             logger.error("[Audible] search: Invalid region %s", region)
             region = "us"
@@ -507,36 +521,35 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
                     return cached
 
         # If we still don't have an ASIN, try regions searching
-        audible = Audible()
+        async with Audible() as audible:
+            # Try searching with parallel regions (only if we have an ASIN)
+            if asin:
+                client = await get_default_client()
+                regions_to_try = get_regions_priority(regions[0] if regions else "us", max_regions=len(regions))
 
-        # Try searching with parallel regions (only if we have an ASIN)
-        if asin:
-            client = await get_default_client()
-            regions_to_try = get_regions_priority(regions[0] if regions else "us", max_regions=len(regions))
+                result, _found_region = await client.fetch_first_success(
+                    regions=regions_to_try,
+                    url_factory=lambda r: f"https://api.audnex.us/books/{asin}?region={r}",
+                    validator=lambda d: bool(d.get("asin")),
+                )
 
-            result, _found_region = await client.fetch_first_success(
-                regions=regions_to_try,
-                url_factory=lambda r: f"https://api.audnex.us/books/{asin}?region={r}",
-                validator=lambda d: bool(d.get("asin")),
-            )
+                if result:
+                    return audible.clean_result(result)
 
-            if result:
-                return audible.clean_result(result)
+            # Fallback to catalog search
+            for region in regions:
+                try:
+                    if asin:
+                        results = await audible.search(title=title, author=author, asin=asin, region=region)
+                    else:
+                        results = await audible.search(title=title, author=author, asin="", region=region)
 
-        # Fallback to catalog search
-        for region in regions:
-            try:
-                if asin:
-                    results = await audible.search(title=title, author=author, asin=asin, region=region)
-                else:
-                    results = await audible.search(title=title, author=author, asin="", region=region)
-
-                if results:
-                    # Return the first (best) result
-                    return results[0]
-            except Exception:
-                logger.exception("Error searching region %s", region)
-                continue
+                    if results:
+                        # Return the first (best) result
+                        return results[0]
+                except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as e:
+                    logger.warning("Error searching region %s: %s", region, e)
+                    continue
 
         # Final error if we couldn't determine any metadata
         if not asin:

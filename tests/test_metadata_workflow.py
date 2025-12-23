@@ -116,8 +116,6 @@ class MetadataFlowTester:
 
     def test_error_handling(self):
         """Test error handling with invalid inputs"""
-        import asyncio
-
         logging.info("=== Testing Error Handling ===")
 
         try:

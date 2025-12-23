@@ -161,7 +161,7 @@ class AudnexMetadata:
         result, found_region = await client.fetch_first_success(
             regions=regions,
             url_factory=lambda r: f"{self.base_url}/books/{asin}/chapters?region={r}",
-            validator=lambda d: bool(d),
+            validator=bool,
         )
 
         if result:

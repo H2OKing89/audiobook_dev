@@ -59,10 +59,13 @@ def test_client():
     client = TestClient(app)
     client.__enter__()
     yield client
-    # Suppress "Event loop is closed" during session teardown
+    # Suppress only the expected "Event loop is closed" during session teardown
     # This is expected with session-scoped fixtures and pytest-asyncio
-    with contextlib.suppress(RuntimeError):
+    try:
         client.__exit__(None, None, None)
+    except RuntimeError as exc:
+        if "Event loop is closed" not in str(exc):
+            raise
 
 
 @pytest.fixture
