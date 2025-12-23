@@ -48,6 +48,7 @@ class TestMainAppIntegration:
                 for x in ["Webhook received", "queued for processing", "notifications sent", "notifications failed"]
             )
 
+    @patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"})
     def test_webhook_endpoint_invalid_token(self):
         payload = {
             "name": "Test Audiobook",
@@ -59,6 +60,7 @@ class TestMainAppIntegration:
 
         assert resp.status_code == 401
 
+    @patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"})
     def test_webhook_endpoint_missing_token(self):
         payload = {
             "name": "Test Audiobook",
