@@ -1,60 +1,53 @@
-import re
-import httpx
 import logging
-from datetime import datetime, UTC
-from typing import Any, Optional
+import re
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx
+
 from src.config import load_config
 from src.utils import get_notification_fields
+
 
 logger = logging.getLogger(__name__)
 
 
-def escape_md(text: Optional[str]) -> str:
+def escape_md(text: str | None) -> str:
     # Escape Discord markdown
     if not text:
-        return ''
-    return re.sub(r'([*_`~|>])', r'\\\1', str(text))
+        return ""
+    return re.sub(r"([*_`~|>])", r"\\\1", str(text))
 
 
 def send_discord(
-    metadata: dict[str, Any],
-    payload: dict[str, Any],
-    token: str,
-    base_url: str,
-    webhook_url: str
+    metadata: dict[str, Any], payload: dict[str, Any], token: str, base_url: str, webhook_url: str
 ) -> tuple[int, Any]:
     config = load_config()
-    server_cfg = config.get('server', {})
-    discord_cfg = config.get('notifications', {}).get('discord', {})
+    server_cfg = config.get("server", {})
+    discord_cfg = config.get("notifications", {}).get("discord", {})
     # Build Approve/Reject URLs
     approve_url = f"{server_cfg.get('base_url', base_url)}/approve/{token}/action"
     reject_url = f"{server_cfg.get('base_url', base_url)}/reject/{token}"
 
     # Emoji for category
-    emoji_tbl = {
-        'fantasy': '🧙‍♂️',
-        'science fiction': '🚀',
-        'sci-fi': '🚀',
-        'mystery': '🕵️‍♂️',
-        'romance': '💘'
-    }
-    category = (payload.get('category') or '').lower()
-    key = re.sub(r'[^a-z]', '', category.split('/')[-1].split('-')[-1].split('&')[0].strip())
-    emoji = emoji_tbl.get(key, '📚')
+    emoji_tbl = {"fantasy": "🧙‍♂️", "science fiction": "🚀", "sci-fi": "🚀", "mystery": "🕵️‍♂️", "romance": "💘"}
+    category = (payload.get("category") or "").lower()
+    key = re.sub(r"[^a-z]", "", category.split("/")[-1].split("-")[-1].split("&")[0].strip())
+    emoji = emoji_tbl.get(key, "📚")
 
     # Sanitize and extract common fields
     fields = get_notification_fields(metadata, payload)
-    title = escape_md(fields['title'])
-    series = escape_md(fields['series'])
-    author = escape_md(fields['author'])
-    publisher = escape_md(fields['publisher'])
-    narrators = escape_md(', '.join(fields['narrators']))
-    release_date = escape_md(fields['release_date'])
-    runtime = escape_md(fields['runtime'])
-    size_fmt = escape_md(fields['size'])
-    description = escape_md(fields['description'])
-    url = fields['url']
-    download_url = fields['download_url']
+    title = escape_md(fields["title"])
+    series = escape_md(fields["series"])
+    author = escape_md(fields["author"])
+    publisher = escape_md(fields["publisher"])
+    narrators = escape_md(", ".join(fields["narrators"]))
+    release_date = escape_md(fields["release_date"])
+    runtime = escape_md(fields["runtime"])
+    size_fmt = escape_md(fields["size"])
+    description = escape_md(fields["description"])
+    url = fields["url"]
+    download_url = fields["download_url"]
 
     # Build description block
     desc_lines = [
@@ -68,37 +61,31 @@ def send_discord(
         f"📚 **Category:** {category}" if category else None,
         f"💾 **Size:** {size_fmt}" if size_fmt else None,
         f"📝 **Description:** {description}" if description else None,
-        '',
+        "",
         (f"[🌐 View]({url})" if url else "") + (f" | [📥 Download]({download_url})" if download_url else ""),
-        f"[✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})"
+        f"[✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})",
     ]
-    desc = '\n'.join([line for line in desc_lines if line])
+    desc = "\n".join([line for line in desc_lines if line])
 
-    cover_url = metadata.get('cover_url') or metadata.get('image')
-    icon_url = discord_cfg.get('icon_url', "https://ptpimg.me/44pi19.png")
-    author_url = discord_cfg.get('author_url', "https://example.com/audiobookshelf/")
-    footer_icon_url = discord_cfg.get('footer_icon_url', "https://ptpimg.me/44pi19.png")
-    footer_text = discord_cfg.get('footer_text', "Powered by Autobrr")
+    cover_url = metadata.get("cover_url") or metadata.get("image")
+    icon_url = discord_cfg.get("icon_url", "https://ptpimg.me/44pi19.png")
+    author_url = discord_cfg.get("author_url", "https://example.com/audiobookshelf/")
+    footer_icon_url = discord_cfg.get("footer_icon_url", "https://ptpimg.me/44pi19.png")
+    footer_text = discord_cfg.get("footer_text", "Powered by Autobrr")
     embed = {
         "color": 12074727,
         "title": f"{emoji} NEW AUDIOBOOK",
-        "author": {
-            "name": "Audiobook Notifier",
-            "icon_url": icon_url,
-            "url": author_url
-        },
+        "author": {"name": "Audiobook Notifier", "icon_url": icon_url, "url": author_url},
         "description": desc,
-        "thumbnail": {
-            "url": icon_url
-        },
+        "thumbnail": {"url": icon_url},
         "image": {"url": cover_url} if cover_url else None,
         "footer": {"text": footer_text, "icon_url": footer_icon_url},
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     # Remove None values (Discord API does not accept them)
     embed = {k: v for k, v in embed.items() if v is not None}
     data = {"embeds": [embed]}
-    
+
     try:
         response = httpx.post(webhook_url, json=data, timeout=15)
         response.raise_for_status()
