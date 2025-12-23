@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import Any
+from typing import IO, Any
 
 import httpx
 from qbittorrentapi import Client, LoginFailed
@@ -48,7 +48,7 @@ def add_torrent_file_with_cookie(
     """
     Download a .torrent file (with optional cookie) and upload to qBittorrent with options.
     """
-    tmp: tempfile._TemporaryFileWrapper[bytes] | None = None
+    tmp: IO[bytes] | None = None
     try:
         # Validate download URL before attempting network call
         from urllib.parse import urlparse

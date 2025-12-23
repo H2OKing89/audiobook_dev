@@ -114,7 +114,8 @@ class AudibleScraper:
                     publish_year = str(release_date).split("-")[0]
                 else:
                     publish_year = str(release_date)[:4]
-            except:
+            except Exception as e:
+                logging.debug(f"Failed to parse publish_year from release_date {release_date}: {e}")
                 pass
 
         # Handle images

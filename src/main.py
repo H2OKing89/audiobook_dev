@@ -194,7 +194,7 @@ async def queue_status(request: Request):
     # Allow local/internal IPs
     local_ips = ["127.0.0.1", "::1", "10.1.60.11", "localhost"]
     is_local = (
-        any(client_ip.startswith(ip.split("/")[0]) for ip in ["127.", "10.", "192.168.", "172.16."])
+        client_ip.startswith(("127.", "10.", "192.168.", "172.16."))
         or client_ip in local_ips
     )
 
@@ -866,10 +866,10 @@ async def rejection_css_test():
 if __name__ == "__main__":
     import uvicorn
 
-    config = load_config().get("server", {})
+    server_config = load_config().get("server", {})
     uvicorn.run(
         "src.main:app",
-        host=config.get("host", "0.0.0"),
-        port=config.get("port", 8000),
-        reload=config.get("reload", True),
+        host=server_config.get("host", "0.0.0.0"),
+        port=server_config.get("port", 8000),
+        reload=server_config.get("reload", True),
     )
