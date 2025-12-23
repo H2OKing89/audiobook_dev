@@ -95,16 +95,17 @@ def send_pushover(
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
                 temp_file.write(resp.content)
                 temp_file.close()
-                files = {"attachment": (os.path.basename(temp_file.name), open(temp_file.name, "rb"), "image/jpeg")}
                 logger.debug("[token=%s] Cover image downloaded and prepared for upload", token)
             except httpx.RequestError as e:
                 logger.debug("[token=%s] Failed to download cover image: %s", token, e)
-                files = None
 
         try:
-            logger.debug("[token=%s] Sending Pushover notification%s", token, "with attachment" if files else "")
-            if files:
-                response = httpx.post(url, data=payload_data, files=files, timeout=15)
+            logger.debug("[token=%s] Sending Pushover notification%s", token, " with attachment" if temp_file else "")
+            if temp_file:
+                # Use context manager to ensure file handle is closed after request
+                with open(temp_file.name, "rb") as f:
+                    files = {"attachment": (os.path.basename(temp_file.name), f, "image/jpeg")}
+                    response = httpx.post(url, data=payload_data, files=files, timeout=15)
             else:
                 response = httpx.post(url, data=payload_data, timeout=15)
             response.raise_for_status()
@@ -115,12 +116,7 @@ def send_pushover(
             # Propagate network-level exceptions to callers (tests expect this behavior)
             raise
         finally:
-            # Cleanup temporary file and file handle
-            if files and "attachment" in files and hasattr(files["attachment"][1], "close"):
-                try:
-                    files["attachment"][1].close()
-                except Exception as e:
-                    logger.warning("[token=%s] Failed to close file handle: %s", token, e)
+            # Cleanup temporary file
             if temp_file and os.path.exists(temp_file.name):
                 try:
                     os.unlink(temp_file.name)
