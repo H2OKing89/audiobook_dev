@@ -1,5 +1,5 @@
 import re
-import requests
+import httpx
 import logging
 import time
 import os
@@ -137,13 +137,13 @@ class Audible:
         logging.debug(f'[Audible] ASIN url: {url}')
         
         try:
-            response = requests.get(url, timeout=timeout/1000)  # Convert ms to seconds
+            response = httpx.get(url, timeout=timeout/1000)  # Convert ms to seconds
             response.raise_for_status()
             data = response.json()
             if not data.get('asin'):
                 return None
             return data
-        except requests.exceptions.RequestException as error:
+        except httpx.RequestError as error:
             # Propagate network-related errors so callers can handle them uniformly
             logging.error(f'[Audible] ASIN search network error: {error}')
             raise
@@ -190,7 +190,7 @@ class Audible:
             logging.debug(f'[Audible] Search url: {url}')
             
             try:
-                response = requests.get(url, timeout=timeout/1000)
+                response = httpx.get(url, timeout=timeout/1000)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -205,7 +205,7 @@ class Audible:
                     items = detailed_items
                 else:
                     items = []
-            except requests.exceptions.RequestException as error:
+            except httpx.RequestError as error:
                 logging.error(f'[Audible] query search error: {error}')
                 # Propagate network-related errors up so callers can wrap them appropriately
                 raise
@@ -247,11 +247,11 @@ class Audnexus:
         for attempt in range(max_retries + 1):
             try:
                 self._throttle_request()
-                response = requests.get(url)
+                response = httpx.get(url)
                 response.raise_for_status()
                 return response.json()
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 429:  # Rate limited
+            except httpx.HTTPStatusError as e:
+                if e.response is not None and e.response.status_code == 429:  # Rate limited
                     retry_after = int(e.response.headers.get('retry-after', 5))
                     logging.warning(f'[Audnexus] Rate limit exceeded. Retrying in {retry_after} seconds.')
                     time.sleep(retry_after)
@@ -259,7 +259,7 @@ class Audnexus:
                 else:
                     logging.error(f'[Audnexus] HTTP error: {e}')
                     return None
-            except Exception as e:
+            except httpx.RequestError as e:
                 logging.error(f'[Audnexus] Request error: {e}')
                 return None
         return None
@@ -372,9 +372,9 @@ def get_audible_asin(title: str, author: str = '') -> Optional[str]:
 
     try:
         query = f"{title} {author}".strip()
-        # Simple Audible search URL; tests mock requests.get and only care about response text
+        # Simple Audible search URL; tests mock httpx.get and only care about response text
         search_url = f"https://www.audible.com/search?keywords={query.replace(' ', '+')}"
-        resp = requests.get(search_url)
+        resp = httpx.get(search_url)
         resp.raise_for_status()
         html = resp.text
         soup = BeautifulSoup(html, 'html.parser')
@@ -390,9 +390,7 @@ def get_audible_asin(title: str, author: str = '') -> Optional[str]:
             return el2.get('data-asin')
 
         return None
-    except requests.exceptions.RequestException as e:
-        # Propagate network-related errors so callers can handle them uniformly
-        logging.debug(f"get_audible_asin network error: {e}")
+    except httpx.RequestError as e:
         raise
     except Exception as e:
         logging.debug(f"get_audible_asin failed: {e}")
@@ -440,7 +438,11 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
 
         # If we have an ASIN, try to get cached metadata first
         if asin:
-            cached = get_cached_metadata(asin, region='us', api_url=None)
+            try:
+                cached = get_cached_metadata(asin, region='us', api_url=None)
+            except httpx.RequestError as e:
+                logging.error(f"Network error fetching cached metadata: {e}")
+                raise ValueError(f"Could not fetch metadata: {e}") from e
             if cached:
                 return cached
 
@@ -448,7 +450,7 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
         if not asin:
             try:
                 scraped = get_audible_asin(title, author)
-            except requests.exceptions.RequestException as e:
+            except httpx.RequestError as e:
                 logging.error(f"Network error while attempting to scrape Audible: {e}")
                 # Wrap network errors into a controlled ValueError
                 raise ValueError("Could not fetch metadata") from e
@@ -463,6 +465,7 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
         audible = Audible()
 
         # If we have an ASIN but no cached record, try using the audible search (ASIN search first)
+        network_issue = False
         for region in regions:
             try:
                 if asin:
@@ -473,14 +476,31 @@ def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:
                 if results:
                     # Return the first (best) result
                     return results[0]
-            except requests.exceptions.RequestException as e:
-                # Network error for a single region shouldn't abort the entire ASIN discovery;
-                # log and continue searching other regions.
-                logging.error(f"Network error searching region {region}: {e}")
+            except httpx.HTTPStatusError as e:
+                # Rate limits or HTTP errors should be treated as controlled fetch failures
+                if e.response is not None and e.response.status_code == 429:
+                    logging.error(f"Rate limited searching region {region}: {e}")
+                    raise ValueError("Could not fetch metadata") from e
+                logging.error(f"HTTP error searching region {region}: {e}")
+                network_issue = True
                 continue
+            except httpx.RequestError as e:
+                # Network error for a single region shouldn't abort the entire ASIN discovery;
+                # mark that a network issue occurred and continue searching other regions.
+                logging.error(f"Network error searching region {region}: {e}")
+                network_issue = True
+                continue
+            except ValueError as e:
+                # Malformed JSON or parsing errors should be treated as controlled fetch failures
+                logging.error(f"Malformed response searching region {region}: {e}")
+                raise ValueError("Could not fetch metadata") from e
             except Exception as e:
                 logging.error(f"Error searching region {region}: {e}")
                 continue
+
+        # If we encountered network or HTTP issues across regions, propagate a controlled error
+        if network_issue:
+            raise ValueError("Could not fetch metadata")
 
         # Final error if we couldn't determine any metadata
         if not asin:

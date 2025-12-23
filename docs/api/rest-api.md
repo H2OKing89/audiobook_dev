@@ -295,10 +295,10 @@ curl "http://localhost:8000/requests?status=pending&limit=10"
 ### Python Example
 
 ```python
-import requests
+import httpx
 
 # Submit a new request
-response = requests.post('http://localhost:8000/audiobook-requests', json={
+response = httpx.post('http://localhost:8000/audiobook-requests', json={
     'title': 'The Martian',
     'author': 'Andy Weir',
     'description': 'Survival story on Mars',

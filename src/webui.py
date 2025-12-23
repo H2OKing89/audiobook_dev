@@ -164,13 +164,11 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 logging.info(f"[token={token}] Triggering qBittorrent download for: {name}")
                 logging.debug(f"[token={token}] qBittorrent config: category={category}, tags={tags}, paused={paused}, autoTMM={autoTMM}, contentLayout={contentLayout}")
                 try:
-                    # Note: legacy tests (and some integrations) expect the torrent URL to be
-                    # the second positional argument for add_torrent_file_with_cookie. To remain
-                    # backward compatible with tests, pass (name, download_url, ...) here.
+                    # Pass download_url first, then name - matching the function signature
                     result = await run_in_threadpool(
                         add_torrent_file_with_cookie,
-                        name,
                         download_url,
+                        name,
                         category,
                         tags,
                         cookie,

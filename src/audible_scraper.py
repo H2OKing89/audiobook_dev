@@ -4,7 +4,7 @@ Audible.com metadata fallback scraper
 Searches for audiobook metadata using Audible's search API
 """
 
-import requests
+import httpx
 import logging
 import time
 import sys
@@ -227,7 +227,7 @@ class AudibleScraper:
         logging.debug(f"Search URL: {url}")
         
         try:
-            response = requests.get(url, timeout=30)
+            response = httpx.get(url, timeout=30)
             response.raise_for_status()
             data = response.json()
             products = data.get('products', [])
@@ -281,9 +281,13 @@ class AudibleScraper:
                 
             return detailed_results
             
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logging.error(f"Audible search error: {e}")
             # Propagate network-related errors so callers/tests can handle them uniformly
+            raise
+        except ValueError as e:
+            # Malformed JSON or parsing errors should be propagated so callers/tests can react
+            logging.error(f"Audible search parsing error: {e}")
             raise
     
     def search_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:

@@ -7,7 +7,7 @@ from src.main import app
 from src.metadata import fetch_metadata
 from src.db import save_request, get_request, delete_request
 from src.notify import pushover, discord, gotify, ntfy
-import requests
+import httpx
 import sqlite3
 import os
 
@@ -26,10 +26,10 @@ class TestErrorRecovery:
         }
         
         with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
-             patch("src.metadata.requests.get") as mock_get:
+             patch("src.metadata.httpx.get") as mock_get:
             # First call times out, second succeeds
             mock_get.side_effect = [
-                requests.exceptions.Timeout("Request timed out"),
+                httpx.ReadTimeout("Request timed out"),
                 MagicMock(status_code=200, json=lambda: {"title": "Test Book", "asin": "B123456789"})
             ]
             
@@ -111,12 +111,13 @@ class TestErrorRecovery:
         }
         
         with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
-             patch("src.metadata.requests.get") as mock_get:
+             patch("src.metadata.httpx.get") as mock_get:
             # Simulate rate limit response
             rate_limit_response = MagicMock()
             rate_limit_response.status_code = 429
-            rate_limit_response.headers = {"Retry-After": "60"}
-            rate_limit_response.raise_for_status.side_effect = requests.exceptions.HTTPError("429 Too Many Requests")
+            rate_limit_response.headers = {"retry-after": "60"}
+            httpx_exc = httpx.HTTPStatusError("429 Too Many Requests", request=MagicMock(), response=rate_limit_response)
+            rate_limit_response.raise_for_status.side_effect = httpx_exc
             
             mock_get.return_value = rate_limit_response
             
@@ -138,7 +139,7 @@ class TestErrorRecovery:
         with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
              patch("src.metadata.get_cached_metadata") as mock_cached:
             # All API calls fail
-            mock_cached.side_effect = requests.exceptions.ConnectionError("Service unavailable")
+            mock_cached.side_effect = httpx.ConnectError("Service unavailable")
             
             # Should handle service unavailability
             try:
@@ -186,7 +187,7 @@ class TestErrorRecovery:
         }
         
         with patch.dict('os.environ', {'DISABLE_EXTERNAL_API': '0'}), \
-             patch("src.metadata.requests.get") as mock_get:
+patch("src.metadata.httpx.get") as mock_get:
             # Return malformed JSON
             malformed_response = MagicMock()
             malformed_response.status_code = 200
@@ -243,9 +244,9 @@ class TestErrorRecovery:
         user_key = "test_user"
         api_token = "test_api_token"
         
-        with patch("src.notify.pushover.requests.post") as mock_post:
+        with patch("src.notify.pushover.httpx.post") as mock_post:
             # Simulate repeated failures
-            mock_post.side_effect = requests.exceptions.ConnectionError("Service down")
+            mock_post.side_effect = httpx.ConnectError("Service down")
             
             # Multiple attempts should eventually stop trying (circuit breaker)
             failures = 0

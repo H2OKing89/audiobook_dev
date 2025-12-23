@@ -1,5 +1,5 @@
 import re
-import requests
+import httpx
 import logging
 from typing import Any, Dict, Optional, Tuple
 from src.utils import get_notification_fields
@@ -94,7 +94,7 @@ def send_gotify(
         payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}
 
     try:
-        response = requests.post(
+        response = httpx.post(
             f"{gotify_url}/message?token={gotify_token}", 
             json=payload_data, 
             timeout=15
@@ -102,7 +102,7 @@ def send_gotify(
         response.raise_for_status()
         logging.info(f"Gotify notification sent successfully: status={response.status_code}")
         return response.status_code, response.json()
-    except requests.RequestException as e:
+    except httpx.RequestError as e:
         error_msg = f"Failed to send Gotify notification: {e}"
         logging.error(error_msg)
         return 0, {"error": error_msg}

@@ -53,7 +53,7 @@ class TestQbittorrentClient:
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
         
-        with patch("src.qbittorrent.requests.get") as mock_get, \
+        with patch("src.qbittorrent.httpx.stream") as mock_stream, \
              patch("src.qbittorrent.get_client") as mock_get_client, \
              patch("src.qbittorrent.tempfile.NamedTemporaryFile") as mock_temp, \
              patch("builtins.open", mock_open(read_data=b"torrent_data")), \
@@ -62,8 +62,8 @@ class TestQbittorrentClient:
             # Mock response
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.iter_content.return_value = [b"torrent_data"]
-            mock_get.return_value.__enter__.return_value = mock_response
+            mock_response.iter_bytes.return_value = [b"torrent_data"]
+            mock_stream.return_value.__enter__.return_value = mock_response
             
             # Mock temp file
             mock_temp_file = MagicMock()
@@ -86,7 +86,7 @@ class TestQbittorrentClient:
             mock_client.torrents_add.assert_called_once()
 
     def test_add_torrent_file_network_error(self):
-        with patch("src.qbittorrent.requests.get", side_effect=Exception("Network error")):
+        with patch("src.qbittorrent.httpx.stream", side_effect=Exception("Network error")):
             result = add_torrent_file_with_cookie(
                 download_url="http://example.com/test.torrent",
                 name="Test Torrent"

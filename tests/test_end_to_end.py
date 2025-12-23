@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from src.main import app
 from src.db import get_request, delete_request, list_tokens
 from src.token_gen import generate_token
-import requests
+import httpx
 
 client = TestClient(app)
 

@@ -4,7 +4,7 @@ Audnex API metadata fetcher
 Gets audiobook metadata from api.audnex.us using ASIN
 """
 
-import requests
+import httpx
 import logging
 import time
 import sys
@@ -35,6 +35,10 @@ class AudnexMetadata:
         self.global_rate_limit = self.config.get('metadata', {}).get('rate_limit_seconds', 120)
         self.last_request_time = 0
         self.last_global_request_time = 0
+        # Multi-region support
+        self.regions = self.audnex_config.get('regions', ['us', 'uk', 'ca', 'au', 'de', 'fr', 'es', 'it', 'jp', 'in'])
+        self.try_all_regions = self.audnex_config.get('try_all_regions_on_error', True)
+        self.max_regions = self.audnex_config.get('max_regions_to_try', 5)
         
     def _throttle_request(self):
         """Apply rate limiting between requests."""
@@ -67,26 +71,30 @@ class AudnexMetadata:
         for attempt in range(max_retries):
             try:
                 logging.debug(f"Making request to: {url}")
-                response = requests.get(url, timeout=30)
+                response = httpx.get(url, timeout=30)
                 response.raise_for_status()
                 
                 data = response.json()
                 logging.debug(f"Response received, status: {response.status_code}")
                 return data
                 
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 429:  # Rate limited
+            except httpx.HTTPStatusError as e:
+                if e.response is not None and e.response.status_code == 429:  # Rate limited
                     retry_after = int(e.response.headers.get('retry-after', 5))
                     logging.warning(f'Rate limit exceeded. Retrying in {retry_after} seconds.')
                     time.sleep(retry_after)
                     continue
+                elif e.response is not None and e.response.status_code == 500:
+                    # For 500 errors, don't retry - likely the data doesn't exist in this region
+                    logging.error(f'HTTP error: {e}')
+                    return None
                 else:
                     logging.error(f'HTTP error: {e}')
                     if attempt == max_retries - 1:
                         return None
                     time.sleep(2 ** attempt)  # Exponential backoff
                     
-            except requests.exceptions.RequestException as e:
+            except httpx.RequestError as e:
                 logging.error(f'Request error: {e}')
                 if attempt == max_retries - 1:
                     return None
@@ -95,52 +103,87 @@ class AudnexMetadata:
         return None
     
     def get_book_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
-        """Get book metadata by ASIN."""
+        """Get book metadata by ASIN with multi-region fallback."""
         if not asin or len(asin) != 10:
             logging.error(f"Invalid ASIN format: {asin}")
             return None
         
         asin = asin.upper()
-        params = {'region': region} if region else {}
-        url = f"{self.base_url}/books/{asin}"
         
-        if params:
-            url += f"?{urlencode(params)}"
+        # If try_all_regions is enabled and we get an error, try other regions
+        regions_to_try = [region]  # Start with requested region
+        if self.try_all_regions:
+            # Add additional regions based on max_regions config
+            other_regions = [r for r in self.regions if r != region]
+            regions_to_try.extend(other_regions[:self.max_regions - 1])
         
-        logging.info(f"Fetching book metadata for ASIN: {asin} (region: {region})")
+        for try_region in regions_to_try:
+            params = {'region': try_region} if try_region else {}
+            url = f"{self.base_url}/books/{asin}"
+            
+            if params:
+                url += f"?{urlencode(params)}"
+            
+            logging.info(f"Fetching book metadata for ASIN: {asin} (region: {try_region})")
+            
+            # Use single retry when trying multiple regions to avoid excessive delays
+            max_retries = 1 if len(regions_to_try) > 1 else 3
+            result = self._make_request(url, max_retries=max_retries)
+            
+            if result and result.get('asin'):
+                logging.info(f"✅ Book metadata found for ASIN: {asin} in region: {try_region}")
+                metadata = self._clean_book_metadata(result)
+                metadata['audnex_region'] = try_region  # Track which region worked
+                return metadata
+            elif result is None and try_region != regions_to_try[-1]:
+                # Only log as warning if we're trying another region
+                logging.warning(f"⚠️  No metadata for ASIN {asin} in region {try_region}, trying next region...")
+            else:
+                logging.warning(f"❌ No metadata found for ASIN: {asin} in region: {try_region}")
         
-        result = self._make_request(url)
-        
-        if result and result.get('asin'):
-            logging.info(f"✅ Book metadata found for ASIN: {asin}")
-            return self._clean_book_metadata(result)
-        else:
-            logging.warning(f"❌ No metadata found for ASIN: {asin}")
-            return None
+        logging.error(f"❌ No metadata found for ASIN {asin} in any region")
+        return None
     
     def get_chapters_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
-        """Get chapter information by ASIN."""
+        """Get chapter information by ASIN with multi-region fallback."""
         if not asin or len(asin) != 10:
             logging.error(f"Invalid ASIN format: {asin}")
             return None
         
         asin = asin.upper()
-        params = {'region': region} if region else {}
-        url = f"{self.base_url}/books/{asin}/chapters"
         
-        if params:
-            url += f"?{urlencode(params)}"
+        # If try_all_regions is enabled and we get an error, try other regions
+        regions_to_try = [region]  # Start with requested region
+        if self.try_all_regions:
+            # Add additional regions based on max_regions config
+            other_regions = [r for r in self.regions if r != region]
+            regions_to_try.extend(other_regions[:self.max_regions - 1])
         
-        logging.info(f"Fetching chapters for ASIN: {asin} (region: {region})")
+        for try_region in regions_to_try:
+            params = {'region': try_region} if try_region else {}
+            url = f"{self.base_url}/books/{asin}/chapters"
+            
+            if params:
+                url += f"?{urlencode(params)}"
+            
+            logging.info(f"Fetching chapters for ASIN: {asin} (region: {try_region})")
+            
+            # Use single retry when trying multiple regions to avoid excessive delays
+            max_retries = 1 if len(regions_to_try) > 1 else 3
+            result = self._make_request(url, max_retries=max_retries)
+            
+            if result:
+                logging.info(f"✅ Chapters found for ASIN: {asin} in region: {try_region}")
+                if isinstance(result, dict):
+                    result['audnex_region'] = try_region  # Track which region worked
+                return result
+            elif result is None and try_region != regions_to_try[-1]:
+                logging.warning(f"⚠️  No chapters for ASIN {asin} in region {try_region}, trying next region...")
+            else:
+                logging.warning(f"❌ No chapters found for ASIN: {asin} in region: {try_region}")
         
-        result = self._make_request(url)
-        
-        if result:
-            logging.info(f"✅ Chapters found for ASIN: {asin}")
-            return result
-        else:
-            logging.warning(f"❌ No chapters found for ASIN: {asin}")
-            return None
+        logging.error(f"❌ No chapters found for ASIN {asin} in any region")
+        return None
     
     def search_author_by_name(self, name: str, region: str = 'us') -> List[Dict[str, Any]]:
         """Search for authors by name."""

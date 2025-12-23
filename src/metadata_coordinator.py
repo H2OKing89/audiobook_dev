@@ -13,7 +13,7 @@ import argparse
 import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
-import requests
+import httpx
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -129,7 +129,7 @@ class MetadataCoordinator:
                 return metadata
             else:
                 logging.warning("❌ No metadata found via Audible search")
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logging.error(f"Network error searching Audible: {e}")
             # Surface network errors to callers/tests as a controlled ValueError
             raise ValueError("Could not fetch metadata") from e
@@ -188,7 +188,9 @@ class MetadataCoordinator:
         asin = enhanced.get('asin')
         if asin:
             try:
-                chapters = self.audnex.get_chapters_by_asin(asin)
+                # Use the same region that worked for book metadata to avoid redundant API calls
+                region = enhanced.get('audnex_region', 'us')
+                chapters = self.audnex.get_chapters_by_asin(asin, region=region)
                 if chapters:
                     enhanced['chapters'] = chapters
                     enhanced['chapter_count'] = len(chapters.get('chapters', []))

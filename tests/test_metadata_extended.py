@@ -54,7 +54,7 @@ class TestMetadataModule:
         assert result["genres"] == ["Fantasy", "Adventure"]
         assert result["tags"] == "Epic, Magic"
         
-    @patch("src.metadata.requests.get")
+    @patch("src.metadata.httpx.get")
     @patch("builtins.__import__")
     def test_get_audible_asin_success(self, mock_import, mock_get):
         # Mock BeautifulSoup import
@@ -84,7 +84,7 @@ class TestMetadataModule:
         asin = get_audible_asin("Test Title", "Test Author")
         assert asin == "B123456789"
         
-    @patch("src.metadata.requests.get")
+    @patch("src.metadata.httpx.get")
     @patch("builtins.__import__")
     def test_get_audible_asin_not_found(self, mock_import, mock_get):
         mock_response = MagicMock()
