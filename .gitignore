@@ -36,9 +36,11 @@ Thumbs.db
 # Ruff
 .ruff_cache/
 
+# Build artifacts
+*.egg-info/
+
 # Coverage
 htmlcov/
-.coverage
 
 # Misc
 *.bak

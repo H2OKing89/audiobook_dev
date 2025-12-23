@@ -3,6 +3,7 @@ Metadata Flow Testing Script
 Tests the complete metadata workflow with rate limiting
 """
 
+import asyncio
 import logging
 import sys
 import time
@@ -92,11 +93,11 @@ class MetadataFlowTester:
             time.time()
 
             # First call should not wait
-            self.coordinator._enforce_rate_limit()
+            asyncio.run(self.coordinator._enforce_rate_limit())
             first_call_time = time.time()
 
             # Second call should enforce rate limit
-            self.coordinator._enforce_rate_limit()
+            asyncio.run(self.coordinator._enforce_rate_limit())
             second_call_time = time.time()
 
             elapsed = second_call_time - first_call_time

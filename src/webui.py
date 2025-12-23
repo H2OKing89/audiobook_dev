@@ -34,7 +34,7 @@ def sanitize_input(text: str | None) -> str:
     cleaned = re.sub(r"<script.*?>.*?</script>", "", text, flags=re.DOTALL)
     # Escape HTML entities
     sanitized = html.escape(cleaned)
-    logging.debug(f"Sanitized input: '{text[:50]}...' -> '{sanitized[:50]}...'")
+    logging.debug("Sanitized input: '%.50s...' -> '%.50s...'", text, sanitized)
     return sanitized
 
 

@@ -8,6 +8,7 @@ help:
 	@echo "  make install-dev    - Install development dependencies"
 	@echo "  make test           - Run tests with coverage"
 	@echo "  make test-fast      - Run tests without coverage"
+	@echo "  make test-integration - Run integration tests only"
 	@echo "  make lint           - Run ruff linter"
 	@echo "  make format         - Format code with ruff"
 	@echo "  make type-check     - Run mypy type checking"
