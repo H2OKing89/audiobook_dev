@@ -8,15 +8,17 @@ This module provides:
 
 SECURITY: Never log the mam_id cookie value - it's a session token!
 """
+
 from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
 from src.mam_api.models import MamSearchResponseRaw, MamTorrentRaw
+
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +30,13 @@ MAM_DOWNLOAD_PATH = "/tor/download.php"
 _TID_RE = re.compile(r"(?:https?://www\.myanonamouse\.net)?/t/(\d+)")
 
 
-def extract_tid_from_irc(line: str) -> Optional[int]:
+def extract_tid_from_irc(line: str) -> int | None:
     """
     Extract torrent ID from IRC announcement line.
-    
+
     IRC announces include links like:
         Link: ( https://www.myanonamouse.net/t/1207719 )
-    
+
     Returns the numeric tid, or None if not found.
     """
     m = _TID_RE.search(line)
@@ -53,9 +55,9 @@ class MamApiError(RuntimeError):
 class MamClient:
     """
     Synchronous MAM API client using httpx with HTTP/2.
-    
+
     Auth is via the mam_id session cookie.
-    
+
     Example:
         with MamClient(mam_id="your_cookie_value") as mam:
             torrent = mam.get_torrent(1207719)
@@ -73,7 +75,7 @@ class MamClient:
     ) -> None:
         if not mam_id:
             raise ValueError("mam_id cookie is required for MAM API access")
-        
+
         self._client = httpx.Client(
             base_url=base_url,
             http2=http2,
@@ -89,7 +91,7 @@ class MamClient:
         """Close the HTTP client."""
         self._client.close()
 
-    def __enter__(self) -> "MamClient":
+    def __enter__(self) -> MamClient:
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
@@ -98,17 +100,17 @@ class MamClient:
     def search(
         self,
         *,
-        tor: Dict[str, Any],
+        tor: dict[str, Any],
         perpage: int = 100,
         media_info: bool = True,
         isbn: bool = True,
         description: bool = False,
         dl_link: bool = False,
-        thumbnail: Optional[bool] = None,
+        thumbnail: bool | None = None,
     ) -> MamSearchResponseRaw:
         """
         Search MAM torrents via JSON API.
-        
+
         Args:
             tor: Search parameters dict (id, text, searchIn, searchType, etc.)
             perpage: Results per page (5-1000)
@@ -117,14 +119,14 @@ class MamClient:
             description: Include full HTML description (large!)
             dl_link: Include download token in response
             thumbnail: Include thumbnail URL
-            
+
         Returns:
             MamSearchResponseRaw with matched torrents
         """
         if perpage < 5 or perpage > 1000:
             raise ValueError("perpage must be between 5 and 1000")
 
-        payload: Dict[str, Any] = {"tor": tor}
+        payload: dict[str, Any] = {"tor": tor}
 
         # MAM treats presence of these keys as "enabled"
         if media_info:
@@ -140,20 +142,18 @@ class MamClient:
 
         payload["perpage"] = perpage
 
-        logger.debug("MAM search request: tor=%s, flags=%s", 
-                    {k: v for k, v in tor.items() if k != "id"}, 
-                    [k for k in payload if k not in ("tor", "perpage")])
-
-        r = self._client.post(
-            MAM_SEARCH_PATH, 
-            json=payload, 
-            params={"perpage": str(perpage)}
+        logger.debug(
+            "MAM search request: tor=%s, flags=%s",
+            {k: v for k, v in tor.items() if k != "id"},
+            [k for k in payload if k not in ("tor", "perpage")],
         )
+
+        r = self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
         r.raise_for_status()
 
         data = r.json()
         response = MamSearchResponseRaw.model_validate(data)
-        
+
         logger.debug("MAM search returned %d results (found=%d)", len(response.data), response.found)
         return response
 
@@ -168,19 +168,19 @@ class MamClient:
     ) -> MamTorrentRaw:
         """
         Fetch a single torrent by ID.
-        
+
         IMPORTANT: tid must be inside tor[id], not as top-level query param.
-        
+
         Args:
             tid: Torrent ID from MAM
             media_info: Include mediainfo
             isbn: Include ISBN/ASIN
             description: Include HTML description
             dl_link: Include download token
-            
+
         Returns:
             MamTorrentRaw for the requested torrent
-            
+
         Raises:
             MamApiError: If torrent not found
         """
@@ -193,9 +193,9 @@ class MamClient:
             "cat": ["0"],
             "browse_lang": ["0"],
         }
-        
+
         logger.info("Fetching MAM torrent tid=%d", tid)
-        
+
         resp = self.search(
             tor=tor,
             perpage=5,
@@ -204,11 +204,11 @@ class MamClient:
             description=description,
             dl_link=dl_link,
         )
-        
+
         if not resp.data:
             logger.warning("MAM torrent not found: tid=%d", tid)
             raise MamApiError(f"Torrent not found for tid={tid}")
-        
+
         torrent = resp.data[0]
         logger.info("Retrieved MAM torrent: tid=%d, title=%s", torrent.id, torrent.title)
         return torrent
@@ -216,10 +216,10 @@ class MamClient:
     def download_torrent_by_tid(self, tid: int) -> bytes:
         """
         Download .torrent file using session cookie.
-        
+
         Args:
             tid: Torrent ID
-            
+
         Returns:
             Raw bytes of the .torrent file
         """
@@ -232,16 +232,16 @@ class MamClient:
     def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """
         Download .torrent using dl token (no cookie required).
-        
+
         Args:
             dl_token: Download token from dlLink response
-            
+
         Returns:
             Raw bytes of the .torrent file
         """
         if not dl_token:
             raise ValueError("dl_token is required")
-        
+
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         logger.info("Downloading torrent via dl token")
         r = self._client.get(path)
@@ -253,7 +253,7 @@ class MamClient:
 class MamAsyncClient:
     """
     Asynchronous MAM API client for concurrent operations.
-    
+
     Example:
         async with MamAsyncClient(mam_id="your_cookie_value") as mam:
             torrent = await mam.get_torrent(1207719)
@@ -271,7 +271,7 @@ class MamAsyncClient:
     ) -> None:
         if not mam_id:
             raise ValueError("mam_id cookie is required for MAM API access")
-        
+
         self._client = httpx.AsyncClient(
             base_url=base_url,
             http2=http2,
@@ -286,7 +286,7 @@ class MamAsyncClient:
         """Close the async HTTP client."""
         await self._client.aclose()
 
-    async def __aenter__(self) -> "MamAsyncClient":
+    async def __aenter__(self) -> MamAsyncClient:
         return self
 
     async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
@@ -295,23 +295,23 @@ class MamAsyncClient:
     async def search(
         self,
         *,
-        tor: Dict[str, Any],
+        tor: dict[str, Any],
         perpage: int = 100,
         media_info: bool = True,
         isbn: bool = True,
         description: bool = False,
         dl_link: bool = False,
-        thumbnail: Optional[bool] = None,
+        thumbnail: bool | None = None,
     ) -> MamSearchResponseRaw:
         """
         Search MAM torrents via JSON API (async).
-        
+
         See MamClient.search() for parameter documentation.
         """
         if perpage < 5 or perpage > 1000:
             raise ValueError("perpage must be between 5 and 1000")
 
-        payload: Dict[str, Any] = {"tor": tor}
+        payload: dict[str, Any] = {"tor": tor}
         if media_info:
             payload["mediaInfo"] = ""
         if isbn:
@@ -325,16 +325,19 @@ class MamAsyncClient:
 
         payload["perpage"] = perpage
 
-        logger.debug("MAM async search request: tor=%s", 
-                    {k: v for k, v in tor.items() if k != "id"})
-
-        r = await self._client.post(
-            MAM_SEARCH_PATH, 
-            json=payload, 
-            params={"perpage": str(perpage)}
+        logger.debug(
+            "MAM async search request: tor=%s, flags: media_info=%s, isbn=%s, description=%s, dl_link=%s, thumbnail=%s",
+            {k: v for k, v in tor.items() if k != "id"},
+            media_info,
+            isbn,
+            description,
+            dl_link,
+            thumbnail,
         )
+
+        r = await self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
         r.raise_for_status()
-        
+
         response = MamSearchResponseRaw.model_validate(r.json())
         logger.debug("MAM async search returned %d results", len(response.data))
         return response
@@ -350,7 +353,7 @@ class MamAsyncClient:
     ) -> MamTorrentRaw:
         """
         Fetch a single torrent by ID (async).
-        
+
         See MamClient.get_torrent() for parameter documentation.
         """
         tor = {
@@ -362,9 +365,9 @@ class MamAsyncClient:
             "cat": ["0"],
             "browse_lang": ["0"],
         }
-        
+
         logger.info("Fetching MAM torrent (async): tid=%d", tid)
-        
+
         resp = await self.search(
             tor=tor,
             perpage=5,
@@ -373,11 +376,11 @@ class MamAsyncClient:
             description=description,
             dl_link=dl_link,
         )
-        
+
         if not resp.data:
             logger.warning("MAM torrent not found: tid=%d", tid)
             raise MamApiError(f"Torrent not found for tid={tid}")
-        
+
         torrent = resp.data[0]
         logger.info("Retrieved MAM torrent (async): tid=%d, title=%s", torrent.id, torrent.title)
         return torrent
@@ -394,7 +397,7 @@ class MamAsyncClient:
         """Download .torrent using dl token (async)."""
         if not dl_token:
             raise ValueError("dl_token is required")
-        
+
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         logger.info("Downloading torrent via dl token (async)")
         r = await self._client.get(path)
