@@ -150,15 +150,17 @@ def test_html_sanitization_in_notifications(mock_httpx_globally):
 
 
 def test_notify_network_error_handling(mock_httpx_globally):
-    """Test that network errors are properly handled."""
-    mock_httpx_globally["post"].side_effect = Exception("Network failure")
+    """Test that network errors (httpx.RequestError) are propagated correctly."""
+    import httpx as httpx_module
     
-    # The function catches exceptions and returns an error dict
-    status, resp = pushover.send_pushover(
-        sample_metadata, sample_payload, "test_token", 
-        "http://localhost:8000", "test_user", "test_api_key"
-    )
+    # Simulate a real network error (RequestError) instead of generic Exception
+    mock_httpx_globally["post"].side_effect = httpx_module.RequestError("Connection refused")
     
-    assert status == 0
-    assert "error" in resp
-    assert "Network failure" in resp["error"]
+    # The pushover function re-raises httpx.RequestError for network errors
+    with pytest.raises(httpx_module.RequestError) as exc_info:
+        pushover.send_pushover(
+            sample_metadata, sample_payload, "test_token", 
+            "http://localhost:8000", "test_user", "test_api_key"
+        )
+    
+    assert "Connection refused" in str(exc_info.value)

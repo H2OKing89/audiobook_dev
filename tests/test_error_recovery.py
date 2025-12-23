@@ -26,16 +26,10 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Override autouse mock to raise ValueError (simulating network error)
+        # Configure coordinator to raise ValueError to simulate metadata fetch failure
         mock_coord.side_effect = ValueError("Could not fetch metadata")
 
-        with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}), patch("src.metadata.httpx.get") as mock_get:
-            # First call times out, second succeeds
-            mock_get.side_effect = [
-                httpx.ReadTimeout("Request timed out"),
-                MagicMock(status_code=200, json=lambda: {"title": "Test Book", "asin": "B123456789"}),
-            ]
-
+        with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}):
             # Should handle timeout gracefully - metadata service wraps all errors
             with pytest.raises(ValueError) as exc_info:
                 result = fetch_metadata(payload)
