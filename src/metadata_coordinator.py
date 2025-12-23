@@ -8,6 +8,7 @@ Orchestrates the metadata fetching workflow:
 """
 
 import argparse
+import asyncio
 import logging
 import sys
 import time
@@ -47,7 +48,7 @@ class MetadataCoordinator:
         self.rate_limit_seconds = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
         logging.info(f"Metadata coordinator initialized with {self.rate_limit_seconds}s rate limit")
 
-    def _enforce_rate_limit(self):
+    async def _enforce_rate_limit(self):
         """Enforce global rate limiting between API calls"""
         current_time = time.time()
         time_since_last = current_time - self.last_api_call
@@ -55,7 +56,7 @@ class MetadataCoordinator:
         if time_since_last < self.rate_limit_seconds:
             wait_time = self.rate_limit_seconds - time_since_last
             logging.info(f"Rate limiting: waiting {wait_time:.1f}s before next API call")
-            time.sleep(wait_time)
+            await asyncio.sleep(wait_time)
 
         self.last_api_call = time.time()
 
@@ -80,7 +81,7 @@ class MetadataCoordinator:
         if url and "myanonamouse.net" in url:
             logging.info("Step 1: Attempting to extract ASIN from MAM URL...")
             try:
-                self._enforce_rate_limit()
+                await self._enforce_rate_limit()
                 asin = await self.mam_scraper.scrape_asin_from_url(url)
                 if asin:
                     logging.info(f"✅ ASIN extracted from MAM: {asin}")
@@ -95,7 +96,7 @@ class MetadataCoordinator:
         if asin:
             logging.info(f"Step 2: Getting metadata from Audnex for ASIN: {asin}")
             try:
-                self._enforce_rate_limit()
+                await self._enforce_rate_limit()
                 metadata = self.audnex.get_book_by_asin(asin)
                 if metadata:
                     logging.info("✅ Metadata found via Audnex")
@@ -116,7 +117,7 @@ class MetadataCoordinator:
         # Step 3: Fallback to Audible search using title/author from name
         logging.info("Step 3: Falling back to Audible search...")
         try:
-            self._enforce_rate_limit()
+            await self._enforce_rate_limit()
             results = self.audible.search_from_webhook_name(name)
             if results:
                 metadata = results[0]  # Take the first (best) result
