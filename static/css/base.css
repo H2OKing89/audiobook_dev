@@ -7,30 +7,30 @@
   --success-color: #10b981;
   --error-color: #ff3b3b;
   --warning-color: #f59e0b;
-  
+
   /* Background Colors */
   --bg-primary: #1a1a2e;
   --bg-secondary: #16213e;
   --bg-tertiary: #0f3460;
   --bg-surface: #2b1818;
-  
+
   /* Text Colors */
   --text-primary: #ffe8e8;
   --text-secondary: #b2b6e0;
   --text-muted: #888;
-  
+
   /* Border and Shadow */
   --border-color: #333;
   --border-radius: 12px;
   --border-radius-small: 8px;
   --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   --box-shadow-hover: 0 8px 30px rgba(155, 231, 255, 0.2);
-  
+
   /* Typography */
   --font-primary: 'Orbitron', monospace;
   --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -38,7 +38,7 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-xxl: 3rem;
-  
+
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
@@ -183,15 +183,15 @@ code {
     --spacing-xl: 1.5rem;
     --spacing-xxl: 2rem;
   }
-  
+
   h1 {
     font-size: 2rem;
   }
-  
+
   h2 {
     font-size: 1.75rem;
   }
-  
+
   .container {
     padding: 0 var(--spacing-sm);
   }

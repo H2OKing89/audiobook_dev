@@ -11,25 +11,25 @@
   --bg-panel: rgba(0, 0, 0, 0.7);
   --bg-overlay: rgba(0, 0, 0, 0.5);
   --bg-card: rgba(0, 0, 0, 0.4);
-  
+
   /* Text colors */
   --text-primary: #ffffff;
   --text-secondary: #e0e0e0;
   --text-muted: #888;
   --text-footer: #666;
-  
+
   /* Error/Alert colors */
   --error-primary: #ff5f57;
   --error-secondary: #ff006e;
   --error-glow: rgba(255, 95, 87, 0.6);
   --alert-bg: rgba(255, 0, 110, 0.3);
-  
+
   /* Accent colors */
   --accent-cyan: #00f5ff;
   --accent-green: #00ff88;
   --accent-yellow: #ffbd2e;
   --accent-pink: #ff006e;
-  
+
   /* Border and shadow colors */
   --border-error: #ff5f57;
   --border-primary: #00f5ff;
@@ -38,7 +38,7 @@
   --shadow-error: rgba(255, 95, 87, 0.4);
   --shadow-cyan: rgba(0, 245, 255, 0.4);
   --shadow-green: rgba(0, 255, 136, 0.5);
-  
+
   /* Terminal colors */
   --terminal-bar: linear-gradient(90deg, #2a2a2a, #1a1a1a);
   --terminal-border: #444;
@@ -59,25 +59,25 @@
     --bg-panel: rgba(255, 255, 255, 0.8);
     --bg-overlay: rgba(255, 255, 255, 0.6);
     --bg-card: rgba(0, 0, 0, 0.05);
-    
+
     /* Light mode text */
     --text-primary: #1a1a1a;
     --text-secondary: #2a2a2a;
     --text-muted: #666;
     --text-footer: #888;
-    
+
     /* Adjusted error colors for light mode */
     --error-primary: #cc3333;
     --error-secondary: #cc0055;
     --error-glow: rgba(204, 51, 51, 0.4);
     --alert-bg: rgba(204, 0, 85, 0.2);
-    
+
     /* Light mode accents */
     --accent-cyan: #0066cc;
     --accent-green: #00aa55;
     --accent-yellow: #cc8800;
     --accent-pink: #cc0055;
-    
+
     /* Light mode borders and shadows */
     --border-error: #cc3333;
     --border-primary: #0066cc;
@@ -86,7 +86,7 @@
     --shadow-error: rgba(204, 51, 51, 0.3);
     --shadow-cyan: rgba(0, 102, 204, 0.3);
     --shadow-green: rgba(0, 170, 85, 0.3);
-    
+
     /* Light mode terminal */
     --terminal-bar: linear-gradient(90deg, #e8e8e8, #f0f0f0);
     --terminal-border: #ccc;
@@ -94,10 +94,10 @@
     --terminal-dot-yellow: #ffd93d;
     --terminal-dot-green: #51cf66;
   }
-  
+
   /* Light mode specific adjustments */
   .rejection-page {
-    background: 
+    background:
       radial-gradient(circle at 20% 80%, rgba(204, 0, 85, 0.1) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, rgba(204, 51, 51, 0.1) 0%, transparent 50%),
       linear-gradient(125deg, #f5f2f0 0%, #e8e8e8 50%, #f0e8e8 100%);
@@ -106,7 +106,7 @@
 
 /* Page Setup */
 .rejection-page {
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(255, 0, 110, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(255, 95, 87, 0.2) 0%, transparent 50%),
     linear-gradient(125deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
@@ -150,9 +150,9 @@
   border-radius: 50%;
 }
 
-.terminal-dot.red { 
-  background: var(--terminal-dot-red); 
-  box-shadow: 0 0 8px var(--terminal-dot-red); 
+.terminal-dot.red {
+  background: var(--terminal-dot-red);
+  box-shadow: 0 0 8px var(--terminal-dot-red);
 }
 .terminal-dot.yellow { background: var(--terminal-dot-yellow); }
 .terminal-dot.green { background: var(--terminal-dot-green); }
@@ -200,7 +200,7 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(15px);
-  box-shadow: 
+  box-shadow:
     0 0 40px var(--alert-bg),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -263,7 +263,7 @@
   border-radius: 50%;
   overflow: hidden;
   background: radial-gradient(circle, rgba(0, 245, 255, 0.1) 0%, transparent 70%);
-  box-shadow: 
+  box-shadow:
     0 0 20px var(--shadow-cyan),
     inset 0 0 20px rgba(0, 245, 255, 0.1);
 }
@@ -688,33 +688,33 @@
   .rejection-page {
     padding: 0.5rem;
   }
-  
+
   .status-screen {
     padding: 1rem;
   }
-  
+
   .alert-title {
     font-size: 2rem;
   }
-  
+
   .alert-icon {
     font-size: 3rem;
   }
-  
+
   .action-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .message-line {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
   }
-  
+
   .line-label {
     min-width: auto;
   }
-  
+
   .footer-data {
     flex-direction: column;
     gap: 0.5rem;
@@ -726,18 +726,18 @@
     padding: 0.75rem;
     font-size: 0.8rem;
   }
-  
+
   .hologram-frame {
     width: 100px;
     height: 100px;
   }
-  
+
   .action-cmd {
     flex-direction: column;
     text-align: center;
     gap: 0.75rem;
   }
-  
+
   .cmd-hotkey {
     display: none;
   }

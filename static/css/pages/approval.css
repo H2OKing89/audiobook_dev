@@ -10,7 +10,7 @@
   --bg-content: rgba(0, 0, 0, 0.6);
   --bg-panel: rgba(0, 0, 0, 0.4);
   --bg-card: rgba(255, 255, 255, 0.03);
-  
+
   /* Text colors */
   --text-primary: #ffffff;
   --text-secondary: #e0e0e0;
@@ -18,21 +18,21 @@
   --text-accent: #00f5ff;
   --text-author: #ffb347;
   --text-narrator: #a8a8ff;
-  
+
   /* Accent colors */
   --accent-cyan: #00f5ff;
   --accent-pink: #ff006e;
   --accent-green: #00ff88;
   --accent-yellow: #ffbd2e;
   --accent-red: #ff5f57;
-  
+
   /* Border and shadow colors */
   --border-primary: #00f5ff;
   --border-secondary: rgba(0, 245, 255, 0.3);
   --border-panel: rgba(0, 245, 255, 0.2);
   --shadow-glow: rgba(0, 245, 255, 0.3);
   --shadow-pink: rgba(255, 0, 110, 0.3);
-  
+
   /* Terminal colors */
   --terminal-bar: linear-gradient(90deg, #2a2a2a, #1a1a1a);
   --terminal-border: #444;
@@ -49,7 +49,7 @@
     --bg-content: rgba(255, 255, 255, 0.8);
     --bg-panel: rgba(255, 255, 255, 0.6);
     --bg-card: rgba(0, 0, 0, 0.03);
-    
+
     /* Light mode text */
     --text-primary: #1a1a1a;
     --text-secondary: #2a2a2a;
@@ -57,105 +57,105 @@
     --text-accent: #0066cc;
     --text-author: #cc7a00;
     --text-narrator: #5555cc;
-    
+
     /* Adjusted accent colors for light mode */
     --accent-cyan: #0066cc;
     --accent-pink: #cc0055;
     --accent-green: #00aa55;
     --accent-yellow: #cc8800;
     --accent-red: #cc3333;
-    
+
     /* Light mode borders and shadows */
     --border-primary: #0066cc;
     --border-secondary: rgba(0, 102, 204, 0.4);
     --border-panel: rgba(0, 102, 204, 0.3);
     --shadow-glow: rgba(0, 102, 204, 0.2);
     --shadow-pink: rgba(204, 0, 85, 0.2);
-    
+
     /* Light mode terminal */
     --terminal-bar: linear-gradient(90deg, #e8e8e8, #f0f0f0);
     --terminal-border: #ccc;
   }
-  
+
   /* Light mode specific adjustments */
   .approval-page {
-    background: 
+    background:
       radial-gradient(circle at 25% 25%, rgba(204, 0, 85, 0.08) 0%, transparent 50%),
       radial-gradient(circle at 75% 75%, rgba(0, 102, 204, 0.08) 0%, transparent 50%),
       linear-gradient(125deg, #f0f2f5 0%, #e3e7ec 50%, #d1d8e0 100%);
   }
-  
+
   /* Light mode scanner line */
   .scanner-line {
     background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
   }
-  
+
   /* Light mode terminal dots */
   .terminal-dot.red { background: #ff6b6b; }
   .terminal-dot.yellow { background: #ffd93d; }
   .terminal-dot.green { background: #51cf66; }
-  
+
   /* Light mode glow effects */
   .panel-title {
     text-shadow: 0 0 3px var(--shadow-glow);
   }
-  
+
   .book-title {
     text-shadow: 0 0 5px var(--shadow-pink);
   }
-  
+
   /* Light mode button adjustments */
   .matrix-btn {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
   }
-  
+
   .approve-matrix {
     border-color: var(--accent-green);
     color: var(--accent-green);
   }
-  
+
   .approve-matrix:hover {
     background: rgba(0, 170, 85, 0.1);
     box-shadow: 0 8px 25px var(--shadow-glow);
   }
-  
+
   .reject-matrix {
     border-color: var(--accent-red);
     color: var(--accent-red);
   }
-  
+
   .reject-matrix:hover {
     background: rgba(204, 51, 51, 0.1);
     box-shadow: 0 8px 25px rgba(204, 51, 51, 0.3);
   }
-  
+
   /* Light mode audiobook card */
   .audiobook-card {
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 102, 204, 0.3);
-    box-shadow: 
+    box-shadow:
       0 20px 40px rgba(0, 0, 0, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
-  
+
   .audiobook-card::before {
     background: linear-gradient(90deg, transparent, rgba(0, 102, 204, 0.4), transparent);
   }
-  
+
   /* Light mode cover shadows */
   .cover-container, .cover-frame-mini {
-    box-shadow: 
+    box-shadow:
       0 15px 30px rgba(0, 0, 0, 0.2),
       0 0 20px var(--shadow-glow);
   }
-  
+
   /* Light mode detail items */
   .detail-item, .spec-card {
     background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(0, 102, 204, 0.2);
   }
-  
+
   .detail-item:hover, .spec-card:hover {
     background: rgba(255, 255, 255, 0.8);
     border-color: var(--border-secondary);
@@ -164,7 +164,7 @@
 
 /* Page Setup */
 .approval-page {
-  background: 
+  background:
     radial-gradient(circle at 25% 25%, #ff006e22 0%, transparent 50%),
     radial-gradient(circle at 75% 75%, #00f5ff22 0%, transparent 50%),
     linear-gradient(125deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
@@ -263,8 +263,8 @@
 
 .status-pending { color: var(--accent-yellow); }
 .status-high { color: var(--accent-red); }
-.status-token { 
-  color: var(--accent-cyan); 
+.status-token {
+  color: var(--accent-cyan);
   font-family: 'JetBrains Mono', monospace;
   background: rgba(0, 245, 255, 0.1);
   padding: 0.2rem 0.5rem;
@@ -279,7 +279,7 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
-  box-shadow: 
+  box-shadow:
     0 0 30px var(--shadow-glow),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
@@ -378,7 +378,7 @@
   border-radius: 6px;
   overflow: hidden;
   border: 2px solid var(--accent-pink);
-  box-shadow: 
+  box-shadow:
     0 5px 15px rgba(0, 0, 0, 0.5),
     0 0 10px var(--shadow-pink);
 }
@@ -728,35 +728,35 @@
   .approval-page {
     padding: 0.5rem;
   }
-  
+
   .book-scanner {
     padding: 1rem;
   }
-  
+
   .book-layout {
     grid-template-columns: 1fr;
     text-align: center;
     gap: 1rem;
   }
-  
+
   .cover-mini {
     margin: 0 auto;
   }
-  
+
   .specs-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .button-array {
     grid-template-columns: 1fr;
   }
-  
+
   .status-bar {
     flex-direction: column;
     gap: 0.5rem;
     align-items: center;
   }
-  
+
   .footer-stats {
     flex-direction: column;
     gap: 0.5rem;
@@ -767,11 +767,11 @@
   .terminal-content {
     padding: 0.75rem;
   }
-  
+
   .typing-text {
     font-size: 0.8rem;
   }
-  
+
   .panel-header {
     flex-direction: column;
     gap: 0.75rem;
@@ -798,7 +798,7 @@
   border: 1px solid rgba(255, 105, 180, 0.2);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
@@ -830,7 +830,7 @@
   height: 180px;
   border-radius: 15px;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 15px 30px rgba(0, 0, 0, 0.6),
     0 0 20px rgba(255, 105, 180, 0.2);
 }

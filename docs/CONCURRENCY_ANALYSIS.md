@@ -5,6 +5,7 @@
 When two webhooks arrive simultaneously, here's what happens:
 
 ### 1. **FastAPI Async Handling**
+
 ```python
 @app.post("/webhook")
 async def webhook(request: Request):
@@ -13,45 +14,51 @@ async def webhook(request: Request):
 ```
 
 ### 2. **Multiple Coordinator Instances**
+
 ```python
 coordinator = MetadataCoordinator()  # NEW instance per request
 await coordinator.get_metadata_from_webhook(payload)
 ```
 
 ### 3. **Race Conditions in Rate Limiting**
+
 ```python
 class MetadataCoordinator:
     def __init__(self):
         self.last_api_call = 0  # Each instance has its own timestamp!
 ```
 
-## Problems This Causes:
+## Problems This Causes
 
 ### ⚠️ **Rate Limiting Failures**
+
 - Multiple coordinators have separate `last_api_call` timestamps
 - Rate limits become ineffective with concurrent requests
 - Could exceed API rate limits (Audnex, MAM)
 
-### ⚠️ **Resource Contention** 
+### ⚠️ **Resource Contention**
+
 - Multiple Playwright browser instances
 - Concurrent MAM logins/cookie sharing conflicts
 - Browser memory usage spikes
 
 ### ⚠️ **API Overload**
+
 - Multiple simultaneous Audnex API calls
 - Could trigger API rate limiting responses (429 errors)
 - Unreliable metadata fetching
 
-## Solutions:
+## Solutions
 
 ### Option 1: **Shared Rate Limiting (Quick Fix)**
+
 ```python
 # Global singleton for rate limiting
 class GlobalRateLimit:
     _instance = None
     _last_api_call = 0
     _lock = asyncio.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -59,6 +66,7 @@ class GlobalRateLimit:
 ```
 
 ### Option 2: **Request Queue (Recommended)**
+
 ```python
 import asyncio
 
@@ -86,6 +94,7 @@ async def webhook(request: Request):
 ```
 
 ### Option 3: **Database Queue (Production)**
+
 ```python
 # Store requests in database with status
 # Background worker processes them sequentially
@@ -98,6 +107,6 @@ async def webhook(request: Request):
 - **High traffic**: Race conditions, rate limit failures
 - **Burst traffic**: Potential system overload
 
-## Recommended Action:
+## Recommended Action
 
 **Implement Option 2 (Request Queue)** for proper sequential processing while maintaining fast webhook response times.

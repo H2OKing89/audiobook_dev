@@ -5,6 +5,7 @@ Welcome to the comprehensive documentation for the Audiobook Automation System! 
 ## � Quick Start
 
 New to the system? Start here:
+
 1. [Getting Started](user-guide/getting-started.md) - Installation and basic setup
 2. [Configuration](user-guide/configuration.md) - Configure the system for your needs
 3. [Web Interface](user-guide/web-interface.md) - Using the web UI
@@ -12,6 +13,7 @@ New to the system? Start here:
 ## �📖 Documentation Structure
 
 ### 🎯 User Guide (`user-guide/`)
+
 Documentation for end users who want to use the audiobook automation system.
 
 - **[Getting Started](user-guide/getting-started.md)** - Installation, setup, and first run
@@ -21,14 +23,16 @@ Documentation for end users who want to use the audiobook automation system.
 - **[Troubleshooting](user-guide/troubleshooting.md)** - Common issues and solutions
 
 ### 🛠️ Development (`development/`)
+
 Documentation for developers who want to understand, modify, or contribute to the codebase.
 
 - **[Architecture](development/architecture.md)** - System architecture and design overview
-- **[Security](development/SECURITY.md)** - Security considerations and best practices  
+- **[Security](development/SECURITY.md)** - Security considerations and best practices
 - **[Testing](development/testing.md)** - Testing strategies, test suite, and guidelines
 - **[Contributing](development/contributing.md)** - How to contribute to the project
 
 ### 🔌 API Reference (`api/`)
+
 Technical API documentation for integrations and advanced usage.
 
 - **[REST API](api/rest-api.md)** - HTTP API endpoints and examples
@@ -37,13 +41,15 @@ Technical API documentation for integrations and advanced usage.
 ## 🎯 Key Features Documented
 
 ### ✅ Core System
+
 - **Audiobook Request Processing** - Automated processing of audiobook requests
 - **MAM Integration** - MyAnonaMouse scraping and ASIN extraction
 - **Metadata Enrichment** - Audnex and Audible metadata fetching
 - **Web Interface** - Modern approval/rejection interface
 - **Security** - CSRF protection, rate limiting, input validation
 
-### ✅ Advanced Features  
+### ✅ Advanced Features
+
 - **Rate Limiting** - Configurable API rate limiting (30s test, 120s production)
 - **Fallback Systems** - Multiple metadata sources with intelligent fallbacks
 - **Notification Systems** - Discord, Pushover, Gotify, NTFY support
@@ -68,8 +74,9 @@ Historical development documentation and implementation logs are stored in `arch
 
 ---
 
-**Last Updated**: June 2025  
+**Last Updated**: June 2025
 **System Version**: Production v1.0
+
 - [Database Schema](api/database.md) - Database structure
 - [Configuration Reference](api/config-reference.md) - Complete configuration options
 

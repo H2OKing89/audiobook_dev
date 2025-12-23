@@ -211,17 +211,17 @@
 }
 
 @keyframes rainbow-glow {
-    0%, 100% { 
-        filter: hue-rotate(0deg) brightness(1) drop-shadow(0 0 10px rgba(255,255,255,0.3)); 
+    0%, 100% {
+        filter: hue-rotate(0deg) brightness(1) drop-shadow(0 0 10px rgba(255,255,255,0.3));
     }
-    25% { 
-        filter: hue-rotate(90deg) brightness(1.2) drop-shadow(0 0 20px rgba(0,255,255,0.5)); 
+    25% {
+        filter: hue-rotate(90deg) brightness(1.2) drop-shadow(0 0 20px rgba(0,255,255,0.5));
     }
-    50% { 
-        filter: hue-rotate(180deg) brightness(1.4) drop-shadow(0 0 30px rgba(255,0,255,0.7)); 
+    50% {
+        filter: hue-rotate(180deg) brightness(1.4) drop-shadow(0 0 30px rgba(255,0,255,0.7));
     }
-    75% { 
-        filter: hue-rotate(270deg) brightness(1.2) drop-shadow(0 0 20px rgba(255,255,0,0.5)); 
+    75% {
+        filter: hue-rotate(270deg) brightness(1.2) drop-shadow(0 0 20px rgba(255,255,0,0.5));
     }
 }
 
@@ -309,17 +309,17 @@
         right: 10px;
         max-width: none;
     }
-    
+
     .error-details-panel {
         padding: 15px;
     }
-    
+
     .detail-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
     }
-    
+
     .detail-item strong {
         min-width: auto;
     }

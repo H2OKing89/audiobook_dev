@@ -100,7 +100,7 @@ notifications:
   discord:
     enabled: false
     webhook_url: ""
-  
+
 security:
   token_expiry_hours: 24
   max_requests_per_hour: 10
@@ -109,21 +109,25 @@ security:
 ## 🌐 Web Interface Tour
 
 ### Home Page
+
 - **Clean, modern design** with animated elements
 - **Quick action buttons** for common tasks
 - **System status** and information
 
 ### Request Audiobook
+
 - **Simple form** for submitting requests
 - **Validation** to ensure quality submissions
 - **Instant feedback** on submission status
 
 ### Browse Requests
+
 - **Organized list** of all requests
 - **Filtering and sorting** options
 - **Status tracking** for each request
 
 ### Approval/Rejection Pages
+
 - **Beautiful, engaging interfaces** with personality
 - **Clear feedback** for users
 - **Automatic redirects** and notifications
@@ -157,6 +161,7 @@ security:
 ### Common Issues
 
 **Port Already in Use**
+
 ```bash
 # Change the port in config/config.yaml
 server:
@@ -164,6 +169,7 @@ server:
 ```
 
 **Database Errors**
+
 ```bash
 # Reinitialize the database
 rm db.sqlite
@@ -171,6 +177,7 @@ python src/db.py
 ```
 
 **Permission Errors**
+
 ```bash
 # Check file permissions
 chmod +x src/*.py

@@ -3,6 +3,7 @@
 ## Pre-Deployment Security Checklist
 
 ### 1. Environment Configuration ✅
+
 - [ ] Copy `.env.example` to `.env`
 - [ ] Generate strong, unique API keys and tokens
 - [ ] Set `FORCE_HTTPS=true`
@@ -10,6 +11,7 @@
 - [ ] Set appropriate `LOG_LEVEL` (INFO or WARNING)
 
 ### 2. File Permissions 🔒
+
 ```bash
 # Secure the environment file
 chmod 600 .env
@@ -25,6 +27,7 @@ chmod 644 logs/*.log
 ```
 
 ### 3. HTTPS Configuration 🔐
+
 ```yaml
 # config/config.yaml
 security:
@@ -37,6 +40,7 @@ server:
 ### 4. Reverse Proxy Configuration 🌐
 
 #### Nginx Example
+
 ```nginx
 server {
     listen 80;
@@ -47,19 +51,19 @@ server {
 server {
     listen 443 ssl http2;
     server_name your-domain.com;
-    
+
     # SSL Configuration
     ssl_certificate /path/to/your/certificate.crt;
     ssl_certificate_key /path/to/your/private.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
-    
+
     # Security Headers
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options DENY;
     add_header X-XSS-Protection "1; mode=block";
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-    
+
     # Proxy Settings
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -73,6 +77,7 @@ server {
 ```
 
 #### Apache Example
+
 ```apache
 <VirtualHost *:80>
     ServerName your-domain.com
@@ -81,19 +86,19 @@ server {
 
 <VirtualHost *:443>
     ServerName your-domain.com
-    
+
     # SSL Configuration
     SSLEngine on
     SSLCertificateFile /path/to/your/certificate.crt
     SSLCertificateKeyFile /path/to/your/private.key
     SSLProtocol TLSv1.2 TLSv1.3
-    
+
     # Security Headers
     Header always set X-Content-Type-Options nosniff
     Header always set X-Frame-Options DENY
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    
+
     # Proxy Settings
     ProxyPass / http://127.0.0.1:8000/
     ProxyPassReverse / http://127.0.0.1:8000/
@@ -105,6 +110,7 @@ server {
 ### 5. Systemd Service Configuration 🔧
 
 Create `/etc/systemd/system/audiobook-approval.service`:
+
 ```ini
 [Unit]
 Description=Audiobook Approval Service
@@ -132,6 +138,7 @@ WantedBy=multi-user.target
 ```
 
 ### 6. Database Security 🗃️
+
 ```bash
 # Create dedicated user
 sudo useradd -r -s /bin/false audiobook-user
@@ -148,6 +155,7 @@ sudo chmod 600 /var/lib/audiobook/db.sqlite
 ```
 
 ### 7. Log Security 📝
+
 ```bash
 # Create log directory
 sudo mkdir -p /var/log/audiobook-approval
@@ -172,6 +180,7 @@ EOF
 ```
 
 ### 8. Firewall Configuration 🔥
+
 ```bash
 # UFW (Ubuntu/Debian)
 sudo ufw default deny incoming
@@ -192,7 +201,9 @@ sudo iptables -A INPUT -j DROP
 ## Security Monitoring 📊
 
 ### 1. Log Monitoring
+
 Monitor these log patterns for security events:
+
 ```bash
 # Failed authentication attempts
 grep "Invalid Autobrr token" /var/log/audiobook-approval/*.log
@@ -208,6 +219,7 @@ grep "CSRF" /var/log/audiobook-approval/*.log
 ```
 
 ### 2. Automated Monitoring Script
+
 ```bash
 #!/bin/bash
 # /usr/local/bin/audiobook-security-monitor.sh
@@ -225,6 +237,7 @@ fi
 ```
 
 ### 3. Health Check Endpoint
+
 ```bash
 # Add to monitoring system
 curl -f https://your-domain.com/health || alert_admin
@@ -233,6 +246,7 @@ curl -f https://your-domain.com/health || alert_admin
 ## Backup and Recovery 💾
 
 ### 1. Database Backup
+
 ```bash
 #!/bin/bash
 # /usr/local/bin/audiobook-backup.sh
@@ -256,6 +270,7 @@ find "$BACKUP_DIR" -name "*.gpg" -mtime +30 -delete
 ```
 
 ### 2. Configuration Backup
+
 ```bash
 # Backup configuration (without secrets)
 cp config/config.yaml.example /var/backups/audiobook/config_$(date +%Y%m%d).yaml
@@ -264,6 +279,7 @@ cp config/config.yaml.example /var/backups/audiobook/config_$(date +%Y%m%d).yaml
 ## Incident Response 🚨
 
 ### 1. Security Incident Checklist
+
 - [ ] Identify the nature of the security incident
 - [ ] Isolate affected systems
 - [ ] Document the incident
@@ -274,6 +290,7 @@ cp config/config.yaml.example /var/backups/audiobook/config_$(date +%Y%m%d).yaml
 - [ ] Conduct post-incident review
 
 ### 2. Emergency Commands
+
 ```bash
 # Stop the service immediately
 sudo systemctl stop audiobook-approval
@@ -291,18 +308,21 @@ sudo tail -1000 /var/log/audiobook-approval/audiobook_requests.log
 ## Regular Security Maintenance 🔄
 
 ### Weekly Tasks
+
 - [ ] Review security logs
 - [ ] Check for failed authentication attempts
 - [ ] Verify backup integrity
 - [ ] Update dependencies with security patches
 
-### Monthly Tasks  
+### Monthly Tasks
+
 - [ ] Review and rotate API keys
 - [ ] Analyze security metrics
 - [ ] Test incident response procedures
 - [ ] Update security documentation
 
 ### Quarterly Tasks
+
 - [ ] Conduct security assessment
 - [ ] Review access controls
 - [ ] Update security policies

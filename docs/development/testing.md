@@ -35,6 +35,7 @@ tests/
 ## 🚀 Running Tests
 
 ### All Tests
+
 ```bash
 # Run the complete test suite
 pytest
@@ -47,6 +48,7 @@ pytest --cov=src --cov-report=html
 ```
 
 ### Specific Test Categories
+
 ```bash
 # Unit tests only
 pytest tests/test_config.py tests/test_token_gen.py -v
@@ -62,6 +64,7 @@ pytest tests/test_end_to_end.py -v
 ```
 
 ### Specific Test Functions
+
 ```bash
 # Run a specific test
 pytest tests/test_webui.py::test_rejection_endpoint -v
@@ -76,6 +79,7 @@ pytest -m "slow" -v
 ## 🔧 Test Configuration
 
 ### Environment Setup
+
 ```bash
 # Create test environment
 python -m venv .venv-test
@@ -85,6 +89,7 @@ pip install pytest pytest-cov pytest-asyncio
 ```
 
 ### Test Configuration (`conftest.py`)
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
@@ -102,12 +107,12 @@ def test_db():
     """Temporary test database"""
     with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
         test_db_path = f.name
-    
+
     # Initialize test database
     os.environ['TEST_DB_PATH'] = test_db_path
-    
+
     yield test_db_path
-    
+
     # Cleanup
     if os.path.exists(test_db_path):
         os.unlink(test_db_path)
@@ -126,33 +131,34 @@ def sample_request_data():
 ## 📝 Writing Tests
 
 ### Test Structure Template
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
 
 class TestFeatureName:
     """Test suite for specific feature"""
-    
+
     def setup_method(self):
         """Setup before each test method"""
         self.test_data = {"key": "value"}
-    
+
     def test_positive_case(self, test_client):
         """Test the happy path"""
         response = test_client.get("/endpoint")
         assert response.status_code == 200
         assert "expected_content" in response.text
-    
+
     def test_negative_case(self, test_client):
         """Test error conditions"""
         response = test_client.post("/endpoint", json={})
         assert response.status_code == 400
-    
+
     def test_edge_case(self, test_client):
         """Test boundary conditions"""
         # Test implementation
         pass
-    
+
     @pytest.mark.slow
     def test_performance_case(self, test_client):
         """Test performance-sensitive operations"""
@@ -161,6 +167,7 @@ class TestFeatureName:
 ```
 
 ### Web Interface Testing
+
 ```python
 def test_home_page(test_client):
     """Test home page renders correctly"""
@@ -173,31 +180,32 @@ def test_request_submission(test_client, sample_request_data):
     """Test audiobook request submission"""
     response = test_client.post("/audiobook-requests", json=sample_request_data)
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["status"] == "success"
     assert "request_id" in data
 ```
 
 ### Database Testing
+
 ```python
 def test_database_operations(test_db):
     """Test database CRUD operations"""
     from src.db import Database
-    
+
     db = Database(test_db)
-    
+
     # Test create
     request_id = db.create_request({
         "title": "Test Book",
         "author": "Test Author"
     })
     assert request_id is not None
-    
+
     # Test read
     request = db.get_request(request_id)
     assert request["title"] == "Test Book"
-    
+
     # Test update
     db.update_request(request_id, {"status": "approved"})
     updated_request = db.get_request(request_id)
@@ -205,16 +213,17 @@ def test_database_operations(test_db):
 ```
 
 ### Security Testing
+
 ```python
 def test_token_validation():
     """Test token generation and validation"""
     from src.token_gen import generate_token, validate_token
-    
+
     # Generate valid token
     token = generate_token(request_id=123, action="approve")
     assert token is not None
     assert len(token) > 20
-    
+
     # Validate token
     is_valid, data = validate_token(token)
     assert is_valid
@@ -229,23 +238,24 @@ def test_token_expiration():
 ```
 
 ### Notification Testing
+
 ```python
 @pytest.mark.asyncio
 async def test_notification_sending():
     """Test notification delivery"""
     from src.notify.discord import DiscordNotifier
-    
+
     notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test")
-    
+
     # Mock the HTTP request
     with patch('aiohttp.ClientSession.post') as mock_post:
         mock_post.return_value.__aenter__.return_value.status = 200
-        
+
         result = await notifier.send_approval_request({
             "title": "Test Book",
             "author": "Test Author"
         })
-        
+
         assert result is True
         mock_post.assert_called_once()
 ```
@@ -253,6 +263,7 @@ async def test_notification_sending():
 ## 🎭 Test Fixtures and Mocking
 
 ### Common Fixtures
+
 ```python
 @pytest.fixture
 def mock_config():
@@ -275,6 +286,7 @@ def mock_metadata_response():
 ```
 
 ### Mocking External Services
+
 ```python
 from unittest.mock import patch, Mock
 
@@ -285,10 +297,10 @@ def test_metadata_lookup():
             "title": "Mocked Title",
             "author": "Mocked Author"
         }
-        
+
         from src.metadata import get_book_metadata
         result = get_book_metadata("test-isbn")
-        
+
         assert result["title"] == "Mocked Title"
         mock_fetch.assert_called_once_with("test-isbn")
 ```
@@ -296,6 +308,7 @@ def test_metadata_lookup():
 ## 📊 Test Coverage
 
 ### Coverage Reports
+
 ```bash
 # Generate HTML coverage report
 pytest --cov=src --cov-report=html
@@ -308,6 +321,7 @@ pytest --cov=src --cov-report=xml
 ```
 
 ### Coverage Goals
+
 - **Overall Coverage:** >85%
 - **Critical Components:** >95%
   - Authentication/authorization
@@ -316,6 +330,7 @@ pytest --cov=src --cov-report=xml
   - Security functions
 
 ### Viewing Coverage
+
 ```bash
 # Open HTML coverage report
 open htmlcov/index.html  # macOS
@@ -325,6 +340,7 @@ xdg-open htmlcov/index.html  # Linux
 ## 🔄 Continuous Integration
 
 ### GitHub Actions Example
+
 ```yaml
 name: Tests
 
@@ -333,24 +349,24 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v2
-    
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
-    
+
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
         pip install pytest pytest-cov
-    
+
     - name: Run tests
       run: |
         pytest --cov=src --cov-report=xml
-    
+
     - name: Upload coverage
       uses: codecov/codecov-action@v1
       with:
@@ -360,6 +376,7 @@ jobs:
 ## 🐛 Debugging Tests
 
 ### Running Tests in Debug Mode
+
 ```bash
 # Run with Python debugger
 pytest --pdb
@@ -372,6 +389,7 @@ pytest -v -s
 ```
 
 ### Debug Configuration
+
 ```python
 # Add to test files for debugging
 import logging
@@ -386,6 +404,7 @@ def test_debug_example():
 ## 📈 Performance Testing
 
 ### Load Testing Example
+
 ```python
 import time
 import concurrent.futures
@@ -395,12 +414,12 @@ def test_concurrent_requests():
     def make_request():
         response = test_client.get("/")
         return response.status_code
-    
+
     # Test with 10 concurrent requests
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(make_request) for _ in range(10)]
         results = [f.result() for f in concurrent.futures.as_completed(futures)]
-    
+
     # All requests should succeed
     assert all(status == 200 for status in results)
 ```
@@ -408,6 +427,7 @@ def test_concurrent_requests():
 ## 🎯 Best Practices
 
 ### Test Writing Guidelines
+
 1. **Clear Names** - Test names should describe what they test
 2. **Single Responsibility** - One test per behavior
 3. **Independent Tests** - Tests shouldn't depend on each other
@@ -415,12 +435,14 @@ def test_concurrent_requests():
 5. **Meaningful Assertions** - Assert on specific expected behavior
 
 ### Test Organization
+
 1. **Group Related Tests** - Use classes to group related functionality
 2. **Use Descriptive Comments** - Explain complex test logic
 3. **Test Edge Cases** - Include boundary condition testing
 4. **Mock External Dependencies** - Don't rely on external services
 
 ### Performance Considerations
+
 1. **Fast Tests** - Keep unit tests under 100ms
 2. **Parallel Execution** - Use pytest-xdist for faster runs
 3. **Selective Testing** - Use markers for slow tests

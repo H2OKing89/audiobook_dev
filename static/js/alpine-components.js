@@ -25,10 +25,10 @@ function initializeAlpineComponents() {
     Alpine.store('app', {
         // Loading states
         isLoading: false,
-        
+
         // Theme and UI state
         theme: 'cyberpunk',
-        
+
         // System status
         systemStatus: {
             uptime: '99.9%',
@@ -36,7 +36,7 @@ function initializeAlpineComponents() {
             memory: '420MB',
             dadJokes: '∞'
         },
-        
+
         // Copy to clipboard utility
         async copyToClipboard(text, successCallback) {
             try {
@@ -57,39 +57,39 @@ function initializeAlpineComponents() {
             }
         }
     });
-    
+
     // Popup/Modal store
     Alpine.store('popup', {
         isOpen: false,
         type: null,
         data: null,
-        
+
         open(type, data = null) {
             this.type = type;
             this.data = data;
             this.isOpen = true;
         },
-        
+
         close() {
             this.isOpen = false;
             this.type = null;
             this.data = null;
         }
     });
-    
+
     // Notification store
     Alpine.store('notifications', {
         items: [],
-        
+
         add(message, type = 'info', duration = 3000) {
             const id = Date.now();
             this.items.push({ id, message, type });
-            
+
             if (duration > 0) {
                 setTimeout(() => this.remove(id), duration);
             }
         },
-        
+
         remove(id) {
             this.items = this.items.filter(item => item.id !== id);
         }
@@ -111,7 +111,7 @@ function initializeAlpineComponents() {
     // Alpine.js Directives
     Alpine.directive('tooltip', (el, { expression }, { evaluate, cleanup }) => {
         const tooltipText = evaluate(expression);
-        
+
         let tooltip = null;
         let onMouseEnter, onMouseLeave, onMouseMove;
         let observer = null;
@@ -214,22 +214,22 @@ function initializeAlpineComponents() {
 
 // Alpine.js Data Components
 window.AlpineComponents = {
-    
+
     // Copy button component
     copyButton() {
         return {
             copied: false,
             originalText: 'Copy',
-            
+
             async copy(text = null) {
                 const textToCopy = text || this.$el.dataset.text || window.location.href;
-                
+
                 try {
                     await this.$store.app.copyToClipboard(textToCopy);
                     this.copied = true;
                     this.originalText = this.$el.textContent;
                     this.$el.textContent = 'Copied!';
-                    
+
                     setTimeout(() => {
                         this.copied = false;
                         this.$el.textContent = this.originalText;
@@ -240,16 +240,16 @@ window.AlpineComponents = {
             }
         }
     },
-    
+
     // Auto-close countdown component
     autoCloseCountdown(seconds = 5) {
         return {
             remaining: seconds,
-            
+
             init() {
                 this.startCountdown();
             },
-            
+
             startCountdown() {
                 const interval = setInterval(() => {
                     this.remaining--;
@@ -280,29 +280,29 @@ window.AlpineComponents = {
             }
         }
     },
-    
+
     // Form enhancement component
     formEnhancer() {
         return {
             isSubmitting: false,
             originalText: '',
-            
+
             init() {
                 const submitButton = this.$el.querySelector('button[type="submit"], input[type="submit"]');
                 if (submitButton) {
                     this.originalText = submitButton.textContent || submitButton.value;
                 }
             },
-            
+
             handleSubmit() {
                 this.isSubmitting = true;
                 const submitButton = this.$el.querySelector('button[type="submit"], input[type="submit"]');
-                
+
                 if (submitButton) {
                     submitButton.disabled = true;
                     submitButton.textContent = 'Processing...';
                     submitButton.value = 'Processing...';
-                    
+
                     // Re-enable after 10 seconds as fallback
                     setTimeout(() => {
                         this.isSubmitting = false;
@@ -311,44 +311,44 @@ window.AlpineComponents = {
                         submitButton.value = this.originalText;
                     }, 10000);
                 }
-                
+
                 return true; // Allow form submission to continue
             }
         }
     },
-    
+
     // Tooltip component
     tooltip() {
         return {
             visible: false,
             x: 0,
             y: 0,
-            
+
             show(event) {
                 this.visible = true;
                 this.updatePosition(event);
             },
-            
+
             hide() {
                 this.visible = false;
             },
-            
+
             updatePosition(event) {
                 this.x = event.pageX + 10;
                 this.y = event.pageY + 10;
             }
         }
     },
-    
+
     // Particles animation component
     particles(count = 50) {
         return {
             particles: [],
-            
+
             init() {
                 this.generateParticles();
             },
-            
+
             generateParticles() {
                 for (let i = 0; i < count; i++) {
                     this.particles.push({
@@ -361,7 +361,7 @@ window.AlpineComponents = {
             }
         }
     },
-    
+
     // Dynamic tagline rotator
     taglineRotator(taglines = []) {
         return {
@@ -426,36 +426,36 @@ window.AlpineComponents = {
             }
         }
     },
-    
+
     // Loading screen component
     loadingScreen() {
         return {
             isLoading: true,
             progress: 0,
             _loadingInterval: null,
-            
+
             init() {
                 this.simulateLoading();
             },
-            
+
             simulateLoading() {
                 this._loadingInterval = setInterval(() => {
                     this.progress += Math.random() * 15;
-                    
+
                     if (this.progress >= 100) {
                         this.progress = 100;
                         if (this._loadingInterval) {
                             clearInterval(this._loadingInterval);
                             this._loadingInterval = null;
                         }
-                        
+
                         setTimeout(() => {
                             this.isLoading = false;
                         }, 500);
                     }
                 }, 100);
             },
-            
+
             destroy() {
                 if (this._loadingInterval) {
                     clearInterval(this._loadingInterval);
@@ -464,37 +464,37 @@ window.AlpineComponents = {
             }
         }
     },
-    
+
     // Stats counter component
     statsCounter(targetValue, duration = 2000) {
         return {
             currentValue: 0,
             _animationFrameId: null,
-            
+
             init() {
                 this.animateCounter(targetValue, duration);
             },
-            
+
             animateCounter(target, duration) {
                 const startTime = Date.now();
                 const startValue = 0;
-                
+
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / duration, 1);
-                    
+
                     this.currentValue = Math.floor(startValue + (target - startValue) * progress);
-                    
+
                     if (progress < 1) {
                         this._animationFrameId = requestAnimationFrame(animate);
                     } else {
                         this._animationFrameId = null;
                     }
                 };
-                
+
                 this._animationFrameId = requestAnimationFrame(animate);
             },
-            
+
             destroy() {
                 if (this._animationFrameId !== null) {
                     cancelAnimationFrame(this._animationFrameId);

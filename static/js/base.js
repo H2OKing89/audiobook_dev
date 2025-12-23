@@ -22,9 +22,9 @@ const AudiobookApp = {
     startAutoCloseCountdown: function(seconds) {
         const countdownElement = document.getElementById('countdown');
         if (!countdownElement) return;
-        
+
         let remainingSeconds = seconds;
-        
+
         function updateCountdown() {
             countdownElement.textContent = remainingSeconds;
             if (remainingSeconds <= 0) {
@@ -34,7 +34,7 @@ const AudiobookApp = {
                 setTimeout(updateCountdown, 1000);
             }
         }
-        
+
         updateCountdown();
     },
 

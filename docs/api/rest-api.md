@@ -13,6 +13,7 @@ http://localhost:8000
 ## 📋 API Overview
 
 The API provides endpoints for:
+
 - **Request Management** - Creating and managing audiobook requests
 - **Status Checking** - Monitoring request status
 - **Approval/Rejection** - Token-based approval workflow
@@ -23,11 +24,13 @@ The API provides endpoints for:
 The API uses **token-based authentication** for approval/rejection actions. Most read operations are public, while write operations require valid tokens.
 
 ### Token Format
+
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 Tokens are:
+
 - **URL-safe** - Can be included in URLs
 - **Time-limited** - Expire after configured duration
 - **Single-use** - Become invalid after use
@@ -37,9 +40,11 @@ Tokens are:
 ### 🏠 Home & Static Pages
 
 #### `GET /`
+
 Returns the main homepage.
 
 **Response:**
+
 - **Content-Type:** `text/html`
 - **Status:** `200 OK`
 
@@ -48,9 +53,11 @@ Returns the main homepage.
 ### 📚 Request Management
 
 #### `POST /audiobook-requests`
+
 Submit a new audiobook request.
 
 **Request Body:**
+
 ```json
 {
     "title": "The Hitchhiker's Guide to the Galaxy",
@@ -64,10 +71,12 @@ Submit a new audiobook request.
 ```
 
 **Required Fields:**
+
 - `title` (string) - Book title
 - `author` (string) - Author name
 
 **Optional Fields:**
+
 - `isbn` (string) - ISBN number
 - `description` (string) - Book description
 - `priority` (enum) - `low`, `normal`, `high`
@@ -75,6 +84,7 @@ Submit a new audiobook request.
 - `narrator` (string) - Preferred narrator
 
 **Response:**
+
 ```json
 {
     "status": "success",
@@ -86,6 +96,7 @@ Submit a new audiobook request.
 ```
 
 **Status Codes:**
+
 - `200 OK` - Request submitted successfully
 - `400 Bad Request` - Invalid request data
 - `429 Too Many Requests` - Rate limit exceeded
@@ -94,15 +105,18 @@ Submit a new audiobook request.
 ---
 
 #### `GET /requests`
+
 List all audiobook requests (paginated).
 
 **Query Parameters:**
+
 - `page` (integer, default: 1) - Page number
 - `limit` (integer, default: 20, max: 100) - Items per page
 - `status` (enum) - Filter by status: `pending`, `approved`, `rejected`
 - `sort` (enum) - Sort order: `newest`, `oldest`, `title`, `author`
 
 **Response:**
+
 ```json
 {
     "requests": [
@@ -127,12 +141,15 @@ List all audiobook requests (paginated).
 ---
 
 #### `GET /requests/{request_id}`
+
 Get details for a specific request.
 
 **Path Parameters:**
+
 - `request_id` (integer) - Request ID
 
 **Response:**
+
 ```json
 {
     "id": 123,
@@ -152,6 +169,7 @@ Get details for a specific request.
 ```
 
 **Status Codes:**
+
 - `200 OK` - Request found
 - `404 Not Found` - Request doesn't exist
 
@@ -160,12 +178,15 @@ Get details for a specific request.
 ### ✅ Approval/Rejection
 
 #### `GET /approve/{token}`
+
 Approve a request using a valid approval token.
 
 **Path Parameters:**
+
 - `token` (string) - Approval token
 
 **Response:**
+
 - **Content-Type:** `text/html`
 - **Status:** `200 OK` - Success page
 - **Status:** `400 Bad Request` - Invalid/expired token
@@ -174,12 +195,15 @@ Approve a request using a valid approval token.
 ---
 
 #### `GET /reject/{token}`
+
 Reject a request using a valid rejection token.
 
 **Path Parameters:**
+
 - `token` (string) - Rejection token
 
 **Response:**
+
 - **Content-Type:** `text/html`
 - **Status:** `200 OK` - Rejection page
 - **Status:** `400 Bad Request` - Invalid/expired token
@@ -190,9 +214,11 @@ Reject a request using a valid rejection token.
 ### 📊 System Information
 
 #### `GET /health`
+
 Health check endpoint for monitoring.
 
 **Response:**
+
 ```json
 {
     "status": "healthy",
@@ -204,15 +230,18 @@ Health check endpoint for monitoring.
 ```
 
 **Status Codes:**
+
 - `200 OK` - System healthy
 - `503 Service Unavailable` - System issues
 
 ---
 
 #### `GET /stats`
+
 System statistics and metrics.
 
 **Response:**
+
 ```json
 {
     "requests": {

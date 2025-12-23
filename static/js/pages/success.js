@@ -260,7 +260,7 @@ class QuoteGenerator {
     async typeWriter(text, element, speed = this.typewriterSpeed) {
         this.isTyping = true;
         element.textContent = '';
-        
+
         for (let i = 0; i < text.length; i++) {
             if (!this.isTyping) break;
             element.textContent += text.charAt(i);
@@ -314,7 +314,7 @@ class QuoteGenerator {
     addSparkleEffect() {
         const sparkles = ['✨', '⭐', '🌟', '💫'];
         const quoteContent = this.quoteElement.querySelector('.quote-content');
-        
+
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
                 const sparkle = document.createElement('span');
@@ -328,10 +328,10 @@ class QuoteGenerator {
                     animation: sparkle-float 2s ease-out forwards;
                     pointer-events: none;
                 `;
-                
+
                 quoteContent.style.position = 'relative';
                 quoteContent.appendChild(sparkle);
-                
+
                 setTimeout(() => sparkle.remove(), 2000);
             }, i * 300);
         }
@@ -339,7 +339,7 @@ class QuoteGenerator {
 
     async generateNewQuote() {
         if (this.isTyping) return;
-        
+
         // Add loading state
         this.quoteElement.innerHTML = `
             <div class="loading-quote">
@@ -354,7 +354,7 @@ class QuoteGenerator {
 
         // Wait a bit for effect
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         // Display new quote
         await this.displayQuote();
     }
@@ -384,7 +384,7 @@ class SuccessPageController {
     setupEventListeners() {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-        
+
         // Celebration effects on mascot click
         const mascot = document.querySelector('.celebration-image');
         if (mascot) {
@@ -505,10 +505,10 @@ class SuccessPageController {
         // Ultimate celebration mode
         this.celebrationEngine.triggerScreenFlash();
         this.celebrationEngine.startConfetti();
-        
+
         // Show special message
         this.showTemporaryMessage("🚀 KONAMI CODE ACTIVATED! ULTIMATE CELEBRATION MODE! 🚀", 4000);
-        
+
         // Add special effects to mascot
         const mascot = document.querySelector('.celebration-image');
         if (mascot) {
@@ -533,7 +533,7 @@ class SuccessPageController {
     autoStartCelebration() {
         // Start some subtle celebration effects
         this.celebrationEngine.startConfetti();
-        
+
         // Add some initial fireworks
         setTimeout(() => {
             const centerX = window.innerWidth / 2;
@@ -683,11 +683,11 @@ function showStatusUpdate() {
         "⚡ Download speed: MAXIMUM OVERDRIVE!",
         "🚀 ETA: Faster than you can say 'chapter one'!"
     ];
-    
+
     let messageIndex = 0;
     const overlay = document.getElementById('successOverlay');
     const content = overlay.querySelector('.overlay-content');
-    
+
     content.innerHTML = `
         <h2>📡 STATUS CHECK INITIATED</h2>
         <div id="status-message" style="font-family: 'Courier New', monospace; font-size: 1.1rem; margin: 20px 0;"></div>
@@ -695,11 +695,11 @@ function showStatusUpdate() {
             <div class="progress" style="height: 100%; background: linear-gradient(90deg, #00ff41, #0099ff); width: 0%; animation: progress-fill 3s ease-out forwards;"></div>
         </div>
     `;
-    
+
     overlay.style.display = 'flex';
-    
+
     const statusElement = document.getElementById('status-message');
-    
+
     function showNextMessage() {
         if (messageIndex < messages.length) {
             statusElement.textContent = messages[messageIndex];
@@ -711,7 +711,7 @@ function showStatusUpdate() {
             }, 1500);
         }
     }
-    
+
     showNextMessage();
 }
 
@@ -719,7 +719,7 @@ function triggerCelebration() {
     if (window.successController) {
         window.successController.celebrationEngine.startConfetti();
         window.successController.celebrationEngine.triggerScreenFlash();
-        
+
         // Extra fireworks
         for (let i = 0; i < 3; i++) {
             setTimeout(() => {
@@ -728,7 +728,7 @@ function triggerCelebration() {
                 window.successController.celebrationEngine.createFirework(x, y);
             }, i * 300);
         }
-        
+
         window.successController.showTemporaryMessage("🎊 PARTY MODE ACTIVATED! 🎊", 3000);
     }
 }
@@ -751,25 +751,25 @@ function showEasterEgg() {
             extra: "Why don't scientists trust atoms? Because they make up everything... like this message!"
         }
     ];
-    
+
     const randomEgg = easterEggs[Math.floor(Math.random() * easterEggs.length)];
     const overlay = document.getElementById('successOverlay');
     const content = overlay.querySelector('.overlay-content');
-    
+
     content.innerHTML = `
         <h2>${randomEgg.title}</h2>
         <p style="font-size: 1.2rem; margin: 20px 0;">${randomEgg.message}</p>
         <p style="font-style: italic; color: #00cc88;">${randomEgg.extra}</p>
         <div style="margin-top: 20px;">
-            <button onclick="document.getElementById('successOverlay').style.display='none'" 
+            <button onclick="document.getElementById('successOverlay').style.display='none'"
                     style="background: linear-gradient(45deg, #00ff41, #0099ff); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 AWESOME! [ESC]
             </button>
         </div>
     `;
-    
+
     overlay.style.display = 'flex';
-    
+
     // Add some celebration effects
     if (window.successController) {
         window.successController.celebrationEngine.startConfetti();
@@ -788,14 +788,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the main controller
     successController = new SuccessPageController();
     quoteGenerator = successController.quoteGenerator;
-    
+
     // Make them globally accessible
     window.successController = successController;
     window.quoteGenerator = quoteGenerator;
-    
+
     // Initialize quote generator
     quoteGenerator.initialize();
-    
+
     // Add initial CSS for progress bar animation
     if (!document.getElementById('progress-styles')) {
         const style = document.createElement('style');
@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.head.appendChild(style);
     }
-    
+
     debugLog('🎉 Success page loaded! Ready for celebration! 🎉');
     debugLog('💡 Tip: Try pressing Q for a new quote, P for party mode, or the Konami code! 🎮');
 });

@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unauthorized Access</title>
-    
+
     <!-- New CSS Architecture -->
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/pages/error.css">
-    
+
     <!-- Security Headers -->
     {% include 'security_headers.html' %}
 </head>
@@ -28,31 +28,31 @@
                 <li>Contact the administrator if you need access</li>
             </ul>
         </p>
-        
+
         <!-- Enhanced error actions with Alpine.js -->
         <div class="error-actions">
             <a href="/" class="btn-home">Return Home</a>
-            
+
             <!-- Copy error info button -->
-            <button 
+            <button
                 @click="copyErrorInfo()"
                 class="btn-copy"
                 x-text="errorReported ? 'Copied!' : 'Copy Error Info'">
                 Copy Error Info
             </button>
-            
+
             <!-- Toggle detailed error info -->
-            <button 
+            <button
                 @click="toggleDetails()"
                 class="btn-details"
                 x-text="showDetails ? 'Hide Details' : 'Show Details'">
                 Show Details
             </button>
         </div>
-        
+
         <!-- Collapsible error details -->
-        <div 
-            x-show="showDetails" 
+        <div
+            x-show="showDetails"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 transform scale-95"
             x-transition:enter-end="opacity-100 transform scale-100"
@@ -79,7 +79,7 @@
                     <span>Check your API key or authentication credentials</span>
                 </div>
             </div>
-            
+
             <!-- Error tips -->
             <div class="error-tips" style="margin-top: 20px;">
                 <h4>💡 Troubleshooting Tips:</h4>
@@ -91,18 +91,18 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Alpine.js Components -->
     <script defer src="/static/js/alpine-pages.js"></script>
-    
+
     <!-- Global notification system -->
-    <div 
+    <div
         x-data
         x-show="$store.notifications.items.length > 0"
         class="notifications-container"
         style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
         <template x-for="notification in $store.notifications.items" :key="notification.id">
-            <div 
+            <div
                 x-show="true"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 transform translate-x-full"

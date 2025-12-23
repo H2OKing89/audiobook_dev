@@ -16,6 +16,7 @@ The security system now includes comprehensive endpoint protection that:
 ### Protected Endpoints
 
 By default, these endpoints require authentication:
+
 - `/admin` - Admin dashboard and controls
 - `/api/admin` - Admin API endpoints
 - `/config` - Configuration management
@@ -24,9 +25,10 @@ By default, these endpoints require authentication:
 - `/health/detailed` - Detailed health information
 - `/debug` - Debug information
 
-### Public Endpoints  
+### Public Endpoints
 
 These endpoints remain publicly accessible:
+
 - `/` - Home page
 - `/static/*` - Static assets (CSS, JS, images)
 - `/approve/*` - Approval workflows (token-based auth)
@@ -86,18 +88,21 @@ security:
 ### Accessing Protected Endpoints
 
 Without authentication:
+
 ```bash
 curl https://your-domain.com/admin
 # Returns: 401 Unauthorized page
 ```
 
 With API key in header:
+
 ```bash
 curl -H "X-API-Key: your-secure-api-key" https://your-domain.com/admin
 # Returns: Admin dashboard
 ```
 
 With API key in query parameter:
+
 ```bash
 curl https://your-domain.com/admin?api_key=your-secure-api-key
 # Returns: Admin dashboard
@@ -106,6 +111,7 @@ curl https://your-domain.com/admin?api_key=your-secure-api-key
 ### Public Endpoints
 
 These work without authentication:
+
 ```bash
 curl https://your-domain.com/
 curl https://your-domain.com/health
@@ -115,6 +121,7 @@ curl https://your-domain.com/static/css/style.css
 ### Token-Based Endpoints
 
 Approve/reject endpoints continue to use token-based authentication:
+
 ```bash
 curl https://your-domain.com/approve/abc123token
 # Returns: Approval page if token is valid, 410 if expired
@@ -125,6 +132,7 @@ curl https://your-domain.com/approve/abc123token
 ### Rate Limiting
 
 Token generation continues to use rate limiting to prevent abuse:
+
 - Configurable time windows and limits
 - Per-IP address tracking
 - Automatic cleanup of old entries
@@ -132,6 +140,7 @@ Token generation continues to use rate limiting to prevent abuse:
 ### CSRF Protection
 
 Forms include CSRF token validation when enabled:
+
 ```yaml
 security:
   csrf_protection: true
@@ -140,6 +149,7 @@ security:
 ### Content Security Policy
 
 Strict CSP headers are applied automatically:
+
 - Prevents inline script execution
 - Controls resource loading sources
 - Mitigates XSS attacks
@@ -147,24 +157,28 @@ Strict CSP headers are applied automatically:
 ## Testing the Setup
 
 1. **Test public access:**
+
    ```bash
    curl -I https://your-domain.com/
    # Should return 200 OK
    ```
 
 2. **Test protected endpoint without auth:**
+
    ```bash
    curl -I https://your-domain.com/admin
    # Should return 401 Unauthorized
    ```
 
 3. **Test protected endpoint with auth:**
+
    ```bash
    curl -H "X-API-Key: your-key" -I https://your-domain.com/admin
    # Should return 200 OK (if API key is enabled and correct)
    ```
 
 4. **Test token-based endpoints:**
+
    ```bash
    curl -I https://your-domain.com/approve/invalid-token
    # Should return 410 Gone (token expired page)
@@ -192,6 +206,7 @@ Strict CSP headers are applied automatically:
 ### Logging
 
 Security events are logged with appropriate levels:
+
 - INFO: Successful authentications
 - WARNING: Unauthorized access attempts
 - ERROR: Configuration or system errors
@@ -210,7 +225,7 @@ If upgrading from a previous version:
 ## Best Practices
 
 1. **Use strong API keys:** Generate random, long keys
-2. **Limit protected endpoints:** Only protect what needs protection  
+2. **Limit protected endpoints:** Only protect what needs protection
 3. **Monitor logs:** Watch for unauthorized access attempts
 4. **Regular key rotation:** Change API keys periodically
 5. **Test configurations:** Verify settings work as expected

@@ -7,6 +7,7 @@ The audiobook metadata workflow has been updated to respect API rate limits to a
 ## Configuration
 
 **File**: `config/config.yaml`
+
 ```yaml
 metadata:
   rate_limit_seconds: 120  # 2 minutes between API calls
@@ -15,6 +16,7 @@ metadata:
 ## Implementation Details
 
 ### 1. **Global Rate Limiting (120 seconds)**
+
 - Applied across **all** metadata sources
 - Enforced by the metadata coordinator
 - Prevents overwhelming external APIs
@@ -22,21 +24,25 @@ metadata:
 ### 2. **Source-Specific Rate Limiting**
 
 #### **MAM Scraper** (`src/mam_scraper.py`)
+
 - ✅ Global rate limiting: 120 seconds between requests
 - Applied before navigating to MAM pages
 - Prevents hammering myanonamouse.net
 
 #### **Audnex API** (`src/audnex_metadata.py`)
+
 - ✅ Local rate limiting: 150ms between requests
 - ✅ Global rate limiting: 120 seconds between API calls
 - Double protection for api.audnex.us
 
 #### **Audible Scraper** (`src/audible_scraper.py`)
+
 - ✅ Global rate limiting: 120 seconds between requests
 - Applied before searching Audible
 - Protects both Audible API and fallback to Audnex
 
 #### **Metadata Coordinator** (`src/metadata_coordinator.py`)
+
 - ✅ Orchestrates global rate limiting across all sources
 - Ensures 2-minute gaps between any API calls
 - Logs rate limiting actions for transparency
@@ -44,16 +50,19 @@ metadata:
 ## Key Features
 
 ### 1. **Configurable Rate Limits**
+
 - Rate limits read from `config.yaml`
 - Easy to adjust without code changes
 - Default: 2 minutes (120 seconds)
 
 ### 2. **Comprehensive Logging**
+
 - All rate limiting actions are logged
 - Shows wait times and enforcement
 - Helps with debugging and monitoring
 
 ### 3. **Respectful API Usage**
+
 - Prevents overwhelming external services
 - Follows best practices for web scraping
 - Reduces risk of IP bans or rate limiting
@@ -69,6 +78,7 @@ The complete metadata workflow now enforces rate limiting at each step:
 ## Testing
 
 A test script (`simple_rate_test.py`) verifies:
+
 - ✅ Configuration is loaded correctly
 - ✅ Rate limit is set to 120 seconds
 - ✅ All components read the configuration
@@ -83,6 +93,7 @@ A test script (`simple_rate_test.py`) verifies:
 ## Error Prevention
 
 This implementation prevents:
+
 - ❌ Hammering external APIs
 - ❌ IP bans from excessive requests
 - ❌ Service degradation for other users
