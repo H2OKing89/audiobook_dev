@@ -189,8 +189,8 @@ function initializeAlpineComponents() {
                 }
             });
 
-            // Observe the document body subtree so we catch removals anywhere
-            observer.observe(document.body, { childList: true, subtree: true });
+            // Observe just the parent node instead of entire document.body for better performance
+            observer.observe(el.parentNode || document.body, { childList: true, subtree: true });
         } catch (err) {
             // MutationObserver may not be available in some environments; fail gracefully
             console.warn('Tooltip cleanup observer not available:', err);
@@ -432,24 +432,35 @@ window.AlpineComponents = {
         return {
             isLoading: true,
             progress: 0,
+            _loadingInterval: null,
             
             init() {
                 this.simulateLoading();
             },
             
             simulateLoading() {
-                const interval = setInterval(() => {
+                this._loadingInterval = setInterval(() => {
                     this.progress += Math.random() * 15;
                     
                     if (this.progress >= 100) {
                         this.progress = 100;
-                        clearInterval(interval);
+                        if (this._loadingInterval) {
+                            clearInterval(this._loadingInterval);
+                            this._loadingInterval = null;
+                        }
                         
                         setTimeout(() => {
                             this.isLoading = false;
                         }, 500);
                     }
                 }, 100);
+            },
+            
+            destroy() {
+                if (this._loadingInterval) {
+                    clearInterval(this._loadingInterval);
+                    this._loadingInterval = null;
+                }
             }
         }
     },
@@ -458,6 +469,7 @@ window.AlpineComponents = {
     statsCounter(targetValue, duration = 2000) {
         return {
             currentValue: 0,
+            _animationFrameId: null,
             
             init() {
                 this.animateCounter(targetValue, duration);
@@ -474,11 +486,20 @@ window.AlpineComponents = {
                     this.currentValue = Math.floor(startValue + (target - startValue) * progress);
                     
                     if (progress < 1) {
-                        requestAnimationFrame(animate);
+                        this._animationFrameId = requestAnimationFrame(animate);
+                    } else {
+                        this._animationFrameId = null;
                     }
                 };
                 
-                requestAnimationFrame(animate);
+                this._animationFrameId = requestAnimationFrame(animate);
+            },
+            
+            destroy() {
+                if (this._animationFrameId !== null) {
+                    cancelAnimationFrame(this._animationFrameId);
+                    this._animationFrameId = null;
+                }
             }
         }
     }
