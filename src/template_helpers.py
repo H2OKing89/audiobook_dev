@@ -1,10 +1,18 @@
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from fastapi.responses import HTMLResponse
+from src.config import load_config
 import logging
 
 # Initialize Jinja2 templates (looks for 'templates/' at project root)
 templates = Jinja2Templates(directory="templates")
+
+def get_config():
+    """Template helper to access config in templates"""
+    return load_config()
+
+# Add config to Jinja2 globals
+templates.env.globals['get_config'] = get_config
 
 def render_template(request: Request, template_name: str, context: dict) -> HTMLResponse:
     """
