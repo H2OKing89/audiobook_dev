@@ -27,7 +27,7 @@ def add_torrent(torrent_data: Dict[str, Any]) -> bool:
         resp = client.torrents_add(urls=url)
         logging.info("Added torrent: %s, qBittorrent API response: %s", url, resp)
         return True
-    except Exception as e:
+    except Exception:
         logging.exception("Error adding torrent")
         return False
 

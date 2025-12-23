@@ -2,7 +2,7 @@ import re
 import httpx
 import logging
 from datetime import datetime, UTC
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 from src.config import load_config
 from src.utils import get_notification_fields
 
