@@ -408,7 +408,7 @@ async def admin_dashboard(request: Request) -> HTMLResponse:
 
         # Basic template rendering
         for key, value in context.items():
-            admin_html = admin_html.replace(f"{{{{ {key} }}}}", str(value))
+            admin_html = admin_html.replace(f"{{{{ {key} }}}}", html.escape(str(value)))
 
         return HTMLResponse(content=admin_html)
 

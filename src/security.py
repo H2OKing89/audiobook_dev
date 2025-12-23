@@ -332,7 +332,7 @@ def get_client_ip(request: Request) -> str:
         str: The client IP address
     """
     # Priority order of headers to check
-    proxy_headers = ["x-forwarded-for", "x-real-ip", "x-forwarded-host", "cf-connecting-ip", "x-client-ip"]
+    proxy_headers = ["x-forwarded-for", "x-real-ip", "cf-connecting-ip", "x-client-ip"]
 
     for header in proxy_headers:
         header_value = request.headers.get(header)

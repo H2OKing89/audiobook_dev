@@ -1,6 +1,6 @@
 import logging
 import re
-from html import escape
+from html import escape, unescape
 from typing import Any
 
 
@@ -89,18 +89,12 @@ def strip_html_tags(text: str | None) -> str:
     """
     if not text:
         return ""
+    # Decode HTML entities FIRST (so &#60;script&#62; becomes <script> which can then be stripped)
+    text = unescape(text)
     # Convert <p> and <br> to newlines
     text = re.sub(r"</?(p|br)[^>]*>", "\n", text, flags=re.IGNORECASE)
     # Remove other HTML tags
     text = re.sub(r"<.*?>", "", text)
-    # Decode HTML entities
-    text = (
-        text.replace("&quot;", '"')
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&apos;", "'")
-    )
     # Collapse multiple paragraph breaks
     text = re.sub(r"\n\s*\n+", "\n\n", text)
     # Collapse spaces/tabs
