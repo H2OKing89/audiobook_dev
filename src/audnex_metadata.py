@@ -19,6 +19,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import load_config
 
+
 # Ensure logs directory exists before configuring logging
 _log_dir = Path(__file__).parent.parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
