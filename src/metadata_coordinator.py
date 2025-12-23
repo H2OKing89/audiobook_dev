@@ -18,7 +18,7 @@ import httpx
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import load_config
-from src.mam_scraper import MAMScraper
+from src.mam_api import MAMApiAdapter  # New API-based adapter (was MAMScraper)
 from src.audnex_metadata import AudnexMetadata
 from src.audible_scraper import AudibleScraper
 
@@ -37,7 +37,7 @@ logging.basicConfig(
 class MetadataCoordinator:
     def __init__(self):
         self.config = load_config()
-        self.mam_scraper = MAMScraper()
+        self.mam_scraper = MAMApiAdapter()  # New API-based adapter
         self.audnex = AudnexMetadata()
         self.audible = AudibleScraper()
         

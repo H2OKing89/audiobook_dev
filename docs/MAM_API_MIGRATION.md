@@ -100,22 +100,25 @@ Several fields are JSON-encoded strings that must be parsed:
 - [x] Implement Pydantic models (`models.py`)
 - [x] Implement httpx client (`client.py`)
 
-### Phase 2: Configuration Updates
+### Phase 2: Configuration Updates ✅
 
-- [ ] Add `MAM_ID` to `.env.example`
-- [ ] Update `src/config.py` to read `MAM_ID` from environment
+- [x] Add `MAM_ID` to `.env.example`
+- [x] Update adapter to read `MAM_ID` from environment
 - [ ] Remove dependency on `config/mam_config.json`
 
-### Phase 3: Integration
+### Phase 3: Integration ✅
 
-- [ ] Update `src/mam_scraper.py` to use new API client
-- [ ] Update metadata coordinator to use normalized responses
-- [ ] Remove Playwright-based MAM scraping code
+- [x] Create `src/mam_api/adapter.py` - backward-compatible adapter
+- [x] Add `MAMApiAdapter` with same interface as `MAMScraper`
+- [x] Export `MAMScraper` alias for drop-in replacement
+- [ ] Update `metadata_coordinator.py` import to use new adapter
+- [ ] Test with real MAM data
 
 ### Phase 4: Cleanup
 
 - [ ] Remove `config/mam_config.json` (contains sensitive data!)
 - [ ] Remove `mam_login_only.py` (no longer needed)
+- [ ] Archive old `mam_scraper.py` (keep for reference)
 - [ ] Update documentation
 
 ### Phase 5: Testing
@@ -130,20 +133,25 @@ Several fields are JSON-encoded strings that must be parsed:
 
 ### New Files
 
-- `src/mam_api/__init__.py`
-- `src/mam_api/models.py` - Pydantic models for API responses
-- `src/mam_api/client.py` - httpx HTTP/2 client
+- `src/mam_api/__init__.py` ✅
+- `src/mam_api/models.py` - Pydantic models for API responses ✅
+- `src/mam_api/client.py` - httpx HTTP/2 client ✅
+- `src/mam_api/adapter.py` - Backward-compatible adapter ✅
 
 ### Modified Files
 
-- `.env.example` - Add `MAM_ID`
+- `.env.example` - Add `MAM_ID` ✅
 - `src/config.py` - Read MAM_ID from env
-- `src/mam_scraper.py` - Use new API client
+- `src/metadata_coordinator.py` - Update import
 
-### Removed Files
+### Files to Remove
 
 - `config/mam_config.json` - Sensitive! Contains credentials
 - `src/mam_login_only.py` - No longer needed
+
+### Files to Archive
+
+- `src/mam_scraper.py` - Old Playwright-based scraper (keep for reference)
 
 ---
 
