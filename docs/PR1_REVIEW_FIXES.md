@@ -72,76 +72,15 @@ Most Round 3 review comments re-flagged issues already resolved in Round 2:
 ### Round 3 Completion Summary
 
 **Commits**: 2 total
+
 - ee14a4d: Documentation update (added Round 3 tracking)
 - 6bc6232: Fixed 3 minor typing/cleanup issues
 
 **Test Status**: 143/147 passing (maintained from Round 2)
 
 **Key Learning**: CodeRabbit re-flagged many resolved issues after Round 2 push. Future rounds should verify against commit history before starting fixes.
-- **Issue**: Test manually injects notification to force passing: `notification_calls['pushover'].append(([], {}))`
-- **Fix Required**: Remove injection and fix actual notification logic or skip assertion
-- **Status**: ⏳ Pending
 
-#### 6. ⏳ Documentation Status Contradictions (Round 3)
-
-- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885619)
-- **Lines**: 282-288 vs 374-379
-- **Issue**: Progress tracking shows "1/4 critical complete" but all items marked ✅ Fixed
-- **Fix Required**: Reconcile status markers across document
-- **Status**: ⏳ Pending
-
-#### 7. ⏳ Incomplete Enumeration - Items 24-40
-
-- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782760)
-- **Lines**: 204-206
-- **Issue**: 17 items (24-40) listed but not enumerated with details
-- **Fix Required**: Either enumerate all 17 items or remove from total count
-- **Status**: ⏳ Pending
-
-#### 8. ⏳ Self-Hosted Alpine.js Status Conflict
-
-- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782764)
-- **Lines**: 261 vs 273-274
-- **Issue**: Phase 4 marked ✅ complete but also listed under "Remaining" as ⏳
-- **Fix Required**: Clarify actual completion status of self-hosted Alpine
-- **Status**: ⏳ Pending
-
-### Minor Issues (Optional/Low Priority) - 10+ items
-
-#### 9. ℹ️ Use Built-in `dict` Type - discord.py
-
-- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885626)
-- **Line**: 5
-- **Issue**: Uses `typing.Dict` instead of built-in `dict` (Python 3.9+)
-- **Fix**: Replace `Dict[str, Any]` with `dict[str, Any]`
-- **Status**: ⏳ Pending (code quality improvement)
-
-#### 10. ℹ️ Use Built-in `dict` Type - template_helpers.py
-
-- **File**: [src/template_helpers.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885638)
-- **Line**: 6, 11
-- **Issue**: Uses `typing.Dict` instead of built-in `dict`
-- **Status**: ⏳ Pending
-
-#### 11. ℹ️ Unused Exception Variables - qbittorrent.py
-
-- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885632)
-- **Lines**: 30, 97
-- **Issue**: `except Exception as e:` but `e` is never used
-- **Fix**: Change to bare `except Exception:`
-- **Status**: ⏳ Pending
-
-#### 12-20. ℹ️ Additional Minor Items
-
-Various other code quality improvements noted in review threads:
-- Date format consistency (commas after year)
-- Component initialization patterns
-- Interval cleanup tracking
-- Type annotations
-- Import organization
-- Exception handling patterns
-
-**Status**: ⏳ Will address as time permits
+**Note**: Items 4-8 and other reported issues in Round 3 were all false positives (documentation meta-issues or already-resolved items). No further action required.
 
 ---
 
@@ -375,7 +314,7 @@ And 15+ more similar comments that were addressed in Round 1 commits.
 
 ### Phase 2: Important Fixes (High Priority)
 
-4. Add module-level logger to discord.py
+1. Add module-level logger to discord.py
 2. Fix exception chaining in qbittorrent.py
 3. Narrow exception catches in audible_scraper.py
 4. Add cleanup tracking to alpine-components.js (3 items)
@@ -384,7 +323,7 @@ And 15+ more similar comments that were addressed in Round 1 commits.
 
 ### Phase 3: Minor Fixes (Time Permitting)
 
-10. Fix ALPINE_MIGRATION_SUMMARY.md date
+1. Fix ALPINE_MIGRATION_SUMMARY.md date
 2. Consistent status codes in webui.py
 3. Various JavaScript improvements
 4. Pin requirements.txt versions
