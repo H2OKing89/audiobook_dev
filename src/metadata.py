@@ -534,8 +534,8 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
                 if results:
                     # Return the first (best) result
                     return results[0]
-            except Exception as e:
-                logger.error("Error searching region %s: %s", region, e, exc_info=True)
+            except Exception:
+                logger.exception("Error searching region %s", region)
                 continue
 
         # Final error if we couldn't determine any metadata
