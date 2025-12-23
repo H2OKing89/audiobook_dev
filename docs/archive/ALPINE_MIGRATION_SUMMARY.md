@@ -4,12 +4,17 @@
 
 ### ✅ Latest Security Enhancements (December 2024)
 
-🔒 **CSP Fixes Applied**
+🔒 **CSP Security Recommendations**
 
 - **Alpine.js CDN Access**: Added `https://*.unpkg.com` to script-src for proper CDN loading
-- **Inline Style Support**: Added `'unsafe-inline'` for style-src and style-src-attr
-- **Alpine.js Execution**: Added `'unsafe-eval'` for Alpine.js reactive expressions
-- **Self-hosted Fonts**: Only Orbitron WOFF2 (working), system fonts for Inter/JetBrains
+- **Migrate to @alpinejs/csp**: For production, use the CSP-compliant Alpine.js build (@alpinejs/csp) and refactor inline Alpine logic into Alpine.data() components to eliminate the need for 'unsafe-eval'
+- **Inline Styles Migration**: Move inline styles to external stylesheets. For any remaining necessary inline styles/scripts, use CSP nonces or SHA256 hashes instead of 'unsafe-inline'
+- **Font Hosting**: Self-host Orbitron WOFF2 (or use system font fallbacks) to avoid external font CDN dependencies
+
+⚠️ **Security Notes**:
+- Avoid using `'unsafe-inline'` and `'unsafe-eval'` in production CSP
+- If static inline snippets are unavoidable, protect them with nonces/hashes
+- Consider self-hosting all assets (fonts, scripts) for maximum security control
 
 🚀 **Performance & Loading Fixes**
 

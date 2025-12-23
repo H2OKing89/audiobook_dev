@@ -106,16 +106,7 @@ security:
 
 ## Allowed Domains
 
-### Image Sources
-Images are allowed from specific trusted domains:
-```yaml
-security:
-  allowed_image_domains:
-    - "your-image-host.com"
-    - "ptpimg.me"
-    - "i.imgur.com"
-    - "audnex.us"
-    - "m.media-amazon.com"
+### Image Sources\nImages are allowed from specific trusted domains:\n```yaml\nsecurity:\n  allowed_image_domains:\n    - \"ptpimg.me\"\n    - \"i.imgur.com\"\n    - \"audnex.us\"\n    - \"m.media-amazon.com\"", "oldString": "### Image Sources\nImages are allowed from specific trusted domains:\n```yaml\nsecurity:\n  allowed_image_domains:\n    - \"your-image-host.com\"\n    - \"ptpimg.me\"\n    - \"i.imgur.com\"\n    - \"audnex.us\"\n    - \"m.media-amazon.com\"
 ```
 
 ## Best Practices
