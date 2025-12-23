@@ -75,6 +75,7 @@ audiobook_dev/
 - **Static File Serving** - CSS, JS, and asset delivery
 
 Key endpoints:
+
 - `GET /` - Home page
 - `POST /audiobook-requests` - Submit new requests
 - `GET /approve/{token}` - Approval endpoint
@@ -91,6 +92,7 @@ Key endpoints:
 - **Schema Management** - Database initialization and migrations
 
 Database schema:
+
 ```sql
 CREATE TABLE requests (
     id INTEGER PRIMARY KEY,
@@ -131,6 +133,7 @@ CREATE TABLE tokens (
 - **Pushover** - Mobile push notifications
 
 Each notification module implements a common interface:
+
 ```python
 class NotificationService:
     def send_approval_request(self, request_data: dict) -> bool
@@ -160,6 +163,7 @@ class NotificationService:
 ## 🔐 Security Architecture
 
 ### Content Security Policy (CSP)
+
 ```http
 Content-Security-Policy: 
     default-src 'self'; 
@@ -170,12 +174,14 @@ Content-Security-Policy:
 ```
 
 ### Token Security
+
 - **Cryptographically random** tokens (32 bytes)
 - **Time-limited** validity (configurable expiration)
 - **Single-use** enforcement
 - **Secure transmission** (HTTPS recommended)
 
 ### Input Validation
+
 - **Server-side validation** for all user inputs
 - **SQL injection prevention** via parameterized queries
 - **XSS protection** via template escaping
@@ -184,16 +190,19 @@ Content-Security-Policy:
 ## 🚀 Request Flow
 
 ### 1. Request Submission
+
 ```
 User submits form → FastAPI validates → Database stores → Notification sent
 ```
 
 ### 2. Approval Process
+
 ```
 User clicks approval link → Token validated → Database updated → Success page shown
 ```
 
 ### 3. Notification Flow
+
 ```
 Event triggered → Notification service called → Message formatted → External service delivery
 ```
@@ -219,12 +228,14 @@ graph TD
 ## 🔄 Error Handling
 
 ### Application Errors
+
 - **Graceful degradation** - System continues operating with reduced functionality
 - **User-friendly messages** - Clear error communication
 - **Detailed logging** - Comprehensive error tracking
 - **Recovery mechanisms** - Automatic retry and fallback options
 
 ### Database Errors
+
 - **Connection pooling** - Manages database connections efficiently
 - **Transaction rollback** - Maintains data consistency
 - **Backup strategies** - Regular database backups
@@ -233,12 +244,14 @@ graph TD
 ## 🧪 Testing Architecture
 
 ### Test Categories
+
 - **Unit Tests** - Individual component testing
 - **Integration Tests** - Cross-component functionality
 - **End-to-End Tests** - Full workflow validation
 - **Performance Tests** - Load and stress testing
 
 ### Test Structure
+
 ```
 tests/
 ├── conftest.py              # Test configuration
@@ -253,12 +266,14 @@ tests/
 ## 📈 Performance Considerations
 
 ### Optimization Strategies
+
 - **Database indexing** - Optimized query performance
 - **Static file caching** - Browser cache optimization
 - **Template caching** - Jinja2 template compilation caching
 - **Connection pooling** - Efficient resource utilization
 
 ### Monitoring
+
 - **Request logging** - Detailed request/response logging
 - **Performance metrics** - Response time tracking
 - **Error monitoring** - Exception tracking and alerting
@@ -267,6 +282,7 @@ tests/
 ## 🔧 Development Workflow
 
 ### Local Development
+
 1. **Setup** - Virtual environment and dependencies
 2. **Configuration** - Development-specific settings
 3. **Database** - Local SQLite database
@@ -274,6 +290,7 @@ tests/
 5. **Debugging** - Enhanced logging and debugging tools
 
 ### Production Deployment
+
 1. **Environment setup** - Production server configuration
 2. **Database migration** - Schema updates and data migration
 3. **Static asset optimization** - Minification and compression
@@ -283,6 +300,7 @@ tests/
 ---
 
 This architecture supports the system's core principles:
+
 - **Simplicity** - Easy to understand and maintain
 - **Security** - Built with security best practices
 - **Scalability** - Designed to handle growth
