@@ -149,7 +149,9 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             payload = entry.get('payload', {})
             name = payload.get('name') or entry.get('metadata', {}).get('title')
             download_url = payload.get('download_url') or ''
-            cookie = os.environ.get('COOKIE')
+            mam_id = os.environ.get('MAM_ID')
+            # Format as cookie header value for torrent download
+            cookie = f"mam_id={mam_id}" if mam_id else None
             category = qb_cfg.get('category')
             tags = qb_cfg.get('tags', [])
             paused = qb_cfg.get('paused', False)
