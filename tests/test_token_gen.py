@@ -1,3 +1,5 @@
+import string
+
 from src.token_gen import generate_token, verify_token
 
 
@@ -15,8 +17,6 @@ class TestTokenGeneration:
     def test_generate_token_format(self):
         token = generate_token()
         # Should be URL-safe (no special characters that need encoding)
-        import string
-
         allowed_chars = string.ascii_letters + string.digits + "-_"
         assert all(c in allowed_chars for c in token)
 
