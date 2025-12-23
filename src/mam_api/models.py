@@ -339,7 +339,6 @@ class MamTorrentRaw(BaseModel):
         for _, entry in sorted(self.series_info.items(), key=lambda kv: kv[0]):
             if not entry:
                 continue
-            # entry is usually [seriesName, "5", 5.0]
             name = str(entry[0]) if len(entry) >= 1 else ""
             num = str(entry[1]) if len(entry) >= 2 else ""
             if name and num:

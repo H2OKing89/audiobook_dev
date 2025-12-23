@@ -18,7 +18,7 @@ import logging
 import os
 import re
 import time
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -237,7 +237,6 @@ class MAMApiAdapter:
         # Extract series position from raw series_info if available
         series_position = None
         if torrent.series_info:
-            # series_info is {id: [name, "position", position_float]}
             for _, entry in torrent.series_info.items():
                 if len(entry) >= 2:
                     series_position = str(entry[1])
