@@ -63,7 +63,6 @@ class Audible:
 
     def __init__(self, client: AsyncHttpClient | None = None, response_timeout: int = 30000) -> None:
         self._client = client
-        self._owns_client = False
         self.response_timeout = response_timeout
         # Use shared region map from http_client
         self.region_map = REGION_MAP
@@ -85,10 +84,12 @@ class Audible:
         exc: BaseException | None,
         tb: object,
     ) -> None:
-        """Async context manager exit."""
-        if self._owns_client and self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        """Async context manager exit.
+
+        Note: Does not close the HTTP client as it's managed by the application lifespan.
+        The shared client is closed during app shutdown.
+        """
+        pass
 
     def clean_series_sequence(self, series_name: str, sequence: str) -> str:
         """
@@ -250,7 +251,6 @@ class Audnexus:
 
     def __init__(self, client: AsyncHttpClient | None = None) -> None:
         self._client = client
-        self._owns_client = False
         self.base_url = "https://api.audnex.us"
 
     async def _get_client(self) -> AsyncHttpClient:
@@ -270,10 +270,12 @@ class Audnexus:
         exc: BaseException | None,
         tb: object,
     ) -> None:
-        """Async context manager exit."""
-        if self._owns_client and self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        """Async context manager exit.
+
+        Note: Does not close the HTTP client as it's managed by the application lifespan.
+        The shared client is closed during app shutdown.
+        """
+        pass
 
     async def author_asins_request(self, name: str, region: str = "") -> list[dict[str, Any]]:
         """Get author ASINs by name"""

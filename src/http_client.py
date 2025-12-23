@@ -178,9 +178,21 @@ class AsyncHttpClient:
         url: str,
         **kwargs: Any,
     ) -> httpx.Response:
-        """Execute request with retry logic and rate limiting."""
+        """Execute request with retry logic and rate limiting.
+
+        Retry behavior:
+        - 429 (rate limit): Retry after 'retry-after' header or 5s
+        - 5xx (server errors): Retry with exponential backoff (transient failures)
+        - 4xx (client errors, except 429): Do NOT retry (permanent failures)
+        - Network/timeout errors: Retry with exponential backoff
+        """
         await self._throttle()
         client = await self._ensure_client()
+
+        # Status codes that are transient and worth retrying
+        retryable_status_codes = {500, 502, 503, 504}
+        # Status codes that indicate client errors - don't retry
+        non_retryable_status_codes = {400, 401, 403, 404, 405, 406, 410, 422}
 
         last_error: Exception | None = None
 
@@ -191,7 +203,9 @@ class AsyncHttpClient:
                 return response
 
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 429:  # Rate limited
+                status_code = e.response.status_code
+
+                if status_code == 429:  # Rate limited
                     retry_after_str = e.response.headers.get("retry-after", "5")
                     try:
                         retry_after = int(retry_after_str)
@@ -200,16 +214,25 @@ class AsyncHttpClient:
                     logger.warning("Rate limited. Retrying in %ds", retry_after)
                     await asyncio.sleep(retry_after)
                     continue
-                elif e.response.status_code == 500:
-                    # Server errors - don't retry, likely data doesn't exist
-                    logger.debug("Server error 500 for %s", url)
+
+                elif status_code in non_retryable_status_codes:
+                    # Client errors - don't retry, the request is invalid
+                    logger.debug("HTTP %d (non-retryable) for %s", status_code, url)
                     raise
-                else:
+
+                elif status_code in retryable_status_codes:
+                    # Server errors - retry with backoff (transient failures)
                     last_error = e
                     if attempt < self._config.max_retries - 1:
                         backoff = self._config.retry_backoff_base**attempt
-                        logger.debug("HTTP %d, retrying in %.1fs", e.response.status_code, backoff)
+                        logger.warning("HTTP %d (transient), retrying in %.1fs: %s", status_code, backoff, url)
                         await asyncio.sleep(backoff)
+                    continue
+
+                else:
+                    # Unknown status code - don't retry
+                    logger.debug("HTTP %d for %s", status_code, url)
+                    raise
 
             except httpx.RequestError as e:
                 last_error = e
@@ -304,8 +327,9 @@ class AsyncHttpClient:
         """
         Fetch from multiple regions in parallel, returning the first successful result.
 
-        All regions start fetching concurrently. The first success sets an Event
-        and stores the result. Other tasks check the Event and return early.
+        Uses asyncio.as_completed to process results as they arrive, stopping early
+        once a valid result is found. This avoids the ExceptionGroup complexity of
+        TaskGroup while still achieving parallel fetching.
 
         Args:
             regions: List of region codes to try
@@ -325,45 +349,45 @@ class AsyncHttpClient:
         if not regions_to_try:
             return None, None
 
-        # Shared state for first success
-        success_event = asyncio.Event()
-        result_holder: dict[str, Any] = {}
-        region_holder: dict[str, str] = {}
         errors: dict[str, Exception] = {}
 
-        async def fetch_region(region: str) -> None:
-            """Fetch a single region, respecting early cancellation."""
-            if success_event.is_set():
-                return  # Another region already succeeded
-
+        async def fetch_region(region: str) -> tuple[dict[str, Any] | None, str]:
+            """Fetch a single region, returning (data, region) tuple."""
             url = url_factory(region)
             try:
                 data = await self.get_json(url)
-
-                if success_event.is_set():
-                    return  # Lost the race
-
-                if data and validator(data):
-                    # We won! Store result and signal others
-                    result_holder["data"] = data
-                    region_holder["region"] = region
-                    success_event.set()
-                    logger.debug("Region %s succeeded first for %s", region, url)
+                return data, region
             except Exception as e:
                 errors[region] = e
                 logger.debug("Region %s failed: %s", region, e)
+                return None, region
 
-        # Use TaskGroup for clean concurrent execution
+        # Create tasks for all regions
+        tasks = [asyncio.create_task(fetch_region(region)) for region in regions_to_try]
+
+        result: dict[str, Any] | None = None
+        winning_region: str | None = None
+
         try:
-            async with asyncio.TaskGroup() as tg:
-                for region in regions_to_try:
-                    tg.create_task(fetch_region(region))
-        except ExceptionGroup:
-            # TaskGroup wraps exceptions in ExceptionGroup, but we handle errors above
-            pass
-
-        result = result_holder.get("data")
-        winning_region = region_holder.get("region")
+            # Process results as they complete
+            for coro in asyncio.as_completed(tasks):
+                try:
+                    data, region = await coro
+                    if data and validator(data):
+                        result = data
+                        winning_region = region
+                        logger.debug("Region %s succeeded first", region)
+                        break  # Found a winner, stop waiting
+                except Exception as e:
+                    logger.debug("Task failed with: %s", e)
+                    continue
+        finally:
+            # Cancel remaining tasks that haven't completed
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            # Wait for cancellations to complete (suppress CancelledError)
+            await asyncio.gather(*tasks, return_exceptions=True)
 
         if result:
             logger.info("Parallel fetch succeeded via region %s", winning_region)

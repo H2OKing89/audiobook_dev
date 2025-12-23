@@ -308,14 +308,48 @@ class TestAsyncHttpClientRequests:
             assert result == {"success": True}
             assert call_count == 2
 
-    async def test_500_error_no_retry(self):
-        """Test that 500 errors don't retry (data likely doesn't exist)."""
+    async def test_500_error_retries(self):
+        """Test that 500 errors are retried (transient server error)."""
+        mock_response_fail = MagicMock()
+        mock_response_fail.status_code = 500
+
+        mock_response_success = MagicMock()
+        mock_response_success.status_code = 200
+        mock_response_success.json.return_value = {"success": True}
+        mock_response_success.raise_for_status = MagicMock()
+
+        call_count = 0
+
+        async def mock_request(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise httpx.HTTPStatusError(
+                    "Internal Server Error",
+                    request=MagicMock(),
+                    response=mock_response_fail,
+                )
+            return mock_response_success
+
+        config = HttpClientConfig(max_retries=3, retry_backoff_base=0.01)
+
+        with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_req:
+            mock_req.side_effect = mock_request
+
+            async with AsyncHttpClient(config=config) as client:
+                result = await client.get_json("https://api.example.com/test")
+
+            assert result == {"success": True}
+            assert call_count == 2
+
+    async def test_404_error_no_retry(self):
+        """Test that 404 errors don't retry (resource doesn't exist)."""
         mock_response = MagicMock()
-        mock_response.status_code = 500
+        mock_response.status_code = 404
 
         with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
             mock_request.side_effect = httpx.HTTPStatusError(
-                "Internal Server Error",
+                "Not Found",
                 request=MagicMock(),
                 response=mock_response,
             )
@@ -324,7 +358,7 @@ class TestAsyncHttpClientRequests:
                 result = await client.get_json("https://api.example.com/test")
 
             assert result is None
-            # Should only be called once (no retry)
+            # Should only be called once (no retry for client errors)
             assert mock_request.call_count == 1
 
 

@@ -57,7 +57,6 @@ class AudnexMetadata:
             client: Optional AsyncHttpClient instance. If not provided, uses the default shared client.
         """
         self._client = client
-        self._owns_client = False
         self.config: dict = load_config()
         self.audnex_config: dict = self.config.get("metadata", {}).get("audnex", {})
         self.base_url: str = self.audnex_config.get("base_url", "https://api.audnex.us")
@@ -84,11 +83,12 @@ class AudnexMetadata:
         exc: BaseException | None,
         tb: object,
     ) -> None:
-        """Async context manager exit."""
-        # Only close if we created our own client
-        if self._owns_client and self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        """Async context manager exit.
+
+        Note: Does not close the HTTP client as it's managed by the application lifespan.
+        The shared client is closed during app shutdown.
+        """
+        pass
 
     async def get_book_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """

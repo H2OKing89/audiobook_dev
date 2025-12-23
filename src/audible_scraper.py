@@ -58,7 +58,6 @@ class AudibleScraper:
             client: Optional AsyncHttpClient instance. If not provided, uses the default shared client.
         """
         self._client = client
-        self._owns_client = False
         self.config = load_config()
         self.audible_config = self.config.get("metadata", {}).get("audible", {})
         self.base_url = self.audible_config.get("base_url", "https://api.audible.com")
@@ -93,11 +92,12 @@ class AudibleScraper:
         exc: BaseException | None,
         tb: object,
     ) -> None:
-        """Async context manager exit."""
-        # Only close if we created our own client
-        if self._owns_client and self._client is not None:
-            await self._client.aclose()
-            self._client = None
+        """Async context manager exit.
+
+        Note: Does not close the HTTP client as it's managed by the application lifespan.
+        The shared client is closed during app shutdown.
+        """
+        pass
 
     def _is_valid_asin(self, asin: str) -> bool:
         """Validate ASIN format (10 characters, alphanumeric)."""
