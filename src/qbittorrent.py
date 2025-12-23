@@ -61,7 +61,7 @@ def add_torrent_file_with_cookie(
         base_name = ''.join(c if c.isalnum() or c in '-_.' else '_' for c in name)
         tmp = tempfile.NamedTemporaryFile(delete=False, prefix=f"{base_name}.", suffix=".torrent")
         try:
-            with httpx.stream("GET", download_url, headers=headers, timeout=30.0) as r:
+            with httpx.stream("GET", download_url, headers=headers, timeout=30.0, follow_redirects=True) as r:
                 logging.debug(f"HTTP GET {download_url} status={getattr(r, 'status_code', 'unknown')}")
                 r.raise_for_status()
                 for chunk in r.iter_bytes(1024 * 128):
