@@ -26,9 +26,21 @@ with _lock:
     """)
     _conn.commit()
 
-# Load TTL from config
-_config = load_config()
-TTL = _config.get("server", {}).get("reply_token_ttl", 3600)
+# Default TTL, will be loaded from config on first use
+_ttl: int | None = None
+
+
+def _get_ttl() -> int:
+    """Lazy load TTL from config."""
+    global _ttl
+    if _ttl is None:
+        try:
+            config = load_config()
+            _ttl = config.get("server", {}).get("reply_token_ttl", 3600)
+        except (RuntimeError, FileNotFoundError):
+            # Config not available (e.g., in tests), use default
+            _ttl = 3600
+    return _ttl
 
 
 def save_request(token: str, metadata: dict, payload: dict) -> None:
@@ -46,6 +58,7 @@ def save_request(token: str, metadata: dict, payload: dict) -> None:
 def get_request(token: str) -> dict | None:
     """Retrieve stored metadata/payload for a token if not expired, else return None."""
     logging.debug(f"DB: Getting token {token}")
+    ttl = _get_ttl()
     with _lock:
         cursor = _conn.execute("SELECT metadata, payload, timestamp FROM tokens WHERE token = ?", (token,))
         row = cursor.fetchone()
@@ -54,7 +67,7 @@ def get_request(token: str) -> dict | None:
             return None  # token not found
         metadata_json, payload_json, ts = row
         logging.debug(f"DB: Found token {token} with timestamp {ts}")
-        if int(time.time()) - ts > TTL:
+        if int(time.time()) - ts > ttl:
             # expired, delete
             _conn.execute("DELETE FROM tokens WHERE token = ?", (token,))
             _conn.commit()
@@ -75,7 +88,8 @@ def delete_request(token: str) -> None:
 
 def cleanup():
     """Remove expired tokens from the database."""
-    cutoff = int(time.time()) - TTL
+    ttl = _get_ttl()
+    cutoff = int(time.time()) - ttl
     with _lock:
         _conn.execute("DELETE FROM tokens WHERE timestamp < ?", (cutoff,))
         _conn.commit()
