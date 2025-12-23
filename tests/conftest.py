@@ -182,25 +182,27 @@ def disable_notifications_session():
 @pytest.fixture(scope="session", autouse=True)
 def speed_up_rate_limits():
     """Reduce metadata rate limits during test sessions to avoid long sleeps/blocking."""
-    # Import inside fixture to avoid import-time side-effects
-    import src.config as _config_mod
-    prev = _config_mod._config
-    # Ensure config is loaded
-    cfg = _config_mod.load_config()
-    # Create a shallow copy and set small rate limits for testing
-    fast_cfg = dict(cfg)
-    meta = dict(fast_cfg.get('metadata', {}))
-    meta['rate_limit_seconds'] = 0.01
-    audnex_cfg = dict(meta.get('audnex', {}))
-    audnex_cfg['rate_limit_seconds'] = 0.01
-    meta['audnex'] = audnex_cfg
-    fast_cfg['metadata'] = meta
-    _config_mod._config = fast_cfg
-
+    # Use environment variables to configure faster rate limits for testing
+    # This avoids fragile direct mutation of private _config variable
+    prev_audible = os.environ.get("AUDIBLE_RATE_LIMIT_SECONDS")
+    prev_audnex = os.environ.get("AUDNEX_RATE_LIMIT_SECONDS")
+    
+    os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = "0.01"
+    os.environ["AUDNEX_RATE_LIMIT_SECONDS"] = "0.01"
+    
     try:
         yield
     finally:
-        _config_mod._config = prev
+        # Restore previous values
+        if prev_audible is None:
+            os.environ.pop("AUDIBLE_RATE_LIMIT_SECONDS", None)
+        else:
+            os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = prev_audible
+            
+        if prev_audnex is None:
+            os.environ.pop("AUDNEX_RATE_LIMIT_SECONDS", None)
+        else:
+            os.environ["AUDNEX_RATE_LIMIT_SECONDS"] = prev_audnex
 
 
 @pytest.fixture
