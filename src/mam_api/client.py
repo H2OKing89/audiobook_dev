@@ -155,7 +155,7 @@ class MamClient:
         response = MamSearchResponseRaw.model_validate(data)
 
         logger.debug("MAM search returned %d results (found=%d)", len(response.data), response.found)
-        return response
+        return response  # type: ignore[no-any-return]
 
     def get_torrent(
         self,
@@ -227,7 +227,7 @@ class MamClient:
         r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
         r.raise_for_status()
         logger.debug("Downloaded torrent: tid=%d, size=%d bytes", tid, len(r.content))
-        return r.content
+        return r.content  # type: ignore[no-any-return]
 
     def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """
@@ -247,7 +247,7 @@ class MamClient:
         r = self._client.get(path)
         r.raise_for_status()
         logger.debug("Downloaded torrent via dl token: size=%d bytes", len(r.content))
-        return r.content
+        return r.content  # type: ignore[no-any-return]
 
 
 class MamAsyncClient:
@@ -349,7 +349,7 @@ class MamAsyncClient:
 
         response = MamSearchResponseRaw.model_validate(r.json())
         logger.debug("MAM async search returned %d results", len(response.data))
-        return response
+        return response  # type: ignore[no-any-return]
 
     async def get_torrent(
         self,
@@ -400,7 +400,7 @@ class MamAsyncClient:
         r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
         r.raise_for_status()
         logger.debug("Downloaded torrent (async): tid=%d, size=%d bytes", tid, len(r.content))
-        return r.content
+        return r.content  # type: ignore[no-any-return]
 
     async def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """Download .torrent using dl token (async)."""
@@ -412,4 +412,4 @@ class MamAsyncClient:
         r = await self._client.get(path)
         r.raise_for_status()
         logger.debug("Downloaded torrent via dl token (async): size=%d bytes", len(r.content))
-        return r.content
+        return r.content  # type: ignore[no-any-return]

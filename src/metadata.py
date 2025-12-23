@@ -238,7 +238,7 @@ class Audnexus:
 
         self.base_url = "https://api.audnex.us"
         self.request_interval = 0.15  # 150ms between requests
-        self.last_request_time = 0
+        self.last_request_time: float = 0.0
         self.initialized = True
 
     def _throttle_request(self):
@@ -256,7 +256,7 @@ class Audnexus:
                 self._throttle_request()
                 response = httpx.get(url)
                 response.raise_for_status()
-                return response.json()
+                return response.json()  # type: ignore[no-any-return]
             except httpx.HTTPStatusError as e:
                 if e.response is not None and e.response.status_code == 429:  # Rate limited
                     retry_after_header = e.response.headers.get("retry-after", "5")
@@ -414,13 +414,15 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
 
         # Audible sometimes puts ASINs in adbl-impression-container data-asin
         el = soup.find("div", class_="adbl-impression-container")
-        if el and el.get("data-asin"):
-            return el.get("data-asin")
+        if el and hasattr(el, "get") and el.get("data-asin"):
+            asin = el.get("data-asin")
+            return str(asin) if asin and not isinstance(asin, list) else None
 
         # Fallback: look for data-asin attributes elsewhere
         el2 = soup.find(attrs={"data-asin": True})
-        if el2:
-            return el2.get("data-asin")
+        if el2 and hasattr(el2, "get"):
+            asin2 = el2.get("data-asin")
+            return str(asin2) if asin2 and not isinstance(asin2, list) else None
 
         return None
     except httpx.RequestError:

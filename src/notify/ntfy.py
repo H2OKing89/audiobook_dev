@@ -99,7 +99,7 @@ def send_ntfy(
         fallback_url = f"{base}/{ntfy_topic}"
         logging.info(f"Falling back to ntfy topic endpoint: {fallback_url}")
         try:
-            resp2 = httpx.post(fallback_url, data=message.encode("utf-8"), headers=headers, auth=auth, timeout=15)
+            resp2 = httpx.post(fallback_url, content=message.encode("utf-8"), headers=headers, auth=auth, timeout=15)
             resp2.raise_for_status()
             logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
             return resp2.status_code, resp2.json()

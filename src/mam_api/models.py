@@ -29,7 +29,7 @@ def _safe_json_loads(value: Any, *, default: Any) -> Any:
     """
     if value is None:
         return default
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         return value
     if isinstance(value, str):
         s = value.strip()
@@ -48,7 +48,7 @@ def _to_bool(value: Any) -> bool:
         return value
     if value is None:
         return False
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return bool(int(value))
     if isinstance(value, str):
         v = value.strip().lower()
@@ -281,7 +281,7 @@ class MamTorrentRaw(BaseModel):
         if isinstance(data, MamMediaInfo):
             return data
         if isinstance(data, dict):
-            return MamMediaInfo.model_validate(data)
+                return MamMediaInfo.model_validate(data)  # type: ignore[no-any-return]
         return None
 
     @field_validator("ownership", mode="before")

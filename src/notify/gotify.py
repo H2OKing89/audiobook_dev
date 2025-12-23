@@ -82,7 +82,7 @@ def send_gotify(
         # Ensure "extras" is a dict and not accidentally overwritten elsewhere
         if not isinstance(payload_data["extras"], dict):
             payload_data["extras"] = {}
-        payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}
+        payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}  # type: ignore[index]
 
     try:
         response = httpx.post(f"{gotify_url}/message?token={gotify_token}", json=payload_data, timeout=15)

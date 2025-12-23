@@ -344,7 +344,7 @@ def get_client_ip(request: Request) -> str:
             if client_ip and client_ip != "unknown":
                 # Log which header was used for debugging
                 logging.debug(f"Client IP determined from {header}: {client_ip}")
-                return client_ip
+                return client_ip  # type: ignore[no-any-return]
 
     # Fallback to direct connection
     direct_ip = request.client.host if request.client else "unknown"

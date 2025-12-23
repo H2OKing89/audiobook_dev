@@ -81,7 +81,7 @@ if rotation == "midnight":
 else:
     from logging.handlers import RotatingFileHandler
 
-    file_handler = RotatingFileHandler(
+    file_handler = RotatingFileHandler(  # type: ignore[assignment]
         filename=log_path,
         maxBytes=log_cfg.get("max_size", 10) * 1024 * 1024,
         backupCount=log_cfg.get("backup_count", 5),
@@ -114,7 +114,7 @@ app = FastAPI(
 
 # Global metadata processing queue
 # Increase queue size to avoid transient test flakiness under heavy test load
-metadata_queue = asyncio.Queue(maxsize=1000)  # Allow up to 1000 pending requests
+metadata_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=1000)  # Allow up to 1000 pending requests
 metadata_worker_running = False
 metadata_coordinator = None  # Single shared coordinator instance
 
@@ -347,7 +347,7 @@ async def webhook(request: Request):
             logging.info(log_prefix + "Initialized metadata coordinator for inline processing")
 
         metadata = None
-        last_error = None
+        last_error: Exception | None = None
 
         # Try 1: Compatibility wrapper (tests often patch fetch_metadata)
         try:
