@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import contextvars
 import ipaddress
 import logging
@@ -340,7 +341,7 @@ async def webhook(request: Request):
     try:
         # Process request inline (synchronously) to provide immediate feedback in tests
         # Ensure coordinator exists
-        global metadata_coordinator
+        global metadata_coordinator  # noqa: PLW0603
         if metadata_coordinator is None:
             metadata_coordinator = MetadataCoordinator()
             logging.info(log_prefix + "Initialized metadata coordinator for inline processing")
@@ -421,21 +422,21 @@ async def webhook(request: Request):
 
 async def init_metadata_worker():
     """Initialize the shared metadata coordinator and start worker if needed"""
-    global metadata_coordinator, metadata_worker_running
+    global metadata_coordinator, metadata_worker_running  # noqa: PLW0603
 
     if metadata_coordinator is None:
         metadata_coordinator = MetadataCoordinator()
         logging.info("Shared metadata coordinator initialized")
 
     if not metadata_worker_running:
-        asyncio.create_task(metadata_worker())
+        task = asyncio.create_task(metadata_worker())  # noqa: RUF006, F841
         metadata_worker_running = True
         logging.info("Metadata worker started")
 
 
 async def metadata_worker():
     """Background worker to process metadata requests sequentially"""
-    global metadata_coordinator
+    global metadata_coordinator  # noqa: PLW0603
 
     logging.info("Metadata worker started - processing requests sequentially")
 
@@ -482,10 +483,8 @@ async def metadata_worker():
         except Exception as e:
             logging.error(f"Error in metadata worker: {e}")
             # Mark task as done even on error to prevent queue blocking
-            try:
+            with contextlib.suppress(ValueError):
                 metadata_queue.task_done()
-            except ValueError:
-                pass  # task_done() called more times than get()
 
 
 async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:

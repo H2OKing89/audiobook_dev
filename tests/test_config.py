@@ -35,9 +35,8 @@ logging:
             assert config["logging"]["level"] == "INFO"
 
     def test_load_config_file_not_found(self):
-        with patch("builtins.open", side_effect=FileNotFoundError("Config file not found")):
-            with pytest.raises(RuntimeError, match="Configuration file missing"):
-                load_config()
+        with patch("builtins.open", side_effect=FileNotFoundError("Config file not found")), pytest.raises(RuntimeError, match="Configuration file missing"):
+            load_config()
 
     def test_load_config_invalid_yaml(self):
         invalid_yaml = "invalid: yaml: content: ["

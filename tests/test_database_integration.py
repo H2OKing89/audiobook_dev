@@ -1,8 +1,8 @@
 import concurrent.futures
-import os
 import sqlite3
 import tempfile
 import time
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.db import cleanup, delete_request, get_request, list_tokens, save_request
@@ -14,14 +14,15 @@ class TestDatabaseIntegration:
     def setup_method(self):
         """Setup for each test method"""
         # Use a temporary database for testing
-        self.test_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-        self.test_db.close()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as f:
+            self.test_db = f
 
     def teardown_method(self):
         """Cleanup after each test method"""
         # Clean up test database
-        if os.path.exists(self.test_db.name):
-            os.unlink(self.test_db.name)
+        test_path = Path(self.test_db.name)
+        if test_path.exists():
+            test_path.unlink()
 
     def test_database_initialization(self):
         """Test database and table creation"""

@@ -10,6 +10,7 @@ from src.utils import (
     clean_author_list,
     format_release_date,
     format_size,
+    get_notification_fields,
     strip_html_tags,
     validate_payload,
 )
@@ -83,9 +84,6 @@ def test_db_token_expiry(monkeypatch):
 
 @pytest.mark.usefixtures("sample_item", "sample_payload")
 def test_get_notification_fields(sample_item, sample_payload):
-    from src.metadata import clean_metadata
-    from src.utils import get_notification_fields
-
     md = clean_metadata(sample_item)
     # Add size to payload for this test
     payload_with_size = {**sample_payload, "size": 1024 * 1024 * 100}  # 100 MB
@@ -103,8 +101,6 @@ def test_get_notification_fields(sample_item, sample_payload):
 
 
 def test_get_notification_fields_light_novel():
-    from src.utils import get_notification_fields
-
     # Simulate light novel title
     meta = {
         "title": "My Story (Light Novel)",
@@ -123,8 +119,6 @@ def test_get_notification_fields_light_novel():
 
 
 def test_get_notification_fields_no_size():
-    from src.utils import get_notification_fields
-
     meta = {"title": "Test", "author": "Auth"}
     payload = {"url": "u", "download_url": "d"}  # No size
     fields = get_notification_fields(meta, payload)

@@ -5,6 +5,7 @@ MAM Login Test - Test MAM authentication only
 
 import logging
 import sys
+import traceback
 from pathlib import Path
 
 import pytest
@@ -72,8 +73,6 @@ def test_mam_login():
 
     except Exception as e:
         logging.error(f"❌ Error: {e}")
-        import traceback
-
         logging.error(traceback.format_exc())
         return False
 

@@ -9,6 +9,7 @@ These tests cover:
 - Adapter backward compatibility
 """
 
+import inspect
 import os
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
@@ -386,8 +387,6 @@ class TestMamAsyncClient:
         client = MamAsyncClient(mam_id="test_id")
 
         # Verify the search method exists and has correct signature
-        import inspect
-
         sig = inspect.signature(client.search)
         assert "tor" in sig.parameters
         assert "perpage" in sig.parameters

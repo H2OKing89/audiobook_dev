@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -363,16 +364,16 @@ class Audnexus:
 
 
 # Main fetch metadata function compatible with existing code
-def get_cached_metadata(asin: str, region: str = "us", api_url: str | None = None) -> dict | None:
+def get_cached_metadata(_asin: str, _region: str = "us", _api_url: str | None = None) -> dict | None:
     """Intentional stub kept for signature compatibility - tests are expected to patch/override this.
 
     This function is a placeholder whose parameters are currently unused in the default implementation.
     The function signature is maintained for backwards compatibility with existing code and tests.
 
     Args:
-        asin: The Amazon Standard Identification Number (10 alphanumeric characters) to look up
-        region: The Audible region/marketplace (e.g., 'us', 'uk', 'ca') for regional content
-        api_url: Optional custom API endpoint URL for metadata lookup (typically None)
+        _asin: The Amazon Standard Identification Number (10 alphanumeric characters) to look up
+        _region: The Audible region/marketplace (e.g., 'us', 'uk', 'ca') for regional content
+        _api_url: Optional custom API endpoint URL for metadata lookup (typically None)
 
     Returns:
         None by default. Tests should patch this function to return mock metadata dict when needed.
@@ -394,7 +395,7 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
     a simple Audible search. If bs4 is not available or parsing fails, return None.
     """
     try:
-        import bs4
+        import bs4  # noqa: PLC0415
         BeautifulSoup = bs4.BeautifulSoup
     except ImportError:
         return None
@@ -438,9 +439,7 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
     """
     Compatibility wrapper: Enhanced fetch using the new modular coordinator
     """
-    import asyncio
-
-    from src.metadata_coordinator import MetadataCoordinator
+    from src.metadata_coordinator import MetadataCoordinator  # noqa: PLC0415
 
     # Validate payload early to fail fast for invalid input
     config = load_config()

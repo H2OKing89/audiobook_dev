@@ -5,6 +5,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import src.main
 from src.db import save_request
 from src.main import app
 from src.metadata import fetch_metadata
@@ -251,14 +252,10 @@ class TestErrorRecovery:
     def test_graceful_shutdown_handling(self):
         """Test graceful handling of shutdown scenarios"""
         # Test that ongoing operations can be interrupted gracefully
-        with patch("src.main.logging"):
-            # Simulate shutdown during operation
-            with patch("signal.signal"):
-                # This is more of a structure test - ensuring we have signal handlers
-                import src.main
-
-                # If the module loads without error, basic structure is OK
-                assert hasattr(src.main, "app")
+        with patch("src.main.logging"), patch("signal.signal"):
+            # This is more of a structure test - ensuring we have signal handlers
+            # If the module loads without error, basic structure is OK
+            assert hasattr(src.main, "app")
 
     def test_configuration_error_recovery(self):
         """Test recovery from configuration errors"""
@@ -267,7 +264,7 @@ class TestErrorRecovery:
             mock_yaml.side_effect = Exception("Config corrupted")
 
             try:
-                from src.config import load_config
+                from src.config import load_config  # noqa: PLC0415
 
                 config = load_config()
                 # Should either load defaults or handle gracefully

@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+from pathlib import Path
 from typing import IO, Any
 from urllib.parse import urlparse
 
@@ -114,7 +115,7 @@ def add_torrent_file_with_cookie(
     finally:
         if tmp:
             try:
-                os.remove(tmp.name)
+                Path(tmp.name).unlink()
                 logger.debug("Removed temp file: %s", tmp.name)
             except Exception:
                 logger.warning("Could not remove temp file: %s", tmp.name)

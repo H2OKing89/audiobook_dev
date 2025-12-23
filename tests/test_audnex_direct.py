@@ -8,10 +8,12 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
 import pytest
+
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -111,8 +113,6 @@ def test_audnex_with_known_asin():
         # Rate limiting between tests
         if i < len(test_cases):
             logging.info("⏳ Rate limiting: waiting 30 seconds...")
-            import time
-
             time.sleep(30)
 
     # Summary
@@ -137,7 +137,7 @@ def test_audnex_with_known_asin():
     try:
         # Ensure logs directory exists
         Path("logs").mkdir(exist_ok=True)
-        with open(results_file, "w") as f:
+        with Path(results_file).open("w") as f:
             json.dump(results, f, indent=2, default=str)
         logging.info(f"💾 Results saved to: {results_file}")
     except OSError as e:

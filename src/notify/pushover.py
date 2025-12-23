@@ -1,7 +1,7 @@
 import logging
-import os
 import tempfile
 from html import escape
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -91,7 +91,7 @@ def send_pushover(
                 resp = httpx.get(cover_url, timeout=10)
                 resp.raise_for_status()
                 # Save to temp file
-                suffix = os.path.splitext(cover_url)[-1] or ".jpg"
+                suffix = Path(cover_url).suffix or ".jpg"
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
                 temp_file.write(resp.content)
                 temp_file.close()
@@ -103,8 +103,8 @@ def send_pushover(
             logger.debug("[token=%s] Sending Pushover notification%s", token, " with attachment" if temp_file else "")
             if temp_file:
                 # Use context manager to ensure file handle is closed after request
-                with open(temp_file.name, "rb") as f:
-                    files = {"attachment": (os.path.basename(temp_file.name), f, "image/jpeg")}
+                with Path(temp_file.name).open("rb") as f:
+                    files = {"attachment": (Path(temp_file.name).name, f, "image/jpeg")}
                     response = httpx.post(url, data=payload_data, files=files, timeout=15)
             else:
                 response = httpx.post(url, data=payload_data, timeout=15)
@@ -117,9 +117,9 @@ def send_pushover(
             raise
         finally:
             # Cleanup temporary file
-            if temp_file and os.path.exists(temp_file.name):
+            if temp_file and Path(temp_file.name).exists():
                 try:
-                    os.unlink(temp_file.name)
+                    Path(temp_file.name).unlink()
                     logger.debug("[token=%s] Cleaned up temporary cover image file", token)
                 except Exception as e:
                     logger.warning("[token=%s] Failed to cleanup temp file: %s", token, e)

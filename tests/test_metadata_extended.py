@@ -178,13 +178,9 @@ class TestMetadataModule:
         # Override autouse mock to raise ValueError
         mock_coord.return_value = None
 
-        with (
-            patch("src.metadata.get_cached_metadata", return_value=None),
-            patch("src.metadata.get_audible_asin", return_value=None),
-        ):
+        with patch("src.metadata.get_cached_metadata", return_value=None), patch("src.metadata.get_audible_asin", return_value=None), pytest.raises(ValueError, match="ASIN could not be determined"):
             # Should raise ValueError when no ASIN can be found
-            with pytest.raises(ValueError, match="ASIN could not be determined"):
-                fetch_metadata(payload)
+            fetch_metadata(payload)
 
     def test_clean_metadata_runtime_conversion(self):
         # Test runtime conversion from minutes to readable format

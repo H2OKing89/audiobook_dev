@@ -8,7 +8,8 @@ from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.config import load_config
-from src.db import get_request  # use persistent DB store
+from src.db import delete_request, get_request  # use persistent DB store
+from src.qbittorrent import add_torrent_file_with_cookie
 from src.security import generate_csrf_token, get_client_ip
 from src.template_helpers import render_template
 from src.utils import format_release_date, format_size, strip_html_tags
@@ -140,10 +141,6 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             response.status_code = 410
             return response
 
-        from src.config import load_config
-        from src.db import delete_request
-        from src.qbittorrent import add_torrent_file_with_cookie
-
         config = load_config()
         qb_cfg = config.get("qbittorrent", {})
         enabled = qb_cfg.get("enabled", False)
@@ -237,7 +234,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
 
     except Exception as e:
         logging.error(f"Error processing approval action for token {token}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/reject/{token}", response_class=HTMLResponse)
@@ -283,7 +280,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
     except Exception as e:
         logging.error(f"Error processing rejection for token {token}: {e}")
         logging.exception(f"Full exception traceback for rejection {token}:")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.post("/reject/{token}", response_class=HTMLResponse)
@@ -309,8 +306,6 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
                 logging.debug(f"[token={token}] CSRF token validated successfully")
 
         # Perform deletion and render rejection page
-        from src.db import delete_request
-
         delete_request(token)
         logging.debug(f"[token={token}] Token deleted after rejection (POST)")
 
@@ -330,7 +325,7 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
     except Exception as e:
         logging.error(f"Error processing reject POST for token {token}: {e}")
         logging.exception(f"Full exception traceback for reject POST {token}:")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.post("/approve/{token}", response_class=HTMLResponse)
@@ -364,7 +359,7 @@ async def approve_post(token: str, request: Request) -> HTMLResponse:
     except Exception as e:
         logging.error(f"Error processing approve POST for token {token}: {e}")
         logging.exception(f"Full exception traceback for approve POST {token}:")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/admin", response_class=HTMLResponse)
@@ -410,7 +405,7 @@ async def admin_dashboard(request: Request) -> HTMLResponse:
 
     except Exception as e:
         logging.error(f"Failed to render admin dashboard: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/test-approval", response_class=HTMLResponse)
@@ -436,4 +431,4 @@ async def approve_minimal(token: str, request: Request) -> HTMLResponse:
         return response
     except Exception as e:
         logging.error(f"Error in minimal approval: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e

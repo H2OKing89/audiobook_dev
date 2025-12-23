@@ -27,7 +27,7 @@ class TestWebUIEndpoints:
         assert resp.status_code in (401, 410, 404)
         assert "expired" in resp.text.lower() or "unauthorized" in resp.text.lower() or "not found" in resp.text.lower()
 
-    def test_approve_action_valid_token(self, test_client, mock_qbittorrent, mock_notifications):
+    def test_approve_action_valid_token(self, test_client, _mock_qbittorrent, _mock_notifications):
         # Create a test token
         token = "test_action_token"
         metadata = {"title": "Action Test"}
@@ -55,7 +55,7 @@ class TestWebUIEndpoints:
         finally:
             delete_request(token)
 
-    def test_approve_post_with_csrf(self, test_client, mock_qbittorrent):
+    def test_approve_post_with_csrf(self, test_client, _mock_qbittorrent):
         token = "test_post_token"
         metadata = {"title": "Post Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}

@@ -1,3 +1,4 @@
+import concurrent.futures
 import time
 from unittest.mock import MagicMock, patch
 
@@ -280,8 +281,6 @@ class TestEndToEndIntegration:
                 return {"status_code": resp.status_code, "payload": payload_data, "success": resp.status_code == 200}
 
         # Process webhooks concurrently
-        import concurrent.futures
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(process_webhook, payload) for payload in payloads]
             results = [future.result() for future in concurrent.futures.as_completed(futures)]

@@ -13,7 +13,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 
 from src.config import load_config
 from src.template_helpers import render_template
@@ -37,11 +37,10 @@ PROTECTED_ENDPOINTS: set[str] = {"/admin", "/api/admin", "/config", "/logs", "/s
 PUBLIC_ENDPOINTS: set[str] = {"/", "/static", "/approve", "/reject", "/health"}
 
 
-def reset_rate_limit_buckets():
+def reset_rate_limit_buckets() -> None:
     """
     Reset all rate limit buckets - for testing purposes only.
     """
-    global token_buckets
     token_buckets.clear()
 
 
@@ -170,7 +169,7 @@ def get_csp_header() -> str:
 
 
 # Custom rate limit handler
-async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
+async def rate_limit_exceeded_handler(request: Request, _exc: RateLimitExceeded) -> Response:
     """Custom handler for rate limit exceeded errors."""
     client_host = request.client.host if request.client else "unknown"
     logging.warning(f"Rate limit exceeded: {client_host}")
@@ -276,19 +275,16 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, force_https: bool = False):
         super().__init__(app)
         self.force_https = force_https
-
     async def dispatch(self, request, call_next):
-        if self.force_https:
-            # Check if request is not HTTPS
-            if request.url.scheme != "https":
-                # Check for forwarded headers (reverse proxy)
-                forwarded_proto = request.headers.get("x-forwarded-proto")
-                forwarded_ssl = request.headers.get("x-forwarded-ssl")
+        if self.force_https and request.url.scheme != "https":
+            # Check for forwarded headers (reverse proxy)
+            forwarded_proto = request.headers.get("x-forwarded-proto")
+            forwarded_ssl = request.headers.get("x-forwarded-ssl")
 
-                if forwarded_proto != "https" and forwarded_ssl != "on":
-                    # Redirect to HTTPS
-                    url = request.url.replace(scheme="https")
-                    return RedirectResponse(url=str(url), status_code=301)
+            if forwarded_proto != "https" and forwarded_ssl != "on":
+                # Redirect to HTTPS
+                url = request.url.replace(scheme="https")
+                return RedirectResponse(url=str(url), status_code=301)
 
         response = await call_next(request)
         return response
