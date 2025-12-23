@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional, Tuple
 from src.config import load_config
 from src.utils import get_notification_fields
 
+logger = logging.getLogger(__name__)
+
 
 def escape_md(text: Optional[str]) -> str:
     # Escape Discord markdown
@@ -104,8 +106,8 @@ def send_discord(
             resp_json = response.json()
         except ValueError:
             resp_json = {"text": response.text}
-        logging.info("Discord notification sent successfully: status=%d", response.status_code)
+        logger.info("Discord notification sent successfully: status=%d", response.status_code)
         return response.status_code, resp_json
     except httpx.RequestError as e:
-        logging.exception("Failed to send Discord notification")
+        logger.exception("Failed to send Discord notification")
         return 0, {"error": f"Failed to send Discord notification: {e}"}
