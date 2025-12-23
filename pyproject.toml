@@ -63,6 +63,12 @@ Homepage = "https://github.com/H2OKing89/audiobook_dev"
 Repository = "https://github.com/H2OKing89/audiobook_dev"
 Issues = "https://github.com/H2OKing89/audiobook_dev/issues"
 
+[tool.setuptools]
+packages = ["src"]
+
+[tool.setuptools.package-data]
+src = ["py.typed"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
