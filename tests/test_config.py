@@ -1,14 +1,17 @@
+from unittest.mock import mock_open, patch
+
 import pytest
-from unittest.mock import patch, mock_open
-from src.config import load_config
 import yaml
+
 import src.config
+from src.config import load_config
 
 
 class TestConfig:
     def setup_method(self):
         # Reset global config before each test
         src.config._config = None
+
     def test_load_config_success(self):
         mock_yaml_content = """
 server:
@@ -27,10 +30,10 @@ logging:
 """
         with patch("builtins.open", mock_open(read_data=mock_yaml_content)):
             config = load_config()
-            assert config['server']['host'] == "0.0.0.0"
-            assert config['server']['port'] == 8000
-            assert config['notifications']['pushover']['enabled'] is True
-            assert config['logging']['level'] == "INFO"
+            assert config["server"]["host"] == "0.0.0.0"
+            assert config["server"]["port"] == 8000
+            assert config["notifications"]["pushover"]["enabled"] is True
+            assert config["logging"]["level"] == "INFO"
 
     def test_load_config_file_not_found(self):
         with patch("builtins.open", side_effect=FileNotFoundError("Config file not found")):
@@ -39,9 +42,8 @@ logging:
 
     def test_load_config_invalid_yaml(self):
         invalid_yaml = "invalid: yaml: content: ["
-        with patch("builtins.open", mock_open(read_data=invalid_yaml)):
-            with pytest.raises(yaml.YAMLError):
-                load_config()
+        with patch("builtins.open", mock_open(read_data=invalid_yaml)), pytest.raises(yaml.YAMLError):
+            load_config()
 
     def test_load_config_empty_file(self):
         with patch("builtins.open", mock_open(read_data="")):
@@ -62,6 +64,6 @@ audnex:
 """
         with patch("builtins.open", mock_open(read_data=mock_yaml_content)):
             config = load_config()
-            assert config['notifications']['discord']['icon_url'] == "https://example.com/icon.png"
-            assert config['notifications']['pushover']['sound'] == "magic"
-            assert config['audnex']['api_url'] == "https://api.audnex.us/books"
+            assert config["notifications"]["discord"]["icon_url"] == "https://example.com/icon.png"
+            assert config["notifications"]["pushover"]["sound"] == "magic"
+            assert config["audnex"]["api_url"] == "https://api.audnex.us/books"
