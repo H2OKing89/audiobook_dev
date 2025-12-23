@@ -65,4 +65,8 @@ logs/*real*.json
 # Debug files (temporary HTML dumps, etc.)
 logs/*.html
 logs/*_debug_*.html
-logs/
+
+# Coverage reports (generated, machine-specific paths)
+coverage.xml
+.coverage
+*.coverage

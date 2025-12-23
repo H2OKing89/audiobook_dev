@@ -18,7 +18,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install pre-commit
-        run: pip install pre-commit
+        # Pin version for reproducible CI builds
+        run: pip install pre-commit==4.0.1
 
       - name: Run pre-commit autoupdate
         run: pre-commit autoupdate

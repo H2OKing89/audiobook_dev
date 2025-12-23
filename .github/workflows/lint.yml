@@ -45,4 +45,5 @@ jobs:
 
       - name: Run mypy
         run: mypy src/ --ignore-missing-imports --no-error-summary
+        # TODO: Remove continue-on-error when type coverage is more complete
         continue-on-error: true
