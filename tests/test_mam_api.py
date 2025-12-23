@@ -9,7 +9,6 @@ These tests cover:
 - Adapter backward compatibility
 """
 
-import json
 import pytest
 from unittest.mock import AsyncMock, patch
 from datetime import datetime
@@ -24,7 +23,7 @@ from src.mam_api.models import (
     _to_int,
     _parse_added_datetime,
 )
-from src.mam_api.client import MamClient, MamAsyncClient, MamApiError, extract_tid_from_irc
+from src.mam_api.client import MamClient, MamAsyncClient, extract_tid_from_irc
 from src.mam_api.adapter import MAMApiAdapter
 
 
@@ -505,8 +504,8 @@ class TestIntegration:
         """Test real search against MAM API."""
         client = MamAsyncClient(mam_id=mam_id)
         try:
-            results = await client.search(query="harry potter", limit=1)
-            assert len(results) > 0
-            assert results[0].title is not None
+            results = await client.search(tor={"text": "harry potter"}, perpage=1)
+            assert len(results.data) > 0
+            assert results.data[0].title is not None
         finally:
-            await client.close()
+            await client.aclose()

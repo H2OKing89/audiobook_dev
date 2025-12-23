@@ -17,8 +17,6 @@ metadata:
   rate_limit_seconds: 10  # seconds between API calls
   mam:
     base_url: "https://www.myanonamouse.net"
-    config_file: "config/mam_config.json"
-    login_url: "https://www.myanonamouse.net/loggedin.php"
   audnex:
     base_url: "https://api.audnex.us"
     rate_limit_seconds: 0.15  # 150ms between requests
@@ -41,6 +39,7 @@ notifications:
     enabled: false          # Enable ntfy notifications
     topic: "audiobook-requests"  # Set your ntfy.sh topic here
     url: "https://ntfy.sh"    # Base ntfy URL (or use your own ntfy server)
+    icon_url: "https://ptpimg.me/4larvz.jpg"  # Icon for ntfy notifications
   discord:
     icon_url: "https://ptpimg.me/44pi19.png"
     author_url: "https://example.com/audiobookshelf/"  # Replace with your Audiobookshelf URL

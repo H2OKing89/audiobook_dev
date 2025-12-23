@@ -73,20 +73,28 @@ class MAMApiAdapter:
     async def close(self) -> None:
         """Close the HTTP client."""
         if self._client:
-            await self._client.close()
+            await self._client.aclose()
             self._client = None
+    
+    async def __aenter__(self) -> "MAMApiAdapter":
+        """Async context manager entry."""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit."""
+        await self.close()
             
     async def _check_rate_limit(self) -> None:
         """Enforce rate limiting between API calls."""
         current_time = time.time()
-        time_since_last = current_time - MAMApiAdapter._last_api_call_time
+        time_since_last = current_time - self._last_api_call_time
         
-        if time_since_last < MAMApiAdapter._rate_limit_seconds:
-            wait_time = MAMApiAdapter._rate_limit_seconds - time_since_last
-            logger.debug(f"Rate limiting: waiting {wait_time:.2f}s")
+        if time_since_last < self._rate_limit_seconds:
+            wait_time = self._rate_limit_seconds - time_since_last
+            logger.debug("Rate limiting: waiting %.2fs", wait_time)
             await asyncio.sleep(wait_time)
             
-        MAMApiAdapter._last_api_call_time = time.time()
+        self._last_api_call_time = time.time()
         
     @staticmethod
     def extract_tid_from_url(url: str) -> Optional[int]:
@@ -142,10 +150,10 @@ class MAMApiAdapter:
         """
         tid = self.extract_tid_from_url(url)
         if not tid:
-            logger.error(f"Could not extract torrent ID from URL: {url}")
+            logger.error("Could not extract torrent ID from URL: %s", url)
             return None
             
-        logger.info(f"Fetching torrent data for tid={tid}")
+        logger.info("Fetching torrent data for tid=%s", tid)
         
         try:
             await self._check_rate_limit()
@@ -153,10 +161,10 @@ class MAMApiAdapter:
             torrent = await client.get_torrent(tid)
             
             if torrent:
-                logger.info(f"✅ Torrent data retrieved: {torrent.title}")
+                logger.info("✅ Torrent data retrieved: %s", torrent.title)
                 return torrent
             else:
-                logger.warning(f"No torrent found for tid={tid}")
+                logger.warning("No torrent found for tid=%s", tid)
                 return None
                 
         except MamApiError:
