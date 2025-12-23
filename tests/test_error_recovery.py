@@ -32,7 +32,7 @@ class TestErrorRecovery:
         with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}):
             # Should handle timeout gracefully - metadata service wraps all errors
             with pytest.raises(ValueError) as exc_info:
-                result = fetch_metadata(payload)
+                fetch_metadata(payload)
 
             # Should be a controlled ValueError, not a crash
             assert "could not fetch metadata" in str(exc_info.value).lower()
@@ -111,7 +111,7 @@ class TestErrorRecovery:
 
             # Should handle rate limits gracefully - metadata service wraps all errors
             with pytest.raises(ValueError) as exc_info:
-                result = fetch_metadata(payload)
+                fetch_metadata(payload)
 
             # Should be a controlled ValueError
             assert "could not fetch metadata" in str(exc_info.value).lower()
@@ -151,7 +151,7 @@ class TestErrorRecovery:
         with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
             # Send multiple concurrent requests with some failing
             responses = []
-            for i in range(5):
+            for _i in range(5):
                 try:
                     resp = client.post(
                         "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -189,7 +189,7 @@ class TestErrorRecovery:
 
             # Should handle malformed responses gracefully - metadata service wraps all errors
             with pytest.raises(ValueError) as exc_info:
-                result = fetch_metadata(payload)
+                fetch_metadata(payload)
 
             # Should be a controlled ValueError
             assert "could not fetch metadata" in str(exc_info.value).lower()
@@ -200,7 +200,7 @@ class TestErrorRecovery:
         large_data = []
         try:
             # Create some memory pressure
-            for i in range(100):
+            for _i in range(100):
                 large_data.append("x" * 10000)
 
             # Test basic functionality under memory pressure
@@ -239,7 +239,7 @@ class TestErrorRecovery:
 
         # Multiple attempts should fail but not crash
         failures = 0
-        for i in range(5):
+        for _i in range(5):
             try:
                 pushover.send_pushover(metadata, payload, token, base_url, user_key, api_token)
             except Exception:
@@ -251,9 +251,9 @@ class TestErrorRecovery:
     def test_graceful_shutdown_handling(self):
         """Test graceful handling of shutdown scenarios"""
         # Test that ongoing operations can be interrupted gracefully
-        with patch("src.main.logging") as mock_logging:
+        with patch("src.main.logging"):
             # Simulate shutdown during operation
-            with patch("signal.signal") as mock_signal:
+            with patch("signal.signal"):
                 # This is more of a structure test - ensuring we have signal handlers
                 import src.main
 
