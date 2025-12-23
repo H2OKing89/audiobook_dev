@@ -1,6 +1,6 @@
 # Makefile for audiobook-dev project
 
-.PHONY: help install install-dev test lint format type-check clean run pre-commit ci
+.PHONY: help install install-dev test test-fast test-integration lint lint-fix format format-check type-check clean run pre-commit ci
 
 help:
 	@echo "Available commands:"

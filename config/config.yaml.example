@@ -93,6 +93,7 @@ security:
   # API security
   api_key_enabled: true  # Enable API key requirement for admin endpoints
   api_key: "your-strong-api-key-here"  # CHANGE THIS! Strong API key for admin endpoints
+  # WARNING: Runtime validation will reject default placeholder values. Generate a strong random key before deployment.
   
   # Endpoint protection
   endpoint_protection_enabled: true  # Enable endpoint authorization checks

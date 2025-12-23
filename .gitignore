@@ -65,5 +65,4 @@ logs/*real*.json
 # Debug files (temporary HTML dumps, etc.)
 logs/*.html
 logs/*_debug_*.html
-logs/page_source*.html
 logs/

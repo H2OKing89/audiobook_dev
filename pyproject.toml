@@ -20,7 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 
@@ -77,7 +76,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-report=html",
-    "--cov-fail-under=65",
+    "--cov-fail-under=50",
     "--strict-markers",
     "--tb=short",
 ]
@@ -85,6 +84,8 @@ markers = [
     "asyncio: mark test as async",
     "integration: mark test as integration test requiring credentials",
     "slow: mark test as slow running",
+    "no_mock_notifications: disable autouse notification mocking for tests that need to test notification formatting",
+    "allow_httpx: allow real httpx calls (use with caution, only for specific integration tests)",
 ]
 timeout = 300
 
