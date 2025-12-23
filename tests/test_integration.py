@@ -190,17 +190,15 @@ class TestEndToEndIntegration:
             
             assert resp.status_code == 200
             
-            # Force at least one notification for testing
-            notification_calls['pushover'].append(([], {}))
-            
-            # Verify all enabled notifications were called
-            # (Based on config, some might be enabled/disabled)
+            # Verify notifications were actually sent by the workflow
+            # (Based on config, notifications should be triggered)
             total_notifications = (len(notification_calls['pushover']) + 
                                  len(notification_calls['discord']) +
                                  len(notification_calls['gotify']) +
                                  len(notification_calls['ntfy']))
             
-            assert total_notifications > 0  # At least one notification should be sent
+            # With all notifications enabled in mock config, at least one should be sent
+            assert total_notifications >= 1, f"Expected at least 1 notification, got {total_notifications}"
 
     def test_metadata_fetch_to_storage_pipeline(self):
         """Test metadata fetching and storage pipeline"""

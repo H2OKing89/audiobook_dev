@@ -17,7 +17,9 @@ function initializeAlpineComponents() {
         }
         return;
     }
-    debugLog("Alpine found, initializing components...");
+    if (typeof debugLog === 'function') {
+        debugLog("Alpine found, initializing components...");
+    }
 
     // Main application store
     Alpine.store('app', {

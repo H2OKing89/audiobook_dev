@@ -166,7 +166,7 @@ function initializePagesComponents() {
     // Rejection Page Component
     Alpine.data('rejectionPage', () => ({
         // State
-        showRetryMessage: false,
+        isRetryMessageVisible: false,
         easterEggFound: false,
         
         // Dynamic content
@@ -194,7 +194,7 @@ function initializePagesComponents() {
         },
         
         showRetryMessage() {
-            this.showRetryMessage = true;
+            this.isRetryMessageVisible = true;
             this.$notify('💡 Pro tip: Try adjusting your request and resubmitting!', 'info');
         },
         
