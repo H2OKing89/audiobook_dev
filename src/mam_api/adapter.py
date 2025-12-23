@@ -160,13 +160,13 @@ class MAMApiAdapter:
                 return None
                 
         except MamApiError as e:
-            logger.exception(f"MAM API error for tid={tid}: {e}")
+            logger.exception("MAM API error for tid=%s", tid)
             return None
         except httpx.HTTPError as e:
-            logger.exception(f"HTTP error fetching torrent tid={tid}: {e}")
+            logger.exception("HTTP error fetching torrent tid=%s", tid)
             return None
         except ValidationError as e:
-            logger.exception(f"Validation error parsing torrent tid={tid}: {e}")
+            logger.exception("Validation error parsing torrent tid=%s", tid)
             return None
             
     async def scrape_asin_from_url(self, url: str, force_login: bool = False) -> Optional[str]:
