@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -358,6 +359,3 @@ class TestSecurity:
 
                 # Should handle long inputs gracefully
                 assert resp.status_code in [200, 400, 413, 422]
-
-
-import time

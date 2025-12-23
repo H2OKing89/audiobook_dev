@@ -16,6 +16,33 @@ from src.security import reset_rate_limit_buckets
 pytest_plugins = ("pytest_asyncio",)
 
 # =============================================================================
+# Global httpx mock to prevent ANY real HTTP calls during tests
+# =============================================================================
+
+
+@pytest.fixture(autouse=True, scope="function")
+def mock_httpx_globally(request):
+    """Mock all httpx calls globally to prevent any real HTTP requests.
+    
+    This is a safety net to ensure no notification or API calls escape during tests.
+    Tests can opt-out using @pytest.mark.allow_httpx marker.
+    """
+    if request.node.get_closest_marker("allow_httpx"):
+        yield
+        return
+    
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": 123, "status": 1, "result": "ok"}
+    mock_response.content = b"mock content"
+    mock_response.text = "mock text"
+    
+    with patch("httpx.post", return_value=mock_response) as mock_post, \
+         patch("httpx.get", return_value=mock_response) as mock_get:
+        yield {"post": mock_post, "get": mock_get}
+
+
+# =============================================================================
 # Session-scoped fixtures for performance optimization
 # =============================================================================
 
@@ -58,14 +85,21 @@ def valid_token(test_client):
 
 
 @pytest.fixture(autouse=True)
-def mock_notifications():
+def mock_notifications(request):
     """Mock all notification services by default to prevent real API calls.
 
     This is autouse=True to ensure no test accidentally sends real notifications.
+    Tests can disable this by using the marker: @pytest.mark.no_mock_notifications
+    
     Returns a dict of mocks that can be used to verify notification calls:
         mocks = mock_notifications
         mocks['pushover'].assert_called_once()
     """
+    # Allow tests to opt-out of auto-mocking with a marker
+    if request.node.get_closest_marker("no_mock_notifications"):
+        yield None
+        return
+        
     with (
         patch("src.notify.pushover.send_pushover") as pushover,
         patch("src.notify.discord.send_discord") as discord,

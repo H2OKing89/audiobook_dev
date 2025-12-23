@@ -9,6 +9,7 @@ These tests cover:
 - Adapter backward compatibility
 """
 
+import os
 from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
@@ -496,8 +497,6 @@ class TestIntegration:
     @pytest.fixture
     def mam_id(self):
         """Get MAM_ID from environment or skip."""
-        import os
-
         mam_id = os.getenv("MAM_ID")
         if not mam_id:
             pytest.skip("MAM_ID not set - skipping integration test")

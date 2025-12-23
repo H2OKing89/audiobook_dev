@@ -136,10 +136,14 @@ def test_audnex_with_known_asin():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_file = f"logs/audnex_test_results_{timestamp}.json"
 
-    with open(results_file, "w") as f:
-        json.dump(results, f, indent=2, default=str)
-
-    logging.info(f"💾 Results saved to: {results_file}")
+    try:
+        # Ensure logs directory exists
+        Path("logs").mkdir(exist_ok=True)
+        with open(results_file, "w") as f:
+            json.dump(results, f, indent=2, default=str)
+        logging.info(f"💾 Results saved to: {results_file}")
+    except OSError as e:
+        logging.error(f"Failed to save results to {results_file}: {e}")
 
     if successful == len(results):
         logging.info("🎉 ALL AUDNEX TESTS PASSED!")
