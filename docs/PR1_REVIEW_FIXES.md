@@ -304,41 +304,49 @@ And 15+ more similar comments that were addressed in Round 1 commits.
 
 ---
 
-## Fix Strategy - Round 2
+## Historical Reference
 
-### Phase 1: Critical Fixes (Must Complete)
+### Round 2 Planning (Archive)
+
+<details>
+<summary>Original Round 2 Fix Strategy (click to expand)</summary>
+
+**Phase 1: Critical Fixes (Must Complete)**
 
 1. ✅ Update this documentation
-2. Fix alpine-pages.js naming collision (showTimeHelp)
-3. Remove unused imports from test_integration.py
+2. ✅ Fix alpine-pages.js naming collision (showTimeHelp)
+3. ✅ Remove unused imports from test_integration.py
 
-### Phase 2: Important Fixes (High Priority)
+**Phase 2: Important Fixes (High Priority)**
 
-1. Add module-level logger to discord.py
-2. Fix exception chaining in qbittorrent.py
-3. Narrow exception catches in audible_scraper.py
-4. Add cleanup tracking to alpine-components.js (3 items)
-5. Fix conftest.py issues (2 items)
-6. Add type hint to template_helpers.py
+1. ✅ Add module-level logger to discord.py
+2. ✅ Fix exception chaining in qbittorrent.py
+3. ⏳ Narrow exception catches in audible_scraper.py (deferred)
+4. ✅ Add cleanup tracking to alpine-components.js (3 items)
+5. ✅ Fix conftest.py issues (2 items)
+6. ✅ Add type hint to template_helpers.py
 
-### Phase 3: Minor Fixes (Time Permitting)
+**Phase 3: Minor Fixes (Time Permitting)**
 
-1. Fix ALPINE_MIGRATION_SUMMARY.md date
-2. Consistent status codes in webui.py
-3. Various JavaScript improvements
-4. Pin requirements.txt versions
+1. ✅ Fix ALPINE_MIGRATION_SUMMARY.md date
+2. ✅ Consistent status codes in webui.py
+3. ⏳ Various JavaScript improvements (deferred)
+4. ⏳ Pin requirements.txt versions (deferred)
 
-### Phase 4: Testing & Documentation
+**Phase 4: Testing & Documentation**
 
-- Run full test suite after each phase
-- Update this document with ✅ status as items complete
-- Final commit and push when all critical + important items done
+- ✅ Run full test suite after each phase
+- ✅ Update this document with ✅ status as items complete
+- ✅ Final commit and push when all critical + important items done
+
+</details>
 
 ---
 
 ## Round 2 Final Status
 
 **Completed:**
+
 - ✅ Critical: 4/4 complete
 - ✅ Important: 9/9 complete  
 - ✅ Minor: 3/3 addressed (others deferred)
@@ -354,6 +362,7 @@ And 15+ more similar comments that were addressed in Round 1 commits.
 **Summary:** Round 1 addressed the initial 40 CodeRabbit comments with 5 commits:
 
 ✅ **Completed Fixes:**
+
 - Critical issues: Naming collisions, undefined functions, test validity
 - Logging consistency: 20+ calls converted to lazy % formatting
 - Exception logging: 5+ handlers using logger.exception()
