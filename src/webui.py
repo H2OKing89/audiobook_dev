@@ -150,6 +150,8 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             name = payload.get('name') or entry.get('metadata', {}).get('title')
             download_url = payload.get('download_url') or ''
             mam_id = os.environ.get('MAM_ID')
+            if not mam_id:
+                logging.warning(f"[token={token}] MAM_ID not set; proceeding without MAM cookie for torrent download")
             # Format as cookie header value for torrent download
             cookie = f"mam_id={mam_id}" if mam_id else None
             category = qb_cfg.get('category')
@@ -204,7 +206,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 'error_message': error_message,
                 'og_title': 'Approval Failed',
                 'og_description': error_message,
-                'og_image': 'https://example.com/images/audiobook-icon.png'
+                'og_image': 'https://ptpimg.me/l7pkv0.png'
             }
             logging.warning(f"[token={token}] Rendering failure page due to: {error_message}")
             response = render_template(request, 'failure.html', context)
@@ -215,7 +217,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 'close_delay': close_delay,
                 'og_title': 'Approval Successful',
                 'og_description': 'Your audiobook request was approved and processed!',
-                'og_image': 'https://example.com/images/audiobook-icon.png'
+                'og_image': 'https://ptpimg.me/l7pkv0.png'
             }
             # Attach non-fatal warning if present
             if warning_message:
@@ -258,7 +260,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
             'token': token,
             'og_title': 'Request Rejected',
             'og_description': 'Your audiobook request was rejected.',
-            'og_image': 'https://example.com/images/audiobook-icon.png'
+            'og_image': 'https://ptpimg.me/l7pkv0.png'
         }
         
         # Add CSRF token if protection is enabled
@@ -308,7 +310,7 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
             'token': token,
             'og_title': 'Request Rejected',
             'og_description': 'Your audiobook request was rejected.',
-            'og_image': 'https://example.com/images/audiobook-icon.png'
+            'og_image': 'https://ptpimg.me/l7pkv0.png'
         }
         response = render_template(request, 'rejection.html', context)
         logging.info(f"[token={token}] Rejection processed successfully (POST)")
