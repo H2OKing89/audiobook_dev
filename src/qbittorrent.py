@@ -80,7 +80,7 @@ def add_torrent_file_with_cookie(
             logging.info("Logged in to qBittorrent successfully.")
         except LoginFailed as e:
             logging.exception("qBittorrent login failed")
-            raise Exception(f"qBittorrent login failed: {e}")
+            raise Exception(f"qBittorrent login failed: {e}") from e
         logging.info("Uploading torrent file to qBittorrent with options: category=%s, tags=%s, paused=%s, autoTMM=%s, contentLayout=%s", category, tags, paused, autoTMM, contentLayout)
         with open(tmp.name, "rb") as f:
             resp = client.torrents_add(
