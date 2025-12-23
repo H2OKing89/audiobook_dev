@@ -1,8 +1,8 @@
-import pytest
 import re
 import time
-from unittest.mock import patch, MagicMock
-from src.db import save_request, delete_request
+from unittest.mock import patch
+
+from src.db import delete_request, save_request
 
 
 class TestWebUIEndpoints:
@@ -32,7 +32,7 @@ class TestWebUIEndpoints:
         metadata = {"title": "Action Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
         save_request(token, metadata, payload)
-        
+
         try:
             resp = test_client.get(f"/approve/{token}/action")
             assert resp.status_code == 200
@@ -46,7 +46,7 @@ class TestWebUIEndpoints:
         metadata = {"title": "Reject Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
         save_request(token, metadata, payload)
-        
+
         try:
             resp = test_client.get(f"/reject/{token}")
             assert resp.status_code == 200
@@ -65,7 +65,7 @@ class TestWebUIEndpoints:
             assert resp.status_code == 200
             m = re.search(r'name="csrf_token" value="(?P<val>[0-9a-f]+)"', resp.text)
             assert m, "CSRF token not found in approve page"
-            csrf_val = m.group('val')
+            csrf_val = m.group("val")
             post = test_client.post(f"/approve/{token}", data={"csrf_token": csrf_val})
             assert post.status_code == 200
             assert "approved" in post.text.lower() or "success" in post.text.lower()
@@ -82,7 +82,7 @@ class TestWebUIEndpoints:
             assert resp.status_code == 200
             m = re.search(r'name="csrf_token" value="(?P<val>[0-9a-f]+)"', resp.text)
             assert m, "CSRF token not found in reject page"
-            csrf_val = m.group('val')
+            csrf_val = m.group("val")
             post = test_client.post(f"/reject/{token}", data={"csrf_token": csrf_val})
             assert post.status_code == 200
             assert "reject" in post.text.lower()
@@ -99,7 +99,7 @@ class TestWebUIEndpoints:
         metadata = {"title": "Fail Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
         save_request(token, metadata, payload)
-        
+
         try:
             with patch("src.qbittorrent.add_torrent_file_with_cookie", return_value=False):
                 resp = test_client.get(f"/approve/{token}/action")
@@ -132,11 +132,11 @@ class TestWebUIEndpoints:
             "series": "Series (Vol. 1)",
             "release_date": "2020-01-01T00:00:00Z",
             "size": 1024 * 1024 * 100,  # 100 MB
-            "description": "<script>alert(1)</script>Line1\n\nLine2"
+            "description": "<script>alert(1)</script>Line1\n\nLine2",
         }
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
         save_request(token, metadata, payload)
-        
+
         try:
             resp = test_client.get(f"/approve/{token}")
             assert resp.status_code == 200
@@ -148,7 +148,7 @@ class TestWebUIEndpoints:
             # Description should not contain script tags or unescaped HTML and should contain content
             m = re.search(r'<div class="description-content"[^>]*>(?P<content>.*?)</div>', resp.text, re.S)
             assert m, "Description block not found in response"
-            desc_html = m.group('content')
+            desc_html = m.group("content")
             assert "<script" not in desc_html.lower()
             assert "Line1" in desc_html
             assert "Line2" in desc_html
@@ -158,20 +158,20 @@ class TestWebUIEndpoints:
     def test_token_expiry_handling(self, test_client, monkeypatch):
         # Test expired token handling
         import src.db as dbmod
-        
+
         token = "test_expire_token"
         metadata = {"title": "Expire Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
-        
+
         # Get current time for manipulation
         current_time = time.time()
         monkeypatch.setattr(time, "time", lambda: current_time)
         save_request(token, metadata, payload)
-        
+
         # Mock TTL and simulate expiry by moving time forward
         dbmod.TTL = 1
         monkeypatch.setattr(time, "time", lambda: current_time + 3600)
-        
+
         try:
             resp = test_client.get(f"/approve/{token}")
             assert resp.status_code in (401, 410, 404)
