@@ -352,22 +352,15 @@ class TestMamClient:
     
     def test_client_initialization(self):
         """Test client initialization - creates httpx client."""
-        # MamClient requires network, so we just test that it doesn't raise
-        # on init with valid mam_id
-        try:
-            client = MamClient(mam_id="test_id")
-            assert client._client is not None
-            client.close()
-        except Exception as e:
-            # May fail if no network, but shouldn't fail on init
-            if "mam_id" in str(e).lower():
-                pytest.fail(f"Client init failed unexpectedly: {e}")
+        # Client init should succeed with valid mam_id (no network call during init)
+        client = MamClient(mam_id="test_id")
+        assert client._client is not None
+        client.close()
         
     def test_client_no_mam_id(self):
         """Test client raises error without mam_id."""
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="mam_id"):
             MamClient(mam_id="")  # Empty string is falsy
-        assert "mam_id" in str(exc_info.value).lower()
         
 
 class TestMamAsyncClient:
@@ -376,13 +369,10 @@ class TestMamAsyncClient:
     @pytest.mark.asyncio
     async def test_async_client_initialization(self):
         """Test async client initialization."""
-        try:
-            client = MamAsyncClient(mam_id="test_id")
-            assert client._client is not None
-            await client.close()
-        except Exception as e:
-            if "mam_id" in str(e).lower():
-                pytest.fail(f"Client init failed unexpectedly: {e}")
+        # Async client init should succeed with valid mam_id (no network call during init)
+        client = MamAsyncClient(mam_id="test_id")
+        assert client._client is not None
+        await client.aclose()
         
     @pytest.mark.asyncio
     async def test_search_returns_response(self):
