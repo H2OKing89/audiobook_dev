@@ -1,9 +1,12 @@
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from src.notify.pushover import send_pushover
-from src.notify.gotify import send_gotify
+
 from src.notify.discord import send_discord
+from src.notify.gotify import send_gotify
 from src.notify.ntfy import send_ntfy
+from src.notify.pushover import send_pushover
+
 
 # Sample minimal metadata and payload for notification tests
 sample_metadata = {
@@ -23,9 +26,9 @@ sample_payload = {
     "size": 1234567890,
 }
 
+
 def test_pushover_message_formatting():
-    with patch("src.notify.pushover.httpx.post") as mock_post, \
-         patch("src.notify.pushover.httpx.get") as mock_get:
+    with patch("src.notify.pushover.httpx.post") as mock_post, patch("src.notify.pushover.httpx.get") as mock_get:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"status": 1}
         mock_get.return_value.status_code = 200
@@ -36,34 +39,32 @@ def test_pushover_message_formatting():
         assert status == 200
         assert resp["status"] == 1
 
+
 def test_gotify_message_formatting():
     with patch("src.notify.gotify.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"id": 123}
-        status, resp = send_gotify(
-            sample_metadata, sample_payload, "tok", "http://base", "http://gotify", "token"
-        )
+        status, resp = send_gotify(sample_metadata, sample_payload, "tok", "http://base", "http://gotify", "token")
         assert status == 200
         assert "id" in resp
+
 
 def test_discord_message_formatting():
     with patch("src.notify.discord.httpx.post") as mock_post:
         mock_post.return_value.status_code = 204
         mock_post.return_value.json.return_value = {}
-        status, resp = send_discord(
-            sample_metadata, sample_payload, "tok", "http://base", "http://discord/webhook"
-        )
+        status, resp = send_discord(sample_metadata, sample_payload, "tok", "http://base", "http://discord/webhook")
         assert status == 204
+
 
 def test_ntfy_message_formatting():
     with patch("src.notify.ntfy.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"result": "ok"}
-        status, resp = send_ntfy(
-            sample_metadata, sample_payload, "tok", "http://base", "topic", "http://ntfy"
-        )
+        status, resp = send_ntfy(sample_metadata, sample_payload, "tok", "http://base", "topic", "http://ntfy")
         assert status == 200
         assert resp["result"] == "ok"
+
 
 @pytest.mark.parametrize("field", ["url", "download_url"])
 def test_notify_missing_urls(field):
@@ -75,6 +76,7 @@ def test_notify_missing_urls(field):
         mock_post.return_value.json.return_value = {"result": "ok"}
         status, resp = send_ntfy(meta, payload, "tok", "http://base", "topic", "http://ntfy")
         assert status == 200
+
 
 # Test that HTML is stripped from notification fields
 def test_html_sanitization_in_notifications():
@@ -89,6 +91,7 @@ def test_html_sanitization_in_notifications():
         args, kwargs = mock_post.call_args
         assert "<b>" not in kwargs["json"]["message"]
         assert "<script>" not in kwargs["json"]["message"]
+
 
 # Test error handling: simulate network error
 def test_notify_network_error_handling():
