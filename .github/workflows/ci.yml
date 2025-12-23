@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main, mam-api-migration]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+
+      - name: Lint with ruff
+        run: |
+          ruff check src/ tests/ --output-format=github
+
+      - name: Format check with ruff
+        run: |
+          ruff format --check src/ tests/
+
+      - name: Type check with mypy
+        run: |
+          mypy src/ --ignore-missing-imports --no-error-summary || true
+
+      - name: Test with pytest
+        run: |
+          pytest --cov=src --cov-branch --cov-report=xml --cov-report=term-missing --cov-fail-under=65 -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          pip install -r requirements.txt
+          pip-audit
+
+  lint-commits:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          # Simple commit message validation
+          git log --format=%B origin/${{ github.base_ref }}..HEAD | grep -v '^$' | while read msg; do
+            if ! echo "$msg" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?:'; then
+              echo "⚠️  Commit message doesn't follow conventional commits: $msg"
+            fi
+          done
