@@ -22,6 +22,8 @@ from src.mam_scraper import MAMScraper
 from src.audnex_metadata import AudnexMetadata
 from src.audible_scraper import AudibleScraper
 
+logger = logging.getLogger(__name__)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -130,17 +132,17 @@ class MetadataCoordinator:
             else:
                 logging.warning("❌ No metadata found via Audible search")
         except httpx.RequestError as e:
-            logging.exception("Network error searching Audible")
+            logger.exception("Network error searching Audible")
             # Surface network errors to callers/tests as a controlled ValueError
             raise ValueError("Could not fetch metadata") from e
         except ValueError as e:
             # Malformed JSON or other parsing errors from upstream APIs should be treated
             # as controlled metadata fetch failures so callers/tests see a deterministic
             # ValueError("Could not fetch metadata").
-            logging.exception("Malformed response searching Audible")
+            logger.exception("Malformed response searching Audible")
             raise ValueError("Could not fetch metadata") from e
         except Exception:
-            logging.exception("Error searching Audible")
+            logger.exception("Error searching Audible")
         
         logging.error("❌ All metadata sources exhausted - no metadata found")
         return None

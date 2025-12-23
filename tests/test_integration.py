@@ -1,6 +1,7 @@
 import pytest
 import time
 import threading
+from typing import Any, Tuple
 from unittest.mock import patch, MagicMock
 from src.db import get_request, delete_request, list_tokens
 from src.token_gen import generate_token
@@ -136,19 +137,19 @@ class TestEndToEndIntegration:
             'ntfy': []
         }
         
-        def track_pushover(*args, **kwargs):
+        def track_pushover(*args: Any, **kwargs: Any) -> Tuple[int, dict]:
             notification_calls['pushover'].append((args, kwargs))
             return (200, {"status": 1})
         
-        def track_discord(*args, **kwargs):
+        def track_discord(*args: Any, **kwargs: Any) -> Tuple[int, dict]:
             notification_calls['discord'].append((args, kwargs))
             return (204, {})
         
-        def track_gotify(*args, **kwargs):
+        def track_gotify(*args: Any, **kwargs: Any) -> Tuple[int, dict]:
             notification_calls['gotify'].append((args, kwargs))
             return (200, {})
         
-        def track_ntfy(*args, **kwargs):
+        def track_ntfy(*args: Any, **kwargs: Any) -> Tuple[int, dict]:
             notification_calls['ntfy'].append((args, kwargs))
             return (200, {})
         
