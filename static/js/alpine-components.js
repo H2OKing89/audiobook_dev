@@ -270,7 +270,12 @@ window.AlpineComponents = {
                             document.body.appendChild(closeBtn);
                             // Notify user in UI if notifications store is available
                             if (window.Alpine && Alpine.store && Alpine.store('notifications')) {
-                                Alpine.store('notifications').add('Auto-close failed; please click the 
+                                Alpine.store('notifications').add('Auto-close failed; please click the button to close.', 'warning');
+                            }
+                        }
+                    }
+                }, 1000);
+            }
         }
     },
     

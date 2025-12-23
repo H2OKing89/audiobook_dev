@@ -54,7 +54,6 @@ function initializePagesComponents() {
         _rateInterval: null,
         _happinessInterval: null,
         _confettiInterval: null,
-        _intervals: [],
 
         animateStats() {
             // Animate success rate to 100%
@@ -67,7 +66,6 @@ function initializePagesComponents() {
                     this._rateInterval = null;
                 }
             }, 50);
-            this._intervals.push(this._rateInterval);
 
             // Animate happiness level
             let happiness = 0;
@@ -79,7 +77,6 @@ function initializePagesComponents() {
                     this._happinessInterval = null;
                 }
             }, 30);
-            this._intervals.push(this._happinessInterval);
 
             // Animate confetti count
             let confetti = 0;
@@ -92,7 +89,6 @@ function initializePagesComponents() {
                     this._confettiInterval = null;
                 }
             }, 100);
-            this._intervals.push(this._confettiInterval);
         },
 
         destroy() {
@@ -108,10 +104,6 @@ function initializePagesComponents() {
             if (this._confettiInterval) {
                 clearInterval(this._confettiInterval);
                 this._confettiInterval = null;
-            }
-            if (Array.isArray(this._intervals)) {
-                this._intervals.forEach(id => { if (id) clearInterval(id); });
-                this._intervals = [];
             }
         },
 

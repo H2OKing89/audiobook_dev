@@ -130,17 +130,17 @@ class MetadataCoordinator:
             else:
                 logging.warning("❌ No metadata found via Audible search")
         except httpx.RequestError as e:
-            logging.exception(f"Network error searching Audible: {e}")
+            logging.exception("Network error searching Audible")
             # Surface network errors to callers/tests as a controlled ValueError
             raise ValueError("Could not fetch metadata") from e
         except ValueError as e:
             # Malformed JSON or other parsing errors from upstream APIs should be treated
             # as controlled metadata fetch failures so callers/tests see a deterministic
             # ValueError("Could not fetch metadata").
-            logging.exception(f"Malformed response searching Audible: {e}")
+            logging.exception("Malformed response searching Audible")
             raise ValueError("Could not fetch metadata") from e
-        except Exception as e:
-            logging.exception(f"Error searching Audible: {e}")
+        except Exception:
+            logging.exception("Error searching Audible")
         
         logging.error("❌ All metadata sources exhausted - no metadata found")
         return None

@@ -29,6 +29,9 @@ def valid_token(test_client):
     
     Use this fixture when you need a pre-created token for testing endpoints.
     The token is automatically deleted after the test completes.
+    
+    Args:
+        test_client: Dependency to ensure FastAPI app is initialized before token creation
     """
     from src.db import save_request, delete_request
     from src.token_gen import generate_token
