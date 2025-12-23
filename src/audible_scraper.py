@@ -282,12 +282,12 @@ class AudibleScraper:
             return detailed_results
             
         except httpx.RequestError as e:
-            logging.error("Audible search error: %s", e)
+            logging.exception("Audible search error")
             # Propagate network-related errors so callers/tests can handle them uniformly
             raise
         except ValueError as e:
             # Malformed JSON or parsing errors should be propagated so callers/tests can react
-            logging.error("Audible search parsing error: %s", e)
+            logging.exception("Audible search parsing error")
             raise
     
     def search_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
