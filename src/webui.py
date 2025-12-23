@@ -53,7 +53,7 @@ async def home(request: Request) -> HTMLResponse:
         return render_template(request, "index.html", context)
     except Exception as e:
         logging.error(f"Failed to render home page: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/approve/{token}", response_class=HTMLResponse)
@@ -121,7 +121,7 @@ async def approve(token: str, request: Request) -> HTMLResponse:
 
     except Exception as e:
         logging.error(f"Error rendering approval page for token {token}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/approve/{token}/action", response_class=HTMLResponse)

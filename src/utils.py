@@ -119,10 +119,10 @@ def build_notification_message(metadata: dict[str, Any], payload: dict[str, Any]
     release_date = format_release_date(metadata.get("release_date", ""))
     runtime = str(metadata.get("runtime_minutes", ""))
     category = payload.get("category", "")
-    size = payload.get("size", "")
+    payload.get("size", "")
     # Clean HTML from description
     raw_desc = metadata.get("description", "")
-    description = strip_html_tags(raw_desc)
+    strip_html_tags(raw_desc)
 
     msg = (
         '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
