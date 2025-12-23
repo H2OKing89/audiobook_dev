@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional, Tuple, List
 from src.utils import get_notification_fields
-import requests
+import httpx
 import os
 import logging
 
@@ -86,7 +86,7 @@ def send_ntfy(
     base = ntfy_url.rstrip('/')
     logging.info(f"Sending ntfy JSON to {base}")
     try:
-        resp = requests.post(
+        resp = httpx.post(
             base,
             json=data,
             headers=headers,
@@ -95,13 +95,13 @@ def send_ntfy(
         resp.raise_for_status()
         logging.info(f"ntfy JSON publish succeeded: status={resp.status_code}")
         return resp.status_code, resp.json()
-    except Exception as e:
+    except httpx.RequestError as e:
         logging.error(f"ntfy JSON publish failed: {e}")
         # Fallback to topic endpoint
         fallback_url = f"{base}/{ntfy_topic}"
         logging.info(f"Falling back to ntfy topic endpoint: {fallback_url}")
         try:
-            resp2 = requests.post(
+            resp2 = httpx.post(
                 fallback_url,
                 data=message.encode('utf-8'),
                 headers=headers,
@@ -111,7 +111,7 @@ def send_ntfy(
             resp2.raise_for_status()
             logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
             return resp2.status_code, resp2.json()
-        except requests.RequestException as e2:
+        except httpx.RequestError as e2:
             error_msg = f"ntfy fallback publish also failed: {e2}"
             logging.error(error_msg)
             # Return the original error plus the fallback error

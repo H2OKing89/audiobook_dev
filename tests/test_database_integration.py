@@ -65,22 +65,27 @@ class TestDatabaseIntegration:
         assert result["metadata"]["title"] == "Test Book"
         assert result["payload"]["url"] == "http://example.com"
 
-    def test_token_expiration(self):
+    def test_token_expiration(self, monkeypatch):
         """Test token expiration logic"""
         token = "expiry_test_token"
         metadata = {"title": "Test Book"}
         payload = {"url": "http://example.com"}
         
+        # Get current time for manipulation
+        current_time = time.time()
+        
         # Mock TTL to be very short
         with patch('src.db.TTL', 1):  # 1 second TTL
+            # Save with current time
+            monkeypatch.setattr(time, 'time', lambda: current_time)
             save_request(token, metadata, payload)
             
             # Should be retrievable immediately
             result = get_request(token)
             assert result is not None
             
-            # Wait for expiration
-            time.sleep(2)
+            # Simulate time passing - move time forward
+            monkeypatch.setattr(time, 'time', lambda: current_time + 5)
             
             # Should be expired and return None
             result = get_request(token)
@@ -139,8 +144,12 @@ class TestDatabaseIntegration:
         result = get_request(token)
         assert result is None
 
-    def test_cleanup_expired_tokens(self):
+    def test_cleanup_expired_tokens(self, monkeypatch):
         """Test cleanup of expired tokens"""
+        # Get current time for manipulation
+        current_time = time.time()
+        monkeypatch.setattr(time, 'time', lambda: current_time)
+        
         # Create multiple tokens with different timestamps
         tokens = []
         for i in range(5):
@@ -150,9 +159,9 @@ class TestDatabaseIntegration:
             save_request(token, metadata, payload)
             tokens.append(token)
         
-        # Mock some tokens as expired
+        # Mock some tokens as expired by moving time forward
         with patch('src.db.TTL', 1):
-            time.sleep(2)  # Wait for expiration
+            monkeypatch.setattr(time, 'time', lambda: current_time + 5)
             
             # Run cleanup
             cleanup()

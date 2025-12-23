@@ -94,7 +94,7 @@
           {% if description %}
           <div class="description-panel">
             <div class="panel-subheader">📝 SYNOPSIS.TXT</div>
-            <div class="description-content">{{ description|safe }}</div>
+            <div class="description-content" style="white-space: pre-wrap;">{{ description }}</div>
           </div>
           {% endif %}
 
@@ -174,25 +174,31 @@
           </div>
           
           <div class="button-array">
-            <a href="/approve/{{ token }}/action" class="matrix-btn approve-matrix">
-              <div class="btn-glow"></div>
-              <div class="btn-content">
-                <span class="btn-icon">✅</span>
-                <span class="btn-text">APPROVE.EXE</span>
-                <span class="btn-hotkey">[A]</span>
-              </div>
-              <div class="btn-shimmer"></div>
-            </a>
-            
-            <a href="/reject/{{ token }}" class="matrix-btn reject-matrix">
-              <div class="btn-glow"></div>
-              <div class="btn-content">
-                <span class="btn-icon">❌</span>
-                <span class="btn-text">REJECT.EXE</span>
-                <span class="btn-hotkey">[R]</span>
-              </div>
-              <div class="btn-shimmer"></div>
-            </a>
+            <form method="post" action="/approve/{{ token }}" class="approve-form" style="display:inline-block;">
+              {% include 'csrf_input.html' %}
+              <button type="submit" class="matrix-btn approve-matrix btn btn-approve" role="button" aria-label="Approve request">
+                <div class="btn-glow"></div>
+                <div class="btn-content">
+                  <span class="btn-icon">✅</span>
+                  <span class="btn-text">APPROVE.EXE</span>
+                  <span class="btn-hotkey">[A]</span>
+                </div>
+                <div class="btn-shimmer"></div>
+              </button>
+            </form>
+
+            <form method="post" action="/reject/{{ token }}" class="reject-form" style="display:inline-block; margin-left: 12px;">
+              {% include 'csrf_input.html' %}
+              <button type="submit" class="matrix-btn reject-matrix btn btn-reject" role="button" aria-label="Reject request">
+                <div class="btn-glow"></div>
+                <div class="btn-content">
+                  <span class="btn-icon">❌</span>
+                  <span class="btn-text">REJECT.EXE</span>
+                  <span class="btn-hotkey">[R]</span>
+                </div>
+                <div class="btn-shimmer"></div>
+              </button>
+            </form>
           </div>
 
           <div class="footer-note">

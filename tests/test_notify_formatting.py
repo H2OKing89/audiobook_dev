@@ -24,8 +24,8 @@ sample_payload = {
 }
 
 def test_pushover_message_formatting():
-    with patch("src.notify.pushover.requests.post") as mock_post, \
-         patch("src.notify.pushover.requests.get") as mock_get:
+    with patch("src.notify.pushover.httpx.post") as mock_post, \
+         patch("src.notify.pushover.httpx.get") as mock_get:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"status": 1}
         mock_get.return_value.status_code = 200
@@ -37,7 +37,7 @@ def test_pushover_message_formatting():
         assert resp["status"] == 1
 
 def test_gotify_message_formatting():
-    with patch("src.notify.gotify.requests.post") as mock_post:
+    with patch("src.notify.gotify.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"id": 123}
         status, resp = send_gotify(
@@ -47,7 +47,7 @@ def test_gotify_message_formatting():
         assert "id" in resp
 
 def test_discord_message_formatting():
-    with patch("src.notify.discord.requests.post") as mock_post:
+    with patch("src.notify.discord.httpx.post") as mock_post:
         mock_post.return_value.status_code = 204
         mock_post.return_value.json.return_value = {}
         status, resp = send_discord(
@@ -56,7 +56,7 @@ def test_discord_message_formatting():
         assert status == 204
 
 def test_ntfy_message_formatting():
-    with patch("src.notify.ntfy.requests.post") as mock_post:
+    with patch("src.notify.ntfy.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"result": "ok"}
         status, resp = send_ntfy(
@@ -70,7 +70,7 @@ def test_notify_missing_urls(field):
     meta = dict(sample_metadata)
     payload = dict(sample_payload)
     payload.pop(field, None)
-    with patch("src.notify.ntfy.requests.post") as mock_post:
+    with patch("src.notify.ntfy.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"result": "ok"}
         status, resp = send_ntfy(meta, payload, "tok", "http://base", "topic", "http://ntfy")
@@ -80,7 +80,7 @@ def test_notify_missing_urls(field):
 def test_html_sanitization_in_notifications():
     meta = dict(sample_metadata)
     meta["description"] = "<b>Bold</b> <script>alert(1)</script>"
-    with patch("src.notify.gotify.requests.post") as mock_post:
+    with patch("src.notify.gotify.httpx.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.json.return_value = {"id": 1}
         status, resp = send_gotify(meta, sample_payload, "tok", "http://base", "http://gotify", "token")
@@ -92,7 +92,7 @@ def test_html_sanitization_in_notifications():
 
 # Test error handling: simulate network error
 def test_notify_network_error_handling():
-    with patch("src.notify.pushover.requests.post", side_effect=Exception("fail")):
+    with patch("src.notify.pushover.httpx.post", side_effect=Exception("fail")):
         try:
             send_pushover(sample_metadata, sample_payload, "tok", "http://base", "user", "api")
         except Exception as e:

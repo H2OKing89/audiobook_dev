@@ -1,10 +1,12 @@
 import re
-import requests
+import httpx
 import logging
 from datetime import datetime, UTC
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 from src.config import load_config
 from src.utils import get_notification_fields
+
+logger = logging.getLogger(__name__)
 
 
 def escape_md(text: Optional[str]) -> str:
@@ -15,12 +17,12 @@ def escape_md(text: Optional[str]) -> str:
 
 
 def send_discord(
-    metadata: Dict[str, Any],
-    payload: Dict[str, Any],
+    metadata: dict[str, Any],
+    payload: dict[str, Any],
     token: str,
     base_url: str,
     webhook_url: str
-) -> Tuple[int, Any]:
+) -> tuple[int, Any]:
     config = load_config()
     server_cfg = config.get('server', {})
     discord_cfg = config.get('notifications', {}).get('discord', {})
@@ -98,15 +100,18 @@ def send_discord(
     data = {"embeds": [embed]}
     
     try:
-        response = requests.post(webhook_url, json=data, timeout=15)
+        response = httpx.post(webhook_url, json=data, timeout=15)
         response.raise_for_status()
         try:
             resp_json = response.json()
         except ValueError:
             resp_json = {"text": response.text}
-        logging.info(f"Discord notification sent successfully: status={response.status_code}")
+        logger.info("Discord notification sent successfully: status=%d", response.status_code)
+    except httpx.HTTPStatusError as e:
+        logger.exception("Discord webhook returned error status: %d", e.response.status_code)
+        return 0, {"error": f"Discord returned status {e.response.status_code}"}
+    except httpx.RequestError as e:
+        logger.exception("Failed to send Discord notification")
+        return 0, {"error": f"Failed to send Discord notification: {e}"}
+    else:
         return response.status_code, resp_json
-    except requests.RequestException as e:
-        error_msg = f"Failed to send Discord notification: {e}"
-        logging.error(error_msg)
-        return 0, {"error": error_msg}

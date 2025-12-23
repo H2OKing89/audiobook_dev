@@ -599,7 +599,7 @@ const HomePage = {
         if (!document.body.classList.contains('home-page')) return;
         if (this.state.isInitialized) return;
 
-        console.log('🎧 Initializing Enhanced Audiobook HQ Homepage...');
+        debugLog('🎧 Initializing Enhanced Audiobook HQ Homepage...');
         
         // Add CSS animations keyframes dynamically
         this.addDynamicStyles();
@@ -614,7 +614,7 @@ const HomePage = {
         this.initButtonEffects();
         
         this.state.isInitialized = true;
-        console.log('✅ Enhanced Homepage initialization complete!');
+        debugLog('✅ Enhanced Homepage initialization complete!');
     },
 
     // Add dynamic CSS animations with performance hints

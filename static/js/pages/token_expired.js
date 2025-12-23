@@ -788,6 +788,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.head.appendChild(style);
     }
     
-    console.log('⏰ Token expired page loaded! Time effects ready! ⏰');
-    console.log('💡 Tip: Try pressing T for time facts, clicking the mascot, or the Konami code for time travel! 🚀');
+    debugLog('⏰ Token expired page loaded! Time effects ready! ⏰');
+    debugLog('💡 Tip: Try pressing T for time facts, clicking the mascot, or the Konami code for time travel! 🚀');
 });

@@ -10,7 +10,7 @@ function initRejectionPage() {
     setupEasterEggs();
     startHologramEffects();
     
-    console.log('🚫 Rejection consolation system activated');
+    debugLog('🚫 Rejection consolation system activated');
 }
 
 // Dad Joke Loader
@@ -271,12 +271,12 @@ function activateKonamiEasterEgg() {
 }
 
 // Add some helpful console messages
-console.log('🎭 REJECTION CONSOLE COMMANDS:');
-console.log('  triggerEasterEgg() - Show easter egg');
-console.log('  showRetryMessage() - Show retry info');
-console.log('  loadDadJoke() - Load new dad joke');
-console.log('  Konami Code - ↑↑↓↓←→←→BA for secret');
-console.log('  Keyboard shortcuts: H=Home, A=Appeal, R=Retry, ?=Easter Egg');
+debugLog('🎭 REJECTION CONSOLE COMMANDS:');
+debugLog('  triggerEasterEgg() - Show easter egg');
+debugLog('  showRetryMessage() - Show retry info');
+debugLog('  loadDadJoke() - Load new dad joke');
+debugLog('  Konami Code - ↑↑↓↓←→←→BA for secret');
+debugLog('  Keyboard shortcuts: H=Home, A=Appeal, R=Retry, ?=Easter Egg');
 
 // Export functions for global access
 window.showRetryMessage = showRetryMessage;

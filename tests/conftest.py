@@ -3,7 +3,127 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
+from unittest.mock import patch, MagicMock
 from src.security import reset_rate_limit_buckets
+
+# =============================================================================
+# Session-scoped fixtures for performance optimization
+# =============================================================================
+
+@pytest.fixture(scope="session")
+def test_client():
+    """Session-scoped FastAPI TestClient to avoid repeated app creation.
+    
+    Using a single client for the entire session significantly speeds up tests
+    by avoiding the overhead of creating new app instances.
+    """
+    from fastapi.testclient import TestClient
+    from src.main import app
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def valid_token(test_client):
+    """Create a valid token and clean up after the test.
+    
+    Use this fixture when you need a pre-created token for testing endpoints.
+    The token is automatically deleted after the test completes.
+    
+    Args:
+        test_client: Dependency to ensure FastAPI app is initialized before token creation
+    """
+    from src.db import save_request, delete_request
+    from src.token_gen import generate_token
+    
+    token = generate_token()
+    metadata = {"title": "Test Book", "author": "Test Author"}
+    payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
+    save_request(token, metadata, payload)
+    yield token
+    # Cleanup - delete_request is safe to call even if token was already consumed
+    delete_request(token)
+
+
+@pytest.fixture(autouse=True)
+def mock_notifications():
+    """Mock all notification services by default to prevent real API calls.
+    
+    This is autouse=True to ensure no test accidentally sends real notifications.
+    Returns a dict of mocks that can be used to verify notification calls:
+        mocks = mock_notifications
+        mocks['pushover'].assert_called_once()
+    """
+    with patch("src.notify.pushover.send_pushover") as pushover, \
+         patch("src.notify.discord.send_discord") as discord, \
+         patch("src.notify.gotify.send_gotify") as gotify, \
+         patch("src.notify.ntfy.send_ntfy") as ntfy:
+        pushover.return_value = (200, {"status": 1})
+        discord.return_value = (204, {})
+        gotify.return_value = (200, {})
+        ntfy.return_value = (200, {})
+        yield {
+            "pushover": pushover,
+            "discord": discord,
+            "gotify": gotify,
+            "ntfy": ntfy
+        }
+
+
+@pytest.fixture
+def mock_metadata():
+    """Mock metadata fetching with a standard response.
+    
+    Returns the mock object so callers can customize the return value:
+        mock_metadata.return_value = {"title": "Custom Title"}
+    """
+    with patch("src.metadata.fetch_metadata") as mock:
+        mock.return_value = {
+            "title": "Test Book",
+            "author": "Test Author",
+            "series": "Test Series",
+            "cover_url": "http://example.com/cover.jpg",
+            "asin": "B123456789"
+        }
+        yield mock
+
+
+@pytest.fixture
+def mock_qbittorrent():
+    """Mock qBittorrent client and torrent addition.
+    
+    Returns a dict with both mocks:
+        mocks = mock_qbittorrent
+        mocks['add_torrent'].assert_called_once()
+    """
+    with patch("src.qbittorrent.get_client") as get_client, \
+         patch("src.qbittorrent.add_torrent_file_with_cookie") as add_torrent:
+        mock_client = MagicMock()
+        get_client.return_value = mock_client
+        add_torrent.return_value = True
+        yield {
+            "get_client": get_client,
+            "client": mock_client,
+            "add_torrent": add_torrent
+        }
+
+
+@pytest.fixture
+def auth_headers():
+    """Standard authenticated headers for webhook tests."""
+    return {"X-Autobrr-Token": "test_token"}
+
+
+@pytest.fixture
+def auth_env():
+    """Context manager to set AUTOBRR_TOKEN environment variable."""
+    with patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}):
+        yield
+
+
+# =============================================================================
+# Autouse fixtures for test isolation
+# =============================================================================
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
@@ -11,6 +131,79 @@ def reset_rate_limits():
     reset_rate_limit_buckets()
     yield
     reset_rate_limit_buckets()
+
+
+@pytest.fixture(autouse=True)
+def mock_external_apis():
+    """Automatically mock all external API calls to prevent real network requests.
+    
+    This ensures tests are fast and don't depend on external services.
+    Tests that need real network calls should use @pytest.mark.allow_network.
+    """
+    # Patch the metadata coordinator's method which orchestrates all external calls
+    # Also patch chapter fetching to prevent network calls
+    with patch('src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook') as mock_coord, \
+         patch('src.audnex_metadata.AudnexMetadata.get_chapters_by_asin') as mock_chapters:
+        mock_coord.return_value = {
+            "title": "Mocked Book Title",
+            "author": "Mocked Author",
+            "asin": "B000000000",
+            "cover_url": "http://example.com/cover.jpg"
+        }
+        mock_chapters.return_value = None  # No chapters found
+        yield {"metadata": mock_coord, "chapters": mock_chapters}
+
+
+# =============================================================================
+# Pytest configuration
+# =============================================================================
+
+def pytest_configure(config):
+    # Register markers for test organization
+    config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
+    config.addinivalue_line("markers", "allow_network: allow real network calls (disables mock_external_apis)")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_notifications_session():
+    """Disable webhook notifications globally for the test session to avoid spamming external services."""
+    prev = os.environ.get("DISABLE_WEBHOOK_NOTIFICATIONS")
+    os.environ["DISABLE_WEBHOOK_NOTIFICATIONS"] = "1"
+    try:
+        yield
+    finally:
+        # Restore previous value after tests
+        if prev is None:
+            os.environ.pop("DISABLE_WEBHOOK_NOTIFICATIONS", None)
+        else:
+            os.environ["DISABLE_WEBHOOK_NOTIFICATIONS"] = prev
+
+
+@pytest.fixture(scope="session", autouse=True)
+def speed_up_rate_limits():
+    """Reduce metadata rate limits during test sessions to avoid long sleeps/blocking."""
+    # Use environment variables to configure faster rate limits for testing
+    # This avoids fragile direct mutation of private _config variable
+    prev_audible = os.environ.get("AUDIBLE_RATE_LIMIT_SECONDS")
+    prev_audnex = os.environ.get("AUDNEX_RATE_LIMIT_SECONDS")
+    
+    os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = "0.01"
+    os.environ["AUDNEX_RATE_LIMIT_SECONDS"] = "0.01"
+    
+    try:
+        yield
+    finally:
+        # Restore previous values
+        if prev_audible is None:
+            os.environ.pop("AUDIBLE_RATE_LIMIT_SECONDS", None)
+        else:
+            os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = prev_audible
+            
+        if prev_audnex is None:
+            os.environ.pop("AUDNEX_RATE_LIMIT_SECONDS", None)
+        else:
+            os.environ["AUDNEX_RATE_LIMIT_SECONDS"] = prev_audnex
+
 
 @pytest.fixture
 def sample_html():

@@ -107,6 +107,12 @@
           </div>
         </div>
 
+        {% if warning_message %}
+        <div class="warning-banner" role="alert" aria-live="polite">
+          <strong>Note:</strong> {{ warning_message }}
+        </div>
+        {% endif %}
+
         <!-- Action Panel -->
         <div class="action-panel">
           <div class="panel-header">
@@ -124,7 +130,7 @@
               <div class="cmd-hotkey">[H]</div>
             </a>
 
-            <button class="action-cmd secondary-cmd" onclick="showStatusUpdate()">
+            <button class="action-cmd secondary-cmd" data-action="status">
               <div class="cmd-icon">📡</div>
               <div class="cmd-text">
                 <div class="cmd-name">STATUS.EXE</div>
@@ -133,7 +139,7 @@
               <div class="cmd-hotkey">[S]</div>
             </button>
 
-            <button class="action-cmd celebration-cmd" onclick="triggerCelebration()">
+            <button class="action-cmd celebration-cmd" data-action="celebrate">
               <div class="cmd-icon">🎊</div>
               <div class="cmd-text">
                 <div class="cmd-name">PARTY.EXE</div>
@@ -142,7 +148,7 @@
               <div class="cmd-hotkey">[P]</div>
             </button>
 
-            <button class="action-cmd easter-cmd" onclick="showEasterEgg()">
+            <button class="action-cmd easter-cmd" data-action="easter">
               <div class="cmd-icon">🎁</div>
               <div class="cmd-text">
                 <div class="cmd-name">SURPRISE.EXE</div>

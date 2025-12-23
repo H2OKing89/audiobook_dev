@@ -4,7 +4,20 @@
  */
 
 // Global utilities and helpers
+
+// Debug helper - set window.DEBUG=true in browser console to enable debug logs
+window.DEBUG = window.DEBUG || false;
+function debugLog(...args) {
+    if (window.DEBUG) console.log(...args);
+}
+
+// Expose debug helper on AudiobookApp for modules
+// The debug helper is attached as `debug` so other modules can call `window.AudiobookApp.debug(...)`.
+
 const AudiobookApp = {
+    // Expose debug helper for external modules
+    debug: debugLog,
+
     // Auto-close countdown functionality
     startAutoCloseCountdown: function(seconds) {
         const countdownElement = document.getElementById('countdown');
@@ -62,6 +75,9 @@ const AudiobookApp = {
         });
     }
 };
+
+// Make AudiobookApp globally available for other modules/plugins
+window.AudiobookApp = AudiobookApp;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {

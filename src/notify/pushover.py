@@ -1,10 +1,12 @@
 from typing import Any, Dict, Optional, Tuple
 from src.utils import build_notification_message, get_notification_fields
 from html import escape
-import requests
+import httpx
 import os
 import tempfile
 import logging
+
+logger = logging.getLogger(__name__)
 
 
 def send_pushover(
@@ -21,14 +23,14 @@ def send_pushover(
     """
     Send a Pushover notification with optional cover image attachment.
     Returns (status_code, response_json).
-    Raises requests.RequestException for network errors.
+    Raises httpx.RequestError for network errors.
     """
-    logging.info(f"[token={token}] Preparing Pushover notification")
+    logger.info("[token=%s] Preparing Pushover notification", token)
     
     try:
         fields = get_notification_fields(metadata, payload)
         title = fields.get('title', 'Unknown Title')
-        logging.debug(f"[token={token}] Pushover notification for: {title}")
+        logger.debug("[token=%s] Pushover notification for: %s", token, title)
         
         message = (
             '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
@@ -59,13 +61,13 @@ def send_pushover(
         # Add optional settings
         if html is not None:
             payload_data["html"] = str(html)
-            logging.debug(f"[token={token}] Pushover HTML mode enabled")
+            logger.debug("[token=%s] Pushover HTML mode enabled", token)
         if sound is not None:
             payload_data["sound"] = sound
-            logging.debug(f"[token={token}] Pushover sound: {sound}")
+            logger.debug("[token=%s] Pushover sound: %s", token, sound)
         if priority is not None:
             payload_data["priority"] = str(priority)
-            logging.debug(f"[token={token}] Pushover priority: {priority}")
+            logger.debug("[token=%s] Pushover priority: %s", token, priority)
             
         # Include the approval page link in the notification
         approve_url = f"{base_url}/approve/{token}"
@@ -81,9 +83,9 @@ def send_pushover(
         temp_file = None
         
         if cover_url:
-            logging.debug(f"[token={token}] Downloading cover image: {cover_url}")
+            logger.debug("[token=%s] Downloading cover image: %s", token, cover_url)
             try:
-                resp = requests.get(cover_url, timeout=10)
+                resp = httpx.get(cover_url, timeout=10)
                 resp.raise_for_status()
                 # Save to temp file
                 suffix = os.path.splitext(cover_url)[-1] or '.jpg'
@@ -91,38 +93,42 @@ def send_pushover(
                 temp_file.write(resp.content)
                 temp_file.close()
                 files = {'attachment': (os.path.basename(temp_file.name), open(temp_file.name, 'rb'), 'image/jpeg')}
-                logging.debug(f"[token={token}] Cover image downloaded and prepared for upload")
-            except requests.RequestException as e:
-                logging.warning(f"[token={token}] Failed to download cover image: {e}")
+                logger.debug("[token=%s] Cover image downloaded and prepared for upload", token)
+            except httpx.RequestError as e:
+                logger.debug("[token=%s] Failed to download cover image: %s", token, e)
                 files = None
         
         try:
-            logging.debug(f"[token={token}] Sending Pushover notification{'with attachment' if files else ''}")
+            logger.debug("[token=%s] Sending Pushover notification%s", token, 'with attachment' if files else '')
             if files:
-                response = requests.post(url, data=payload_data, files=files, timeout=15)
+                response = httpx.post(url, data=payload_data, files=files, timeout=15)
             else:
-                response = requests.post(url, data=payload_data, timeout=15)
+                response = httpx.post(url, data=payload_data, timeout=15)
             response.raise_for_status()
-            logging.info(f"[token={token}] Pushover notification sent successfully: status={response.status_code}")
+            logger.info("[token=%s] Pushover notification sent successfully: status=%s", token, response.status_code)
             return response.status_code, response.json()
-        except requests.RequestException as e:
-            logging.error(f"[token={token}] Failed to send Pushover notification: {e}")
-            return 0, {"error": str(e)}
+        except httpx.RequestError as e:
+            logger.exception("[token=%s] Failed to send Pushover notification", token)
+            # Propagate network-level exceptions to callers (tests expect this behavior)
+            raise
         finally:
             # Cleanup temporary file and file handle
             if files and 'attachment' in files and hasattr(files['attachment'][1], 'close'):
                 try:
                     files['attachment'][1].close()
                 except Exception as e:
-                    logging.warning(f"[token={token}] Failed to close file handle: {e}")
+                    logger.warning("[token=%s] Failed to close file handle: %s", token, e)
             if temp_file and os.path.exists(temp_file.name):
                 try:
                     os.unlink(temp_file.name)
-                    logging.debug(f"[token={token}] Cleaned up temporary cover image file")
+                    logger.debug("[token=%s] Cleaned up temporary cover image file", token)
                 except Exception as e:
-                    logging.warning(f"[token={token}] Failed to cleanup temp file: {e}")
+                    logger.warning("[token=%s] Failed to cleanup temp file: %s", token, e)
                     
+    except httpx.RequestError:
+        # Re-raise network related exceptions so callers can handle circuit breakers, retries etc.
+        logger.exception("[token=%s] Pushover network error during preparation/sending", token)
+        raise
     except Exception as e:
-        logging.error(f"[token={token}] Pushover notification preparation failed: {e}")
-        logging.exception(f"[token={token}] Full Pushover exception traceback:")
+        logger.exception("[token=%s] Pushover notification preparation failed", token)
         return 0, {"error": str(e)}

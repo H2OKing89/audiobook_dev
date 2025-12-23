@@ -13,6 +13,7 @@ import argparse
 import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
+import httpx
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -20,6 +21,8 @@ from src.config import load_config
 from src.mam_scraper import MAMScraper
 from src.audnex_metadata import AudnexMetadata
 from src.audible_scraper import AudibleScraper
+
+logger = logging.getLogger(__name__)
 
 # Configure logging
 logging.basicConfig(
@@ -128,8 +131,18 @@ class MetadataCoordinator:
                 return metadata
             else:
                 logging.warning("❌ No metadata found via Audible search")
-        except Exception as e:
-            logging.error(f"Error searching Audible: {e}")
+        except httpx.RequestError as e:
+            logger.exception("Network error searching Audible")
+            # Surface network errors to callers/tests as a controlled ValueError
+            raise ValueError("Could not fetch metadata") from e
+        except ValueError as e:
+            # Malformed JSON or other parsing errors from upstream APIs should be treated
+            # as controlled metadata fetch failures so callers/tests see a deterministic
+            # ValueError("Could not fetch metadata").
+            logger.exception("Malformed response searching Audible")
+            raise ValueError("Could not fetch metadata") from e
+        except Exception:
+            logger.exception("Error searching Audible")
         
         logging.error("❌ All metadata sources exhausted - no metadata found")
         return None
@@ -177,7 +190,9 @@ class MetadataCoordinator:
         asin = enhanced.get('asin')
         if asin:
             try:
-                chapters = self.audnex.get_chapters_by_asin(asin)
+                # Use the same region that worked for book metadata to avoid redundant API calls
+                region = enhanced.get('audnex_region', 'us')
+                chapters = self.audnex.get_chapters_by_asin(asin, region=region)
                 if chapters:
                     enhanced['chapters'] = chapters
                     enhanced['chapter_count'] = len(chapters.get('chapters', []))

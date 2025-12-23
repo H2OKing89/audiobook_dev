@@ -4,7 +4,7 @@ Audible.com metadata fallback scraper
 Searches for audiobook metadata using Audible's search API
 """
 
-import requests
+import httpx
 import logging
 import time
 import sys
@@ -60,7 +60,7 @@ class AudibleScraper:
         
         if time_since_last_global < self.global_rate_limit:
             wait_time = self.global_rate_limit - time_since_last_global
-            logging.info(f"Global rate limit: waiting {wait_time:.1f} seconds...")
+            logging.info("Global rate limit: waiting %.1f seconds...", wait_time)
             time.sleep(wait_time)
         
         self.last_global_request_time = time.time()
@@ -207,7 +207,7 @@ class AudibleScraper:
     def search_by_title_author(self, title: str, author: str = '', region: str = 'us') -> List[Dict[str, Any]]:
         """Search for audiobooks by title and author using Audible's catalog API, only English results."""
         if region not in self.region_map:
-            logging.error(f"Invalid region: {region}")
+            logging.error("Invalid region: %s", region)
             region = 'us'
         self._check_global_rate_limit()
         
@@ -223,15 +223,15 @@ class AudibleScraper:
         
         tld = self.region_map[region]
         url = f"https://api.audible{tld}{self.search_endpoint}?{urlencode(params)}"
-        logging.info(f"Searching Audible catalog: title='{title}', author='{author}', region={region}")
-        logging.debug(f"Search URL: {url}")
+        logging.info("Searching Audible catalog: title='%s', author='%s', region=%s", title, author, region)
+        logging.debug("Search URL: %s", url)
         
         try:
-            response = requests.get(url, timeout=30)
+            response = httpx.get(url, timeout=30)
             response.raise_for_status()
             data = response.json()
             products = data.get('products', [])
-            logging.info(f"Found {len(products)} products from Audible search")
+            logging.info("Found %d products from Audible search", len(products))
             
             if not products:
                 logging.warning("No products found in Audible search")
@@ -242,7 +242,7 @@ class AudibleScraper:
                 # Only include English books
                 language = product.get("language", "").lower()
                 if language and language != "english":
-                    logging.debug(f"Skipping non-English book: {language}")
+                    logging.debug("Skipping non-English book: %s", language)
                     continue
                 
                 asin = product.get('asin')
@@ -255,10 +255,10 @@ class AudibleScraper:
                     book_data = self._product_to_book(product)
                     if book_data and book_data.get('title'):
                         detailed_results.append(book_data)
-                        logging.info(f"✅ Got metadata from Audible for ASIN: {asin} - {book_data.get('title')}")
+                        logging.info("✅ Got metadata from Audible for ASIN: %s - %s", asin, book_data.get('title'))
                         continue
                 except Exception as e:
-                    logging.warning(f"Error processing Audible product data for {asin}: {e}")
+                    logging.warning("Error processing Audible product data for %s: %s", asin, e)
                 
                 # Fallback: try Audnex for detailed metadata
                 try:
@@ -267,31 +267,36 @@ class AudibleScraper:
                         audnex_book = self._product_to_book(metadata)
                         if audnex_book:
                             detailed_results.append(audnex_book)
-                            logging.info(f"✅ Got metadata from Audnex fallback for ASIN: {asin}")
+                            logging.info("✅ Got metadata from Audnex fallback for ASIN: %s", asin)
                             continue
                 except Exception as e:
-                    logging.warning(f"Audnex fallback failed for {asin}: {e}")
+                    logging.warning("Audnex fallback failed for %s: %s", asin, e)
                 
-                logging.warning(f"❌ No usable metadata found for ASIN: {asin}")
+                logging.warning("❌ No usable metadata found for ASIN: %s", asin)
             
             if detailed_results:
-                logging.info(f"✅ Returning {len(detailed_results)} results from Audible search")
+                logging.info("✅ Returning %d results from Audible search", len(detailed_results))
             else:
                 logging.warning("❌ No metadata found via Audible search")
                 
             return detailed_results
             
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Audible search error: {e}")
-            return []
+        except httpx.RequestError as e:
+            logging.exception("Audible search error")
+            # Propagate network-related errors so callers/tests can handle them uniformly
+            raise
+        except ValueError as e:
+            # Malformed JSON or parsing errors should be propagated so callers/tests can react
+            logging.exception("Audible search parsing error")
+            raise
     
     def search_by_asin(self, asin: str, region: str = 'us') -> Optional[Dict[str, Any]]:
         """Search for audiobook by ASIN (delegates to Audnex)."""
         if not self._is_valid_asin(asin):
-            logging.error(f"Invalid ASIN format: {asin}")
+            logging.error("Invalid ASIN format: %s", asin)
             return None
         
-        logging.info(f"Searching by ASIN: {asin} (region: {region})")
+        logging.info("Searching by ASIN: %s (region: %s)", asin, region)
         
         # Use Audnex for ASIN lookups as it's more reliable
         return self.audnex.get_book_by_asin(asin, region=region)
@@ -305,7 +310,7 @@ class AudibleScraper:
         
         # Strategy 1: Direct ASIN search
         if asin and self._is_valid_asin(asin.upper()):
-            logging.info(f"Strategy 1: Searching by provided ASIN: {asin}")
+            logging.info("Strategy 1: Searching by provided ASIN: %s", asin)
             result = self.search_by_asin(asin.upper(), region=region)
             if result:
                 results.append(result)
@@ -313,7 +318,7 @@ class AudibleScraper:
         
         # Strategy 2: Check if title looks like an ASIN
         if title and self._is_valid_asin(title.upper()):
-            logging.info(f"Strategy 2: Title looks like ASIN: {title}")
+            logging.info("Strategy 2: Title looks like ASIN: %s", title)
             result = self.search_by_asin(title.upper(), region=region)
             if result:
                 results.append(result)
@@ -321,7 +326,7 @@ class AudibleScraper:
         
         # Strategy 3: Title/Author search via Audible catalog
         if title:
-            logging.info(f"Strategy 3: Searching by title/author: '{title}' by '{author}'")
+            logging.info("Strategy 3: Searching by title/author: '%s' by '%s'", title, author)
             results = self.search_by_title_author(title, author, region=region)
         
         return results
@@ -341,16 +346,16 @@ class AudibleScraper:
             if match:
                 title = match.group(1).strip()
                 author = match.group(2).strip()
-                logging.debug(f"Extracted from '{name}': title='{title}', author='{author}'")
+                logging.debug("Extracted from '%s': title='%s', author='%s'", name, title, author)
                 return title, author
         
         # Fallback: assume entire name is title
-        logging.debug(f"Could not extract author from '{name}', using as title")
+        logging.debug("Could not extract author from '%s', using as title", name)
         return name.strip(), ""
     
     def search_from_webhook_name(self, name: str, region: str = 'us') -> List[Dict[str, Any]]:
         """Search for metadata using a webhook-style name."""
-        logging.info(f"Searching from webhook name: '{name}'")
+        logging.info("Searching from webhook name: '%s'", name)
         
         # Extract title and author
         title, author = self.extract_title_author_from_name(name)
