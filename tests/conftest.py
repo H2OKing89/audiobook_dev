@@ -1,27 +1,36 @@
-import sys, os
+import os
+import sys
+
+
 # allow tests to import from the 'src' package
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock
+
 from src.security import reset_rate_limit_buckets
 
+
 # Configure pytest-asyncio mode
-pytest_plugins = ('pytest_asyncio',)
+pytest_plugins = ("pytest_asyncio",)
 
 # =============================================================================
 # Session-scoped fixtures for performance optimization
 # =============================================================================
 
+
 @pytest.fixture(scope="session")
 def test_client():
     """Session-scoped FastAPI TestClient to avoid repeated app creation.
-    
+
     Using a single client for the entire session significantly speeds up tests
     by avoiding the overhead of creating new app instances.
     """
     from fastapi.testclient import TestClient
+
     from src.main import app
+
     with TestClient(app) as client:
         yield client
 
@@ -29,16 +38,16 @@ def test_client():
 @pytest.fixture
 def valid_token(test_client):
     """Create a valid token and clean up after the test.
-    
+
     Use this fixture when you need a pre-created token for testing endpoints.
     The token is automatically deleted after the test completes.
-    
+
     Args:
         test_client: Dependency to ensure FastAPI app is initialized before token creation
     """
-    from src.db import save_request, delete_request
+    from src.db import delete_request, save_request
     from src.token_gen import generate_token
-    
+
     token = generate_token()
     metadata = {"title": "Test Book", "author": "Test Author"}
     payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
@@ -51,32 +60,29 @@ def valid_token(test_client):
 @pytest.fixture(autouse=True)
 def mock_notifications():
     """Mock all notification services by default to prevent real API calls.
-    
+
     This is autouse=True to ensure no test accidentally sends real notifications.
     Returns a dict of mocks that can be used to verify notification calls:
         mocks = mock_notifications
         mocks['pushover'].assert_called_once()
     """
-    with patch("src.notify.pushover.send_pushover") as pushover, \
-         patch("src.notify.discord.send_discord") as discord, \
-         patch("src.notify.gotify.send_gotify") as gotify, \
-         patch("src.notify.ntfy.send_ntfy") as ntfy:
+    with (
+        patch("src.notify.pushover.send_pushover") as pushover,
+        patch("src.notify.discord.send_discord") as discord,
+        patch("src.notify.gotify.send_gotify") as gotify,
+        patch("src.notify.ntfy.send_ntfy") as ntfy,
+    ):
         pushover.return_value = (200, {"status": 1})
         discord.return_value = (204, {})
         gotify.return_value = (200, {})
         ntfy.return_value = (200, {})
-        yield {
-            "pushover": pushover,
-            "discord": discord,
-            "gotify": gotify,
-            "ntfy": ntfy
-        }
+        yield {"pushover": pushover, "discord": discord, "gotify": gotify, "ntfy": ntfy}
 
 
 @pytest.fixture
 def mock_metadata():
     """Mock metadata fetching with a standard response.
-    
+
     Returns the mock object so callers can customize the return value:
         mock_metadata.return_value = {"title": "Custom Title"}
     """
@@ -86,7 +92,7 @@ def mock_metadata():
             "author": "Test Author",
             "series": "Test Series",
             "cover_url": "http://example.com/cover.jpg",
-            "asin": "B123456789"
+            "asin": "B123456789",
         }
         yield mock
 
@@ -94,21 +100,19 @@ def mock_metadata():
 @pytest.fixture
 def mock_qbittorrent():
     """Mock qBittorrent client and torrent addition.
-    
+
     Returns a dict with both mocks:
         mocks = mock_qbittorrent
         mocks['add_torrent'].assert_called_once()
     """
-    with patch("src.qbittorrent.get_client") as get_client, \
-         patch("src.qbittorrent.add_torrent_file_with_cookie") as add_torrent:
+    with (
+        patch("src.qbittorrent.get_client") as get_client,
+        patch("src.qbittorrent.add_torrent_file_with_cookie") as add_torrent,
+    ):
         mock_client = MagicMock()
         get_client.return_value = mock_client
         add_torrent.return_value = True
-        yield {
-            "get_client": get_client,
-            "client": mock_client,
-            "add_torrent": add_torrent
-        }
+        yield {"get_client": get_client, "client": mock_client, "add_torrent": add_torrent}
 
 
 @pytest.fixture
@@ -120,13 +124,14 @@ def auth_headers():
 @pytest.fixture
 def auth_env():
     """Context manager to set AUTOBRR_TOKEN environment variable."""
-    with patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}):
+    with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
         yield
 
 
 # =============================================================================
 # Autouse fixtures for test isolation
 # =============================================================================
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
@@ -139,19 +144,21 @@ def reset_rate_limits():
 @pytest.fixture(autouse=True)
 def mock_external_apis():
     """Automatically mock all external API calls to prevent real network requests.
-    
+
     This ensures tests are fast and don't depend on external services.
     Tests that need real network calls should use @pytest.mark.allow_network.
     """
     # Patch the metadata coordinator's method which orchestrates all external calls
     # Also patch chapter fetching to prevent network calls
-    with patch('src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook') as mock_coord, \
-         patch('src.audnex_metadata.AudnexMetadata.get_chapters_by_asin') as mock_chapters:
+    with (
+        patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_coord,
+        patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin") as mock_chapters,
+    ):
         mock_coord.return_value = {
             "title": "Mocked Book Title",
             "author": "Mocked Author",
             "asin": "B000000000",
-            "cover_url": "http://example.com/cover.jpg"
+            "cover_url": "http://example.com/cover.jpg",
         }
         mock_chapters.return_value = None  # No chapters found
         yield {"metadata": mock_coord, "chapters": mock_chapters}
@@ -160,6 +167,7 @@ def mock_external_apis():
 # =============================================================================
 # Pytest configuration
 # =============================================================================
+
 
 def pytest_configure(config):
     # Register markers for test organization
@@ -189,10 +197,10 @@ def speed_up_rate_limits():
     # This avoids fragile direct mutation of private _config variable
     prev_audible = os.environ.get("AUDIBLE_RATE_LIMIT_SECONDS")
     prev_audnex = os.environ.get("AUDNEX_RATE_LIMIT_SECONDS")
-    
+
     os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = "0.01"
     os.environ["AUDNEX_RATE_LIMIT_SECONDS"] = "0.01"
-    
+
     try:
         yield
     finally:
@@ -201,7 +209,7 @@ def speed_up_rate_limits():
             os.environ.pop("AUDIBLE_RATE_LIMIT_SECONDS", None)
         else:
             os.environ["AUDIBLE_RATE_LIMIT_SECONDS"] = prev_audible
-            
+
         if prev_audnex is None:
             os.environ.pop("AUDNEX_RATE_LIMIT_SECONDS", None)
         else:
@@ -212,13 +220,11 @@ def speed_up_rate_limits():
 def sample_html():
     return "<p>First paragraph.</p><p>Second<br>Line</p>"
 
+
 @pytest.fixture
 def sample_authors():
-    return [
-        {"name": "John Doe"},
-        {"name": "Jane Translator"},
-        {"name": "Alice Illustrator"}
-    ]
+    return [{"name": "John Doe"}, {"name": "Jane Translator"}, {"name": "Alice Illustrator"}]
+
 
 @pytest.fixture
 def sample_item():
@@ -234,18 +240,16 @@ def sample_item():
         "image": "http://example.com/cover.jpg",
         "asin": "B000123456",
         "isbn": "1234567890",
-        "genres": [
-            {"type": "genre", "name": "Fantasy"},
-            {"type": "tag", "name": "Epic"}
-        ],
+        "genres": [{"type": "genre", "name": "Fantasy"}, {"type": "tag", "name": "Epic"}],
         "seriesPrimary": {"name": "Series Name", "position": "1"},
         "seriesSecondary": {"name": "Other Series", "position": ""},
         "language": "en",
         "runtimeLengthMin": 600,
         "region": "us",
         "rating": 4.5,
-        "formatType": "abridged"
+        "formatType": "abridged",
     }
+
 
 @pytest.fixture
 def sample_payload():
