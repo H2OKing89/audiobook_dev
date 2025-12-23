@@ -116,6 +116,8 @@ class MetadataFlowTester:
 
     def test_error_handling(self):
         """Test error handling with invalid inputs"""
+        import asyncio
+
         logging.info("=== Testing Error Handling ===")
 
         try:
@@ -124,7 +126,7 @@ class MetadataFlowTester:
             logging.info("Testing empty payload handling...")
 
             # This should not crash but return None
-            result = self.coordinator.get_metadata_from_webhook(empty_payload)
+            result = asyncio.run(self.coordinator.get_metadata_from_webhook(empty_payload))
             if result is None:
                 logging.info("✅ Empty payload handled gracefully")
             else:
@@ -134,7 +136,7 @@ class MetadataFlowTester:
             malformed_payload = {"invalid": "data"}
             logging.info("Testing malformed payload handling...")
 
-            result = self.coordinator.get_metadata_from_webhook(malformed_payload)
+            result = asyncio.run(self.coordinator.get_metadata_from_webhook(malformed_payload))
             if result is None:
                 logging.info("✅ Malformed payload handled gracefully")
             else:

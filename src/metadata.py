@@ -1,15 +1,27 @@
-import asyncio
+"""
+Metadata fetching and processing for audiobooks.
+
+This module provides async classes and functions for fetching audiobook metadata
+from Audible and Audnex APIs, with support for multiple regions and fallback logic.
+"""
+
 import logging
 import os
 import re
-import time
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
-
 from src.config import load_config
+from src.http_client import (
+    AsyncHttpClient,
+    REGION_MAP,
+    get_default_client,
+    get_region_tld,
+    get_regions_priority,
+)
 from src.utils import clean_author_list, validate_payload
+
+logger = logging.getLogger(__name__)
 
 
 # ASIN validation
@@ -39,20 +51,43 @@ def levenshtein_distance(s1: str, s2: str) -> int:
 
 
 class Audible:
-    def __init__(self, response_timeout: int = 30000) -> None:
+    """
+    Async Audible metadata client using shared HTTP client.
+
+    Example usage:
+        async with Audible() as audible:
+            results = await audible.search(title="The Hobbit", author="Tolkien")
+            metadata = await audible.asin_search("B08G9PRS1K")
+    """
+
+    def __init__(self, client: AsyncHttpClient | None = None, response_timeout: int = 30000) -> None:
+        self._client = client
+        self._owns_client = False
         self.response_timeout = response_timeout
-        self.region_map = {
-            "us": ".com",
-            "ca": ".ca",
-            "uk": ".co.uk",
-            "au": ".com.au",
-            "fr": ".fr",
-            "de": ".de",
-            "jp": ".co.jp",
-            "it": ".it",
-            "in": ".in",
-            "es": ".es",
-        }
+        # Use shared region map from http_client
+        self.region_map = REGION_MAP
+
+    async def _get_client(self) -> AsyncHttpClient:
+        """Get or create the HTTP client."""
+        if self._client is None:
+            self._client = await get_default_client()
+        return self._client
+
+    async def __aenter__(self) -> "Audible":
+        """Async context manager entry."""
+        await self._get_client()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object,
+    ) -> None:
+        """Async context manager exit."""
+        if self._owns_client and self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     def clean_series_sequence(self, series_name: str, sequence: str) -> str:
         """
@@ -65,8 +100,11 @@ class Audible:
         match = re.search(r"\.\d+|\d+(?:\.\d+)?", sequence)
         updated_sequence = match.group(0) if match else sequence
         if sequence != updated_sequence:
-            logging.debug(
-                f'[Audible] Series "{series_name}" sequence was cleaned from "{sequence}" to "{updated_sequence}"'
+            logger.debug(
+                '[Audible] Series "%s" sequence was cleaned from "%s" to "%s"',
+                series_name,
+                sequence,
+                updated_sequence,
             )
         return updated_sequence
 
@@ -133,55 +171,42 @@ class Audible:
             "abridged": format_type == "abridged",
         }
 
-    def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:
+    async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:
         """Search for a book by ASIN"""
         if not asin:
             return None
-        if not timeout:
-            timeout = self.response_timeout
 
+        client = await self._get_client()
         asin = asin.upper()
         region_query = f"?region={region}" if region else ""
         url = f"https://api.audnex.us/books/{asin}{region_query}"
-        logging.debug(f"[Audible] ASIN url: {url}")
+        logger.debug("[Audible] ASIN url: %s", url)
 
-        try:
-            response = httpx.get(url, timeout=timeout / 1000)  # Convert ms to seconds
-            response.raise_for_status()
-            data: dict[str, Any] = response.json()
-            if not data.get("asin"):
-                return None
+        data = await client.get_json(url)
+        if data and data.get("asin"):
             return data
-        except httpx.RequestError as error:
-            # Propagate network-related errors so callers can handle them uniformly
-            logging.error(f"[Audible] ASIN search network error: {error}")
-            raise
-        except Exception as error:
-            logging.error(f"[Audible] ASIN search error: {error}")
-            return None
+        return None
 
-    def search(
+    async def search(
         self, title: str, author: str = "", asin: str = "", region: str = "us", timeout: int | None = None
     ) -> list[dict[str, Any]]:
         """Search for books using title, author, and/or ASIN"""
         if region and region not in self.region_map:
-            logging.error(f"[Audible] search: Invalid region {region}")
+            logger.error("[Audible] search: Invalid region %s", region)
             region = "us"
 
-        if not timeout:
-            timeout = self.response_timeout
-
+        client = await self._get_client()
         items = []
 
         # Try ASIN search first if valid
         if asin and is_valid_asin(asin.upper()):
-            item = self.asin_search(asin, region, timeout)
+            item = await self.asin_search(asin, region, timeout)
             if item:
                 items.append(item)
 
         # Try title as ASIN if no results and title looks like ASIN
         if not items and is_valid_asin(title.upper()):
-            item = self.asin_search(title, region, timeout)
+            item = await self.asin_search(title, region, timeout)
             if item:
                 items.append(item)
 
@@ -192,112 +217,86 @@ class Audible:
                 query_obj["author"] = author
 
             query_string = urlencode(query_obj)
-            tld = self.region_map.get(region, ".com")
+            tld = get_region_tld(region)
             url = f"https://api.audible{tld}/1.0/catalog/products?{query_string}"
-            logging.debug(f"[Audible] Search url: {url}")
+            logger.debug("[Audible] Search url: %s", url)
 
-            try:
-                response = httpx.get(url, timeout=timeout / 1000)
-                response.raise_for_status()
-                data = response.json()
+            data = await client.get_json(url)
 
-                if data.get("products"):
-                    # Get detailed info for each product
-                    detailed_items = []
-                    for result in data["products"]:
-                        if result.get("asin"):
-                            detailed_item = self.asin_search(result["asin"], region, timeout)
-                            if detailed_item:
-                                detailed_items.append(detailed_item)
-                    items = detailed_items
-                else:
-                    items = []
-            except httpx.RequestError as error:
-                logging.error(f"[Audible] query search error: {error}")
-                # Propagate network-related errors up so callers can wrap them appropriately
-                raise
-            except Exception as error:
-                logging.error(f"[Audible] query search error: {error}")
-                items = []
+            if data and data.get("products"):
+                # Get detailed info for each product
+                detailed_items = []
+                for result in data["products"]:
+                    if result.get("asin"):
+                        detailed_item = await self.asin_search(result["asin"], region, timeout)
+                        if detailed_item:
+                            detailed_items.append(detailed_item)
+                items = detailed_items
 
         # Clean and return results
         return [self.clean_result(item) for item in items if item]
 
 
 class Audnexus:
-    _instance = None
+    """
+    Async Audnexus API client using shared HTTP client.
 
-    def __new__(cls) -> "Audnexus":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    Example usage:
+        async with Audnexus() as audnexus:
+            author = await audnexus.find_author_by_name("Brandon Sanderson")
+            chapters = await audnexus.get_chapters_by_asin("B08G9PRS1K")
+    """
 
-    def __init__(self) -> None:
-        if hasattr(self, "initialized"):
-            return
-
+    def __init__(self, client: AsyncHttpClient | None = None) -> None:
+        self._client = client
+        self._owns_client = False
         self.base_url = "https://api.audnex.us"
-        self.request_interval = 0.15  # 150ms between requests
-        self.last_request_time: float = 0.0
-        self.initialized = True
 
-    def _throttle_request(self):
-        """Simple throttling to avoid rate limits"""
-        current_time = time.time()
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < self.request_interval:
-            time.sleep(self.request_interval - time_since_last)
-        self.last_request_time = time.time()
+    async def _get_client(self) -> AsyncHttpClient:
+        """Get or create the HTTP client."""
+        if self._client is None:
+            self._client = await get_default_client()
+        return self._client
 
-    def _process_request(self, url: str, max_retries: int = 1) -> dict[str, Any] | None:
-        """Process request with rate limiting and retry logic"""
-        for _attempt in range(max_retries + 1):
-            try:
-                self._throttle_request()
-                response = httpx.get(url)
-                response.raise_for_status()
-                return response.json()  # type: ignore[no-any-return]
-            except httpx.HTTPStatusError as e:
-                if e.response is not None and e.response.status_code == 429:  # Rate limited
-                    retry_after_header = e.response.headers.get("retry-after", "5")
-                    try:
-                        retry_after = int(retry_after_header)
-                    except ValueError:
-                        # Try parsing as HTTP-date (not implemented for simplicity, use default)
-                        logging.warning(
-                            f"[Audnexus] Non-integer retry-after header: {retry_after_header}, using default 5s"
-                        )
-                        retry_after = 5
-                    logging.warning(f"[Audnexus] Rate limit exceeded. Retrying in {retry_after} seconds.")
-                    time.sleep(retry_after)
-                    continue
-                else:
-                    logging.error(f"[Audnexus] HTTP error: {e}")
-                    return None
-            except httpx.RequestError as e:
-                logging.error(f"[Audnexus] Request error: {e}")
-                return None
-        return None
+    async def __aenter__(self) -> "Audnexus":
+        """Async context manager entry."""
+        await self._get_client()
+        return self
 
-    def author_asins_request(self, name: str, region: str = "") -> list[dict[str, Any]]:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object,
+    ) -> None:
+        """Async context manager exit."""
+        if self._owns_client and self._client is not None:
+            await self._client.aclose()
+            self._client = None
+
+    async def author_asins_request(self, name: str, region: str = "") -> list[dict[str, Any]]:
         """Get author ASINs by name"""
+        client = await self._get_client()
+
         params = {"name": name}
         if region:
             params["region"] = region
 
         url = f"{self.base_url}/authors?{urlencode(params)}"
-        logging.info(f'[Audnexus] Searching for author "{url}"')
+        logger.info('[Audnexus] Searching for author "%s"', url)
 
-        result = self._process_request(url)
+        result = await client.get_json(url)
         if result is None:
             return []
         return result if isinstance(result, list) else [result]
 
-    def author_request(self, asin: str, region: str = "") -> dict[str, Any] | None:
+    async def author_request(self, asin: str, region: str = "") -> dict[str, Any] | None:
         """Get author details by ASIN"""
         if not is_valid_asin(asin.upper()):
-            logging.error(f"[Audnexus] Invalid ASIN {asin}")
+            logger.error("[Audnexus] Invalid ASIN %s", asin)
             return None
+
+        client = await self._get_client()
 
         asin = asin.upper()
         params = {"region": region} if region else {}
@@ -305,14 +304,14 @@ class Audnexus:
         if params:
             url += f"?{urlencode(params)}"
 
-        logging.info(f'[Audnexus] Searching for author "{url}"')
+        logger.info('[Audnexus] Searching for author "%s"', url)
 
-        result = self._process_request(url)
+        result = await client.get_json(url)
         return result
 
-    def find_author_by_asin(self, asin: str, region: str = "") -> dict[str, Any] | None:
+    async def find_author_by_asin(self, asin: str, region: str = "") -> dict[str, Any] | None:
         """Find author by ASIN"""
-        author = self.author_request(asin, region)
+        author = await self.author_request(asin, region)
 
         if author:
             return {
@@ -323,10 +322,10 @@ class Audnexus:
             }
         return None
 
-    def find_author_by_name(self, name: str, region: str = "", max_levenshtein: int = 3) -> dict[str, Any] | None:
+    async def find_author_by_name(self, name: str, region: str = "", max_levenshtein: int = 3) -> dict[str, Any] | None:
         """Find author by name with fuzzy matching"""
-        logging.debug(f"[Audnexus] Looking up author by name {name}")
-        author_asin_objs = self.author_asins_request(name, region)
+        logger.debug("[Audnexus] Looking up author by name %s", name)
+        author_asin_objs = await self.author_asins_request(name, region)
 
         closest_match = None
         for author_asin_obj in author_asin_objs:
@@ -340,7 +339,7 @@ class Audnexus:
         if not closest_match or closest_match["levenshtein_distance"] > max_levenshtein:
             return None
 
-        author = self.author_request(closest_match.get("asin", ""), region)
+        author = await self.author_request(closest_match.get("asin", ""), region)
         if not author:
             return None
 
@@ -351,9 +350,11 @@ class Audnexus:
             "name": author.get("name"),
         }
 
-    def get_chapters_by_asin(self, asin: str, region: str = "") -> dict[str, Any] | None:
+    async def get_chapters_by_asin(self, asin: str, region: str = "") -> dict[str, Any] | None:
         """Get chapters for a book by ASIN"""
-        logging.debug(f"[Audnexus] Get chapters for ASIN {asin}/{region}")
+        logger.debug("[Audnexus] Get chapters for ASIN %s/%s", asin, region)
+
+        client = await self._get_client()
 
         asin = asin.upper()
         params = {"region": region} if region else {}
@@ -361,7 +362,7 @@ class Audnexus:
         if params:
             url += f"?{urlencode(params)}"
 
-        result = self._process_request(url)
+        result = await client.get_json(url)
         return result
 
 
@@ -390,7 +391,7 @@ def get_cached_metadata(asin: str, region: str = "us", api_url: str | None = Non
     return None
 
 
-def get_audible_asin(title: str, author: str = "") -> str | None:
+async def get_audible_asin(title: str, author: str = "") -> str | None:
     """Try to extract an ASIN by scraping Audible search results.
 
     This function attempts to import BeautifulSoup and parse the page returned by
@@ -404,12 +405,14 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
         return None
 
     try:
+        client = await get_default_client()
+
         query = f"{title} {author}".strip()
-        # Simple Audible search URL; tests mock httpx.get and only care about response text
+        # Simple Audible search URL
         search_url = f"https://www.audible.com/search?keywords={query.replace(' ', '+')}"
-        resp = httpx.get(search_url)
-        resp.raise_for_status()
-        html = resp.text
+
+        response = await client.get(search_url)
+        html = response.text
         soup = BeautifulSoup(html, "html.parser")
 
         # Audible sometimes puts ASINs in adbl-impression-container data-asin
@@ -425,24 +428,32 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
             return str(asin2) if asin2 and not isinstance(asin2, list) else None
 
         return None
-    except httpx.RequestError:
-        raise
     except (AttributeError, ValueError, TypeError) as e:
         # Expected parsing-related errors - log and return None
-        logging.debug(f"get_audible_asin failed: {e}")
+        logger.debug("get_audible_asin failed: %s", e)
         return None
     except Exception as e:
         # bs4.FeatureNotFound and other BeautifulSoup parsing exceptions
         if "bs4" in type(e).__module__:
-            logging.debug(f"get_audible_asin BeautifulSoup parsing failed: {e}")
+            logger.debug("get_audible_asin BeautifulSoup parsing failed: %s", e)
             return None
         # Unexpected exceptions should propagate
         raise
 
 
-def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
+async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
     """
-    Compatibility wrapper: Enhanced fetch using the new modular coordinator
+    Enhanced metadata fetch using the new modular coordinator.
+
+    Args:
+        payload: Dict containing 'name', 'url', 'download_url'
+        regions: Optional list of regions to try
+
+    Returns:
+        Metadata dict
+
+    Raises:
+        ValueError: If metadata cannot be fetched
     """
     from src.metadata_coordinator import MetadataCoordinator
 
@@ -454,16 +465,16 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
 
     # Optional test-mode guard to prevent real external API calls during CI/test runs
     if os.getenv("DISABLE_EXTERNAL_API") == "1":
-        logging.info("DISABLE_EXTERNAL_API set; avoiding external API calls in fetch_metadata()")
+        logger.info("DISABLE_EXTERNAL_API set; avoiding external API calls in fetch_metadata()")
         raise ValueError("External API calls are disabled in this environment")
 
     coordinator = MetadataCoordinator()
 
-    metadata = asyncio.run(coordinator.get_metadata_from_webhook(payload))
+    metadata = await coordinator.get_metadata_from_webhook(payload)
 
     if metadata:
         # Get enhanced metadata with chapters
-        return coordinator.get_enhanced_metadata(metadata)
+        return await coordinator.get_enhanced_metadata(metadata)
     else:
         # Fallback to original logic for compatibility
         name = payload.get("name", "")
@@ -481,23 +492,13 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
 
         # If we have an ASIN, try to get cached metadata first
         if asin:
-            try:
-                cached = get_cached_metadata(asin, region="us", api_url=None)
-            except httpx.RequestError as e:
-                logging.error(f"Network error fetching cached metadata: {e}")
-                raise ValueError(f"Could not fetch metadata: {e}") from e
+            cached = get_cached_metadata(asin, region="us", api_url=None)
             if cached:
                 return cached
 
         # Attempt scraping to find an ASIN if none was extracted
         if not asin:
-            try:
-                scraped = get_audible_asin(title, author)
-            except httpx.RequestError as e:
-                logging.error(f"Network error while attempting to scrape Audible: {e}")
-                # Wrap network errors into a controlled ValueError
-                raise ValueError("Could not fetch metadata") from e
-
+            scraped = await get_audible_asin(title, author)
             if scraped:
                 asin = scraped
                 cached = get_cached_metadata(asin, region="us", api_url=None)
@@ -507,43 +508,33 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
         # If we still don't have an ASIN, try regions searching
         audible = Audible()
 
-        # If we have an ASIN but no cached record, try using the audible search (ASIN search first)
-        network_issue = False
+        # Try searching with parallel regions
+        client = await get_default_client()
+        regions_to_try = get_regions_priority(regions[0] if regions else "us", max_regions=len(regions))
+
+        result, found_region = await client.fetch_first_success(
+            regions=regions_to_try,
+            url_factory=lambda r: f"https://api.audnex.us/books/{asin}?region={r}" if asin else "",
+            validator=lambda d: bool(d.get("asin")),
+        )
+
+        if result:
+            return audible.clean_result(result)
+
+        # Fallback to catalog search
         for region in regions:
             try:
                 if asin:
-                    results = audible.search(title=title, author=author, asin=asin, region=region)
+                    results = await audible.search(title=title, author=author, asin=asin, region=region)
                 else:
-                    results = audible.search(title=title, author=author, asin="", region=region)
+                    results = await audible.search(title=title, author=author, asin="", region=region)
 
                 if results:
                     # Return the first (best) result
                     return results[0]
-            except httpx.HTTPStatusError as e:
-                # Rate limits or HTTP errors should be treated as controlled fetch failures
-                if e.response is not None and e.response.status_code == 429:
-                    logging.error(f"Rate limited searching region {region}: {e}")
-                    raise ValueError("Could not fetch metadata") from e
-                logging.error(f"HTTP error searching region {region}: {e}")
-                network_issue = True
-                continue
-            except httpx.RequestError as e:
-                # Network error for a single region shouldn't abort the entire ASIN discovery;
-                # mark that a network issue occurred and continue searching other regions.
-                logging.error(f"Network error searching region {region}: {e}")
-                network_issue = True
-                continue
-            except ValueError as e:
-                # Malformed JSON or parsing errors should be treated as controlled fetch failures
-                logging.error(f"Malformed response searching region {region}: {e}")
-                raise ValueError("Could not fetch metadata") from e
             except Exception as e:
-                logging.error(f"Error searching region {region}: {e}")
+                logger.error("Error searching region %s: %s", region, e)
                 continue
-
-        # If we encountered network or HTTP issues across regions, propagate a controlled error
-        if network_issue:
-            raise ValueError("Could not fetch metadata")
 
         # Final error if we couldn't determine any metadata
         if not asin:

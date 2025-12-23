@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -114,7 +114,7 @@ def mock_metadata():
     Returns the mock object so callers can customize the return value:
         mock_metadata.return_value = {"title": "Custom Title"}
     """
-    with patch("src.metadata.fetch_metadata") as mock:
+    with patch("src.metadata.fetch_metadata", new_callable=AsyncMock) as mock:
         mock.return_value = {
             "title": "Test Book",
             "author": "Test Author",
@@ -178,9 +178,10 @@ def mock_external_apis():
     """
     # Patch the metadata coordinator's method which orchestrates all external calls
     # Also patch chapter fetching to prevent network calls
+    # Use AsyncMock since these methods are now async
     with (
-        patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_coord,
-        patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin") as mock_chapters,
+        patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock) as mock_coord,
+        patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin", new_callable=AsyncMock) as mock_chapters,
     ):
         mock_coord.return_value = {
             "title": "Mocked Book Title",

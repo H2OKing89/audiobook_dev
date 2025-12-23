@@ -96,7 +96,7 @@ class MetadataCoordinator:
             logging.info(f"Step 2: Getting metadata from Audnex for ASIN: {asin}")
             try:
                 await self._enforce_rate_limit()
-                metadata = self.audnex.get_book_by_asin(asin)
+                metadata = await self.audnex.get_book_by_asin(asin)
                 if metadata:
                     logging.info("✅ Metadata found via Audnex")
                     # Add source and workflow information
@@ -117,7 +117,7 @@ class MetadataCoordinator:
         logging.info("Step 3: Falling back to Audible search...")
         try:
             await self._enforce_rate_limit()
-            results = self.audible.search_from_webhook_name(name)
+            results = await self.audible.search_from_webhook_name(name)
             if results:
                 metadata = results[0]  # Take the first (best) result
                 logging.info("✅ Metadata found via Audible search")
@@ -148,12 +148,12 @@ class MetadataCoordinator:
         logging.error("❌ All metadata sources exhausted - no metadata found")
         return None
 
-    def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
+    async def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """Get metadata directly by ASIN."""
         logging.info(f"Getting metadata for ASIN: {asin} (region: {region})")
 
         try:
-            metadata = self.audnex.get_book_by_asin(asin, region=region)
+            metadata = await self.audnex.get_book_by_asin(asin, region=region)
             if metadata:
                 logging.info("✅ Metadata found via Audnex")
                 metadata["source"] = "audnex"
@@ -165,12 +165,12 @@ class MetadataCoordinator:
         logging.error("❌ No metadata found for ASIN")
         return None
 
-    def search_metadata(self, title: str, author: str = "", region: str = "us") -> dict[str, Any] | None:
+    async def search_metadata(self, title: str, author: str = "", region: str = "us") -> dict[str, Any] | None:
         """Search for metadata by title and author."""
         logging.info(f"Searching metadata: title='{title}', author='{author}', region={region}")
 
         try:
-            results = self.audible.search(title=title, author=author, region=region)
+            results = await self.audible.search(title=title, author=author, region=region)
             if results:
                 metadata = results[0]  # Take the first (best) result
                 logging.info("✅ Metadata found via search")
@@ -183,7 +183,7 @@ class MetadataCoordinator:
         logging.error("❌ No metadata found via search")
         return None
 
-    def get_enhanced_metadata(self, basic_metadata: dict[str, Any]) -> dict[str, Any]:
+    async def get_enhanced_metadata(self, basic_metadata: dict[str, Any]) -> dict[str, Any]:
         """Enhance basic metadata with additional information."""
         enhanced = basic_metadata.copy()
 
@@ -193,7 +193,7 @@ class MetadataCoordinator:
             try:
                 # Use the same region that worked for book metadata to avoid redundant API calls
                 region = enhanced.get("audnex_region", "us")
-                chapters = self.audnex.get_chapters_by_asin(asin, region=region)
+                chapters = await self.audnex.get_chapters_by_asin(asin, region=region)
                 if chapters:
                     enhanced["chapters"] = chapters
                     enhanced["chapter_count"] = len(chapters.get("chapters", []))
@@ -277,11 +277,11 @@ def main():
 
         elif args.asin:
             # Direct ASIN lookup
-            metadata = coordinator.get_metadata_by_asin(args.asin, region=args.region)
+            metadata = await coordinator.get_metadata_by_asin(args.asin, region=args.region)
 
         elif args.title:
             # Title/author search
-            metadata = coordinator.search_metadata(args.title, author=args.author, region=args.region)
+            metadata = await coordinator.search_metadata(args.title, author=args.author, region=args.region)
 
         else:
             print("Error: Must provide --url/--name, --asin, or --title")
@@ -290,7 +290,7 @@ def main():
         # Display results
         if metadata:
             if args.enhanced:
-                metadata = coordinator.get_enhanced_metadata(metadata)
+                metadata = await coordinator.get_enhanced_metadata(metadata)
 
             print("✅ Metadata found:")
             print(f"  Title: {metadata.get('title')}")

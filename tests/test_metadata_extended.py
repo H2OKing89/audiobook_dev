@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -56,13 +56,17 @@ class TestMetadataModule:
         assert result["genres"] == ["Fantasy", "Adventure"]
         assert result["tags"] == "Epic, Magic"
 
-    @patch("src.metadata.httpx.get")
+    @pytest.mark.asyncio
+    @patch("src.metadata.get_default_client", new_callable=AsyncMock)
     @patch("builtins.__import__")
-    def test_get_audible_asin_success(self, mock_import, mock_get):
-        # Mock BeautifulSoup import
+    async def test_get_audible_asin_success(self, mock_import, mock_get_client):
+        # Mock HTTP client response
         mock_response = MagicMock()
         mock_response.text = '<div class="adbl-impression-container" data-asin="B123456789"></div>'
-        mock_get.return_value = mock_response
+
+        mock_client = MagicMock()
+        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
 
         # Mock the bs4 import
         mock_bs4 = MagicMock()
@@ -83,15 +87,19 @@ class TestMetadataModule:
 
         mock_import.side_effect = import_side_effect
 
-        asin = get_audible_asin("Test Title", "Test Author")
+        asin = await get_audible_asin("Test Title", "Test Author")
         assert asin == "B123456789"
 
-    @patch("src.metadata.httpx.get")
+    @pytest.mark.asyncio
+    @patch("src.metadata.get_default_client", new_callable=AsyncMock)
     @patch("builtins.__import__")
-    def test_get_audible_asin_not_found(self, mock_import, mock_get):
+    async def test_get_audible_asin_not_found(self, mock_import, mock_get_client):
         mock_response = MagicMock()
         mock_response.text = "<div>No ASIN here</div>"
-        mock_get.return_value = mock_response
+
+        mock_client = MagicMock()
+        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_get_client.return_value = mock_client
 
         # Mock the bs4 import
         mock_bs4 = MagicMock()
@@ -112,18 +120,20 @@ class TestMetadataModule:
 
         mock_import.side_effect = import_side_effect
 
-        asin = get_audible_asin("Unknown Title", "Unknown Author")
+        asin = await get_audible_asin("Unknown Title", "Unknown Author")
         assert asin is None
 
-    def test_get_audible_asin_no_beautifulsoup(self):
+    @pytest.mark.asyncio
+    async def test_get_audible_asin_no_beautifulsoup(self):
         # Test when BeautifulSoup is not available
         with patch("builtins.__import__", side_effect=ImportError("No module named 'bs4'")):
-            asin = get_audible_asin("Test Title", "Test Author")
+            asin = await get_audible_asin("Test Title", "Test Author")
             assert asin is None
 
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook")
+    @pytest.mark.asyncio
+    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
     @patch("src.metadata.get_cached_metadata")
-    def test_fetch_metadata_success(self, mock_cached, mock_coord):
+    async def test_fetch_metadata_success(self, mock_cached, mock_coord):
         # Mock successful metadata fetch
         expected_metadata = {"title": "Test Book", "authors": [{"name": "Test Author"}], "asin": "B123456789"}
         mock_cached.return_value = expected_metadata
@@ -134,15 +144,16 @@ class TestMetadataModule:
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent",
         }
-        result = fetch_metadata(payload)
+        result = await fetch_metadata(payload)
 
         assert result["title"] == "Test Book"
         assert "asin" in result
 
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook")
+    @pytest.mark.asyncio
+    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
     @patch("src.metadata.get_cached_metadata")
     @patch("src.metadata.get_audible_asin")
-    def test_fetch_metadata_fallback_to_scraping(self, mock_scrape, mock_cached, mock_coord):
+    async def test_fetch_metadata_fallback_to_scraping(self, mock_scrape, mock_cached, mock_coord):
         # Test fallback when API fails but scraping succeeds
         mock_cached.return_value = None
         mock_scrape.return_value = "B987654321"
@@ -161,13 +172,14 @@ class TestMetadataModule:
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent",
         }
-        result = fetch_metadata(payload)
+        result = await fetch_metadata(payload)
 
         assert "title" in result
         assert result.get("asin") == "B987654321"
 
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook")
-    def test_fetch_metadata_no_asin_found(self, mock_coord):
+    @pytest.mark.asyncio
+    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
+    async def test_fetch_metadata_no_asin_found(self, mock_coord):
         # Test when no ASIN can be extracted or found
         payload = {
             "name": "Very Obscure Book",
@@ -184,7 +196,7 @@ class TestMetadataModule:
             pytest.raises(ValueError, match="ASIN could not be determined"),
         ):
             # Should raise ValueError when no ASIN can be found
-            fetch_metadata(payload)
+            await fetch_metadata(payload)
 
     def test_clean_metadata_runtime_conversion(self):
         # Test runtime conversion from minutes to readable format

@@ -351,11 +351,10 @@ async def webhook(request: Request):
 
         # Try 1: Compatibility wrapper (tests often patch fetch_metadata)
         try:
-            loop = asyncio.get_running_loop()
-            metadata = await loop.run_in_executor(None, fetch_metadata, payload)
+            metadata = await fetch_metadata(payload)
             if metadata:
                 logging.info(log_prefix + "Metadata obtained from fetch_metadata() wrapper")
-                metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                metadata = await metadata_coordinator.get_enhanced_metadata(metadata)
         except ValueError as e:
             # Expected when fetch_metadata returns None or finds no metadata
             logging.info(log_prefix + f"fetch_metadata did not provide metadata: {e}")
@@ -370,7 +369,7 @@ async def webhook(request: Request):
             try:
                 metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
                 if metadata:
-                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                    metadata = await metadata_coordinator.get_enhanced_metadata(metadata)
                     logging.info(log_prefix + "Metadata obtained from coordinator workflow")
             except ValueError as e:
                 # Expected when coordinator finds no metadata
