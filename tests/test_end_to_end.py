@@ -1,18 +1,19 @@
 import concurrent.futures
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from fastapi.testclient import TestClient
+import pytest
 
 from src.db import get_request, list_tokens
-from src.main import app
-
-
-client = TestClient(app)
 
 
 class TestEndToEndIntegration:
     """Test complete end-to-end workflows"""
+
+    @pytest.fixture(autouse=True)
+    def setup_client(self, test_client):
+        """Use the session-scoped test client."""
+        self.client = test_client
 
     def test_complete_approval_workflow(self):
         """Test the complete approval workflow from webhook to approval"""
@@ -56,7 +57,7 @@ class TestEndToEndIntegration:
             mock_discord.return_value = (204, {})
 
             # Submit webhook
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
             # Use token returned in response to avoid race conditions when tests run concurrently
@@ -100,14 +101,14 @@ class TestEndToEndIntegration:
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata.fetch_metadata", return_value={"title": "Rejection Book"}),
         ):
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
             token = resp.json().get("token")
             assert token is not None
 
             # Step 3: Submit rejection
-            reject_resp = client.post(f"/reject/{token}")
+            reject_resp = self.client.post(f"/reject/{token}")
             assert reject_resp.status_code == 200
             assert "rejected" in reject_resp.text.lower()
 
@@ -173,7 +174,7 @@ class TestEndToEndIntegration:
 
             mock_fetch.return_value = {"title": "Pipeline Book", "author": "Pipeline Author"}
 
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
 
@@ -205,7 +206,7 @@ class TestEndToEndIntegration:
             ),
             patch("src.metadata.fetch_metadata", return_value=expected_metadata),
         ):
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
             # Get the token from the response
@@ -233,7 +234,7 @@ class TestEndToEndIntegration:
             patch("src.metadata.fetch_metadata", return_value={"title": "Lifecycle Book"}),
         ):
             # Step 1: Create token via webhook
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
 
@@ -245,11 +246,11 @@ class TestEndToEndIntegration:
             assert token_data is not None
 
             # Step 3: Use token for approval page access
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
 
             # Step 4: Use token for rejection
-            reject_resp = client.post(f"/reject/{token}")
+            reject_resp = self.client.post(f"/reject/{token}")
             assert reject_resp.status_code == 200
 
             # Step 5: Verify token is consumed
@@ -273,7 +274,7 @@ class TestEndToEndIntegration:
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
                 patch("src.metadata.fetch_metadata", return_value={"title": payload_data["name"]}),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload_data, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -305,7 +306,7 @@ class TestEndToEndIntegration:
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata.fetch_metadata", side_effect=Exception("Metadata failed")),
         ):
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             # Should still succeed with empty metadata
             assert resp.status_code == 200
@@ -317,7 +318,7 @@ class TestEndToEndIntegration:
             token = latest_token["token"]
 
             # Should still be able to access approval page
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
 
     def test_notification_failure_recovery(self):
@@ -334,7 +335,7 @@ class TestEndToEndIntegration:
             patch("src.notify.pushover.send_pushover", side_effect=Exception("Pushover failed")),
             patch("src.notify.discord.send_discord", side_effect=Exception("Discord failed")),
         ):
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             # Should still succeed despite notification failures
             assert resp.status_code == 200
@@ -345,7 +346,7 @@ class TestEndToEndIntegration:
             latest_token = max(all_tokens, key=lambda x: x["timestamp"])
             token = latest_token["token"]
 
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
 
     def test_qbittorrent_integration_workflow(self):
@@ -368,7 +369,7 @@ class TestEndToEndIntegration:
             mock_config.return_value = {"qbittorrent": {"enabled": True}}
 
             # Submit webhook
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
             token = resp.json().get("token")
@@ -413,7 +414,7 @@ class TestEndToEndIntegration:
             monkeypatch.setattr(time, "time", lambda: current_time)
 
             # Submit webhook
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
             assert resp.status_code == 200
 
@@ -425,7 +426,7 @@ class TestEndToEndIntegration:
             monkeypatch.setattr(time, "time", lambda: current_time + 5)
 
             # Try to access expired token
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 410  # Token should be expired
 
     def test_malformed_data_recovery(self):
@@ -441,7 +442,7 @@ class TestEndToEndIntegration:
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
                 patch("src.metadata.fetch_metadata", return_value={"title": f"Malformed {i}"}),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -462,7 +463,7 @@ class TestEndToEndIntegration:
         ):
             mock_fetch.return_value = {"title": "測試書籍 📚", "author": "тест автор"}
 
-            resp = client.post(
+            resp = self.client.post(
                 "/webhook/audiobook-requests", json=unicode_payload, headers={"X-Autobrr-Token": "test_token"}
             )
 
@@ -472,7 +473,7 @@ class TestEndToEndIntegration:
             token = resp.json().get("token")
             assert token is not None
 
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
             # Unicode should be preserved in the page
             assert "測試書籍" in approval_resp.text
