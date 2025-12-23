@@ -325,14 +325,23 @@ class MamAsyncClient:
 
         payload["perpage"] = perpage
 
+        # Build list of enabled flags for consistent logging with sync client
+        enabled_flags = []
+        if media_info:
+            enabled_flags.append("mediaInfo")
+        if isbn:
+            enabled_flags.append("isbn")
+        if description:
+            enabled_flags.append("description")
+        if dl_link:
+            enabled_flags.append("dlLink")
+        if thumbnail is not None:
+            enabled_flags.append("thumbnail")
+
         logger.debug(
-            "MAM async search request: tor=%s, flags: media_info=%s, isbn=%s, description=%s, dl_link=%s, thumbnail=%s",
+            "MAM async search request: tor=%s, flags=%s",
             {k: v for k, v in tor.items() if k != "id"},
-            media_info,
-            isbn,
-            description,
-            dl_link,
-            thumbnail,
+            enabled_flags,
         )
 
         r = await self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})

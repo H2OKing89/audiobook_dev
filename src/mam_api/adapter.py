@@ -42,10 +42,6 @@ class MAMApiAdapter:
     - Gets more data than just ASIN (author, narrator, series, etc.)
     """
 
-    # Rate limiting
-    _last_api_call_time = 0
-    _rate_limit_seconds = 2.0  # Default 2 seconds between calls
-
     def __init__(self, mam_id: str | None = None, rate_limit_seconds: float = 2.0) -> None:
         """
         Initialize the adapter.
@@ -58,7 +54,9 @@ class MAMApiAdapter:
         if not self.mam_id:
             logger.warning("MAM_ID not provided. Set MAM_ID environment variable or pass mam_id to constructor.")
 
-        MAMApiAdapter._rate_limit_seconds = rate_limit_seconds
+        # Instance-level rate limiting to avoid shared state across instances
+        self._last_api_call_time: float = 0
+        self._rate_limit_seconds: float = rate_limit_seconds
         self._client: MamAsyncClient | None = None
 
     async def _get_client(self) -> MamAsyncClient:
