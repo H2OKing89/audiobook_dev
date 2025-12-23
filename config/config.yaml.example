@@ -119,6 +119,10 @@ security:
   # JavaScript security
   use_external_js: true  # Use external JS files for stricter CSP (recommended)
   
+  # Note: For production environments, consider tightening brute-force settings:
+  # - Lower max_failed_logins to 3
+  # - Increase lockout_time to 900 (15 minutes)
+  
   # Input validation
   max_payload_size: 1048576  # 1MB max payload size
   sanitize_inputs: true  # Sanitize inputs to prevent XSS
