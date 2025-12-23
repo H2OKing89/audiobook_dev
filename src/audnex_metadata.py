@@ -19,12 +19,15 @@ import httpx
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import load_config
 
+# Ensure logs directory exists before configuring logging
+_log_dir = Path(__file__).parent.parent / "logs"
+_log_dir.mkdir(parents=True, exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/audnex_metadata.log")],
+    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audnex_metadata.log")],
 )
 
 
