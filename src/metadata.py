@@ -38,7 +38,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
 
 
 class Audible:
-    def __init__(self, response_timeout: int = 30000):
+    def __init__(self, response_timeout: int = 30000) -> None:
         self.response_timeout = response_timeout
         self.region_map = {
             "us": ".com",
@@ -226,12 +226,12 @@ class Audible:
 class Audnexus:
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls) -> "Audnexus":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if hasattr(self, "initialized"):
             return
 
@@ -258,7 +258,13 @@ class Audnexus:
                 return response.json()
             except httpx.HTTPStatusError as e:
                 if e.response is not None and e.response.status_code == 429:  # Rate limited
-                    retry_after = int(e.response.headers.get("retry-after", 5))
+                    retry_after_header = e.response.headers.get("retry-after", "5")
+                    try:
+                        retry_after = int(retry_after_header)
+                    except ValueError:
+                        # Try parsing as HTTP-date (not implemented for simplicity, use default)
+                        logging.warning(f"[Audnexus] Non-integer retry-after header: {retry_after_header}, using default 5s")
+                        retry_after = 5
                     logging.warning(f"[Audnexus] Rate limit exceeded. Retrying in {retry_after} seconds.")
                     time.sleep(retry_after)
                     continue

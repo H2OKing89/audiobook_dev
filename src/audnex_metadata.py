@@ -5,6 +5,7 @@ Gets audiobook metadata from api.audnex.us using ASIN
 """
 
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -28,20 +29,20 @@ logging.basicConfig(
 
 
 class AudnexMetadata:
-    def __init__(self):
-        self.config = load_config()
-        self.audnex_config = self.config.get("metadata", {}).get("audnex", {})
-        self.base_url = self.audnex_config.get("base_url", "https://api.audnex.us")
-        self.rate_limit = self.audnex_config.get("rate_limit_seconds", 0.15)
-        self.global_rate_limit = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
-        self.last_request_time = 0
-        self.last_global_request_time = 0
+    def __init__(self) -> None:
+        self.config: dict = load_config()
+        self.audnex_config: dict = self.config.get("metadata", {}).get("audnex", {})
+        self.base_url: str = self.audnex_config.get("base_url", "https://api.audnex.us")
+        self.rate_limit: float = self.audnex_config.get("rate_limit_seconds", 0.15)
+        self.global_rate_limit: float = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
+        self.last_request_time: float = 0.0
+        self.last_global_request_time: float = 0.0
         # Multi-region support
-        self.regions = self.audnex_config.get("regions", ["us", "uk", "ca", "au", "de", "fr", "es", "it", "jp", "in"])
-        self.try_all_regions = self.audnex_config.get("try_all_regions_on_error", True)
-        self.max_regions = self.audnex_config.get("max_regions_to_try", 5)
+        self.regions: list[str] = self.audnex_config.get("regions", ["us", "uk", "ca", "au", "de", "fr", "es", "it", "jp", "in"])
+        self.try_all_regions: bool = self.audnex_config.get("try_all_regions_on_error", True)
+        self.max_regions: int = self.audnex_config.get("max_regions_to_try", 5)
 
-    def _throttle_request(self):
+    def _throttle_request(self) -> None:
         """Apply rate limiting between requests."""
         current_time = time.time()
 
@@ -81,7 +82,12 @@ class AudnexMetadata:
 
             except httpx.HTTPStatusError as e:
                 if e.response is not None and e.response.status_code == 429:  # Rate limited
-                    retry_after = int(e.response.headers.get("retry-after", 5))
+                    retry_after_header = e.response.headers.get("retry-after", "5")
+                    try:
+                        retry_after = int(retry_after_header)
+                    except ValueError:
+                        logging.warning(f"Invalid retry-after header: {retry_after_header}, using default 5s")
+                        retry_after = 5
                     logging.warning(f"Rate limit exceeded. Retrying in {retry_after} seconds.")
                     time.sleep(retry_after)
                     continue
@@ -358,8 +364,6 @@ class AudnexMetadata:
         """Clean series sequence to extract just the number portion."""
         if not sequence:
             return ""
-
-        import re
 
         # Match any number with optional decimal (e.g, 1 or 1.5 or .5)
         match = re.search(r"\.\d+|\d+(?:\.\d+)?", sequence)
