@@ -11,11 +11,16 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 from src.config import load_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -368,29 +373,35 @@ class AsyncHttpClient:
         return result, winning_region
 
 
-# Module-level default client management
-_default_client: AsyncHttpClient | None = None
-_default_lock = asyncio.Lock()
+# Module-level default client management using a mutable container to avoid global statement
+class _ClientHolder:
+    """Container for the default client singleton to avoid global statement."""
+
+    client: AsyncHttpClient | None = None
+    lock: asyncio.Lock | None = None
+
+    @classmethod
+    def get_lock(cls) -> asyncio.Lock:
+        """Lazily create the lock to avoid issues with event loop."""
+        if cls.lock is None:
+            cls.lock = asyncio.Lock()
+        return cls.lock
 
 
 async def get_default_client() -> AsyncHttpClient:
     """Get or create the default shared client instance."""
-    global _default_client
-
-    async with _default_lock:
-        if _default_client is None:
-            _default_client = AsyncHttpClient()
-        return _default_client
+    async with _ClientHolder.get_lock():
+        if _ClientHolder.client is None:
+            _ClientHolder.client = AsyncHttpClient()
+        return _ClientHolder.client
 
 
 async def close_default_client() -> None:
     """Close the default client (call during application shutdown)."""
-    global _default_client
-
-    async with _default_lock:
-        if _default_client is not None:
-            await _default_client.aclose()
-            _default_client = None
+    async with _ClientHolder.get_lock():
+        if _ClientHolder.client is not None:
+            await _ClientHolder.client.aclose()
+            _ClientHolder.client = None
 
 
 def get_region_tld(region: str) -> str:

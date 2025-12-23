@@ -17,11 +17,12 @@ from urllib.parse import urlencode
 
 from src.config import load_config
 from src.http_client import (
-    AsyncHttpClient,
     DEFAULT_REGIONS,
+    AsyncHttpClient,
     get_default_client,
     get_regions_priority,
 )
+
 
 logger = logging.getLogger(__name__)
 

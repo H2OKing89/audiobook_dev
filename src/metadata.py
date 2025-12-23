@@ -13,13 +13,14 @@ from urllib.parse import urlencode
 
 from src.config import load_config
 from src.http_client import (
-    AsyncHttpClient,
     REGION_MAP,
+    AsyncHttpClient,
     get_default_client,
     get_region_tld,
     get_regions_priority,
 )
 from src.utils import clean_author_list, validate_payload
+
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +172,7 @@ class Audible:
             "abridged": format_type == "abridged",
         }
 
-    async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:
+    async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:  # noqa: ARG002
         """Search for a book by ASIN"""
         if not asin:
             return None

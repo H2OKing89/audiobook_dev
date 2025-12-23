@@ -180,7 +180,9 @@ def mock_external_apis():
     # Also patch chapter fetching to prevent network calls
     # Use AsyncMock since these methods are now async
     with (
-        patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock) as mock_coord,
+        patch(
+            "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+        ) as mock_coord,
         patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin", new_callable=AsyncMock) as mock_chapters,
     ):
         mock_coord.return_value = {

@@ -463,7 +463,7 @@ async def metadata_worker():
                 metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
                 if metadata:
                     # Enhance metadata with additional information
-                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                    metadata = await metadata_coordinator.get_enhanced_metadata(metadata)
                     logging.info(log_prefix + "✅ Metadata processed successfully")
                 else:
                     raise ValueError("No metadata found from any source")

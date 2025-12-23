@@ -18,11 +18,12 @@ from urllib.parse import urlencode
 from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 from src.http_client import (
-    AsyncHttpClient,
     REGION_MAP,
+    AsyncHttpClient,
     get_default_client,
     get_region_tld,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -231,9 +232,7 @@ class AudibleScraper:
         # Remove None values to clean up the response
         return {k: v for k, v in book_data.items() if v is not None}
 
-    async def search_by_title_author(
-        self, title: str, author: str = "", region: str = "us"
-    ) -> list[dict[str, Any]]:
+    async def search_by_title_author(self, title: str, author: str = "", region: str = "us") -> list[dict[str, Any]]:
         """
         Search for audiobooks by title and author using Audible's catalog API.
 

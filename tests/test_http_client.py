@@ -385,7 +385,6 @@ class TestParallelRegionFetch:
         async def mock_get_json(url):
             region = url.split("region=")[-1]
             regions_tried.append(region)
-            return None
 
         async with AsyncHttpClient() as client:
             client.get_json = mock_get_json
@@ -485,11 +484,11 @@ class TestDefaultClient:
         from src import http_client
 
         try:
-            client = await get_default_client()
-            assert http_client._default_client is not None
+            await get_default_client()
+            assert http_client._ClientHolder.client is not None
 
             await close_default_client()
-            assert http_client._default_client is None
+            assert http_client._ClientHolder.client is None
         finally:
             # Ensure cleanup even if test fails
             await close_default_client()
