@@ -69,7 +69,7 @@ async def approve(token: str, request: Request) -> HTMLResponse:
             # token invalid or expired
             logging.warning(f"Approval attempt with invalid/expired token: {token} from IP: {client_ip}")
             response = render_template(request, 'token_expired.html', {})
-            response.status_code = 404
+            response.status_code = 410
             return response
             
         metadata = entry.get('metadata') or {}
@@ -242,7 +242,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
         if not entry:
             logging.warning(f"Rejection attempt with invalid/expired token: {token} from IP: {client_ip}")
             response = render_template(request, 'token_expired.html', {})
-            response.status_code = 404
+            response.status_code = 410
             return response
             
         # Log the rejection with metadata info
