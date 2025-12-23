@@ -59,8 +59,8 @@ class TestQbittorrentClient:
             patch("src.qbittorrent.httpx.stream") as mock_stream,
             patch("src.qbittorrent.get_client") as mock_get_client,
             patch("src.qbittorrent.tempfile.NamedTemporaryFile") as mock_temp,
-            patch("builtins.open", mock_open(read_data=b"torrent_data")),
-            patch("src.qbittorrent.os.remove"),
+            patch("pathlib.Path.open", mock_open(read_data=b"torrent_data")),
+            patch("pathlib.Path.unlink"),
         ):
             # Mock response
             mock_response = MagicMock()
