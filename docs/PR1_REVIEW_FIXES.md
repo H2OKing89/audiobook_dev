@@ -1,10 +1,11 @@
 # PR #1 Review Fixes - CodeRabbit Comments
 
-**Status**: ✅ Completed (Round 2 - All Critical & Important Fixes Applied)  
+**Status**: ⏳ In Progress (Round 3 - New Review After Round 2 Push)  
 **Total Issues from Round 1**: 40 (9 fixed, 17+ identified as inaccurate)  
-**New Issues from Round 2**: 53 review comments (4 critical, 9 important, 10 minor fixed)  
+**Total Issues from Round 2**: 53 review comments (4 critical, 9 important, 10 minor fixed)  
+**New Issues from Round 3**: 61 review threads (analyzing...)  
 **Created**: December 23, 2025  
-**Last Updated**: December 23, 2025 (Round 2 Complete)  
+**Last Updated**: December 23, 2025 (Round 3 Started)  
 **PR Link**: <https://github.com/H2OKing89/audiobook_dev/pull/1>
 
 ## Round 1 Summary (Completed)
@@ -21,11 +22,125 @@
 ✅ **Critical Fixes**: 4 issues fixed (documentation, naming collision, unused imports, documentation)  
 ✅ **Important Fixes**: 9 issues fixed (loggers, exception chaining, cleanup tracking, fixtures, type hints)  
 ✅ **Minor Fixes**: 3 issues fixed (date correction, status code standardization)  
-✅ **Commits**: 11 commits (1 doc update + 9 fixes + 1 test update)  
+✅ **Commits**: 12 commits pushed to origin/alpine_frontend  
 ✅ **Tests**: 143/147 passing (maintained baseline, no regressions)  
 ✅ **Total Round 2 Time**: ~90 minutes
 
-## Round 2 - New Review Comments (53 total)
+---
+
+## Round 3 - Post-Round 2 Push Review (61 threads)
+
+After pushing Round 2 commits, CodeRabbit/Copilot generated 61 new review threads with detailed analysis.
+
+### Critical Issues (Must Fix) - 2 items
+
+#### 1. ⏳ JavaScript Naming Collision - `showRetryMessage` in rejectionPage
+
+- **File**: [static/js/alpine-pages.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728774)
+- **Lines**: 169 (property) and 196-197 (method)
+- **Issue**: Property `showRetryMessage: false` at line 169 conflicts with method `showRetryMessage()` at line 196
+- **Impact**: Method overwrites property, `this.showRetryMessage = true` will break reactivity
+- **Fix Required**: Rename method to `triggerRetryMessage()` or property to `retryMessageVisible`
+- **Status**: ⏳ Pending
+
+#### 2. ⏳ Undefined `debugLog()` Function - alpine-home.js
+
+- **File**: [static/js/alpine-home.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728768)
+- **Line**: 20
+- **Issue**: Calls `debugLog()` which may not be defined, causing ReferenceError
+- **Fix Required**: Add `typeof debugLog === 'function'` check or define fallback
+- **Status**: ⏳ Pending
+
+### Important Issues (Should Fix) - 6 items
+
+#### 3. ⏳ Module-Level Logger Missing - discord.py
+
+- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782772)
+- **Lines**: 107, 110
+- **Issue**: Still using root logger `logging.info()` instead of module logger
+- **Fix Required**: Add `logger = logging.getLogger(__name__)` and update calls
+- **Status**: ⏳ Pending (Round 2 missed this file)
+
+#### 4. ⏳ Exception Chaining Missing - qbittorrent.py
+
+- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782773)
+- **Line**: 83
+- **Issue**: Raises new Exception without chaining: `raise Exception(...)`
+- **Fix Required**: Add `from e` to preserve traceback
+- **Status**: ⏳ Pending (was previously fixed but incomplete)
+
+#### 5. ⏳ Artificial Test Data Injection
+
+- **File**: [tests/test_integration.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728800)
+- **Line**: 194
+- **Issue**: Test manually injects notification to force passing: `notification_calls['pushover'].append(([], {}))`
+- **Fix Required**: Remove injection and fix actual notification logic or skip assertion
+- **Status**: ⏳ Pending
+
+#### 6. ⏳ Documentation Status Contradictions (Round 3)
+
+- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885619)
+- **Lines**: 282-288 vs 374-379
+- **Issue**: Progress tracking shows "1/4 critical complete" but all items marked ✅ Fixed
+- **Fix Required**: Reconcile status markers across document
+- **Status**: ⏳ Pending
+
+#### 7. ⏳ Incomplete Enumeration - Items 24-40
+
+- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782760)
+- **Lines**: 204-206
+- **Issue**: 17 items (24-40) listed but not enumerated with details
+- **Fix Required**: Either enumerate all 17 items or remove from total count
+- **Status**: ⏳ Pending
+
+#### 8. ⏳ Self-Hosted Alpine.js Status Conflict
+
+- **File**: [docs/PR1_REVIEW_FIXES.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782764)
+- **Lines**: 261 vs 273-274
+- **Issue**: Phase 4 marked ✅ complete but also listed under "Remaining" as ⏳
+- **Fix Required**: Clarify actual completion status of self-hosted Alpine
+- **Status**: ⏳ Pending
+
+### Minor Issues (Optional/Low Priority) - 10+ items
+
+#### 9. ℹ️ Use Built-in `dict` Type - discord.py
+
+- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885626)
+- **Line**: 5
+- **Issue**: Uses `typing.Dict` instead of built-in `dict` (Python 3.9+)
+- **Fix**: Replace `Dict[str, Any]` with `dict[str, Any]`
+- **Status**: ⏳ Pending (code quality improvement)
+
+#### 10. ℹ️ Use Built-in `dict` Type - template_helpers.py
+
+- **File**: [src/template_helpers.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885638)
+- **Line**: 6, 11
+- **Issue**: Uses `typing.Dict` instead of built-in `dict`
+- **Status**: ⏳ Pending
+
+#### 11. ℹ️ Unused Exception Variables - qbittorrent.py
+
+- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642885632)
+- **Lines**: 30, 97
+- **Issue**: `except Exception as e:` but `e` is never used
+- **Fix**: Change to bare `except Exception:`
+- **Status**: ⏳ Pending
+
+#### 12-20. ℹ️ Additional Minor Items
+
+Various other code quality improvements noted in review threads:
+- Date format consistency (commas after year)
+- Component initialization patterns
+- Interval cleanup tracking
+- Type annotations
+- Import organization
+- Exception handling patterns
+
+**Status**: ⏳ Will address as time permits
+
+---
+
+## Round 2 - New Review Comments (53 total) - COMPLETED
 
 ### Critical Issues (Must Fix) - 4 items ✅ ALL FIXED
 
@@ -144,7 +259,7 @@
 - **File**: [ALPINE_MIGRATION_SUMMARY.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728715)
 - **Line**: 5
 - **Issue**: Header shows "Latest Security Enhancements (July 13, 2025)" but it's December
-- **Fix**: Updated to "December 2024"
+- **Fix**: Updated to "December 2025"
 - **Status**: ✅ Fixed - Commit: 64e3a61
 
 ### 15. Unpinned Dependencies - `requirements.txt`
@@ -313,7 +428,7 @@ And 15+ more similar comments that were addressed in Round 1 commits.
 
 - **File**: [docs/CONFIGURATION_STRUCTURE.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966437)
 - **Line**: 5
-- **Issue**: "Last Updated: 2024-12-16" should be updated to reflect latest changes
+- **Issue**: "Last Updated: 2025-12-16" should be updated to reflect latest changes
 - **Fix**: Update date to December 23, 2025
 - **Status**: ⏳ Pending
 
