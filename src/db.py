@@ -32,7 +32,7 @@ _ttl: int | None = None
 
 def _get_ttl() -> int:
     """Lazy load TTL from config."""
-    global _ttl
+    global _ttl  # noqa: PLW0603 - caching pattern requires global
     if _ttl is None:
         try:
             config = load_config()
