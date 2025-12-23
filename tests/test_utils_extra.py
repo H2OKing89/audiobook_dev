@@ -2,7 +2,6 @@ import time
 
 import pytest
 
-import src.db as dbmod
 from src.db import delete_request, get_request, save_request
 from src.metadata import clean_metadata
 from src.utils import (

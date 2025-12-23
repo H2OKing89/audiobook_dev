@@ -2,7 +2,6 @@ import re
 import time
 from unittest.mock import patch
 
-import src.db as dbmod
 from src.db import delete_request, save_request
 
 
