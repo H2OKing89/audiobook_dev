@@ -1,19 +1,20 @@
 import logging
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 
-_config = None
+_config: dict[str, Any] | None = None
 
 
-def load_config():
+def load_config() -> dict[str, Any]:
     """Load YAML config from project config/config.yaml"""
-    global _config
+    global _config  # noqa: PLW0603 - caching pattern requires global
     if _config is None:
         config_path = Path(__file__).parent.parent / "config" / "config.yaml"
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 _config = yaml.safe_load(f)
         except FileNotFoundError as e:
             logging.error(f"Config file not found: {config_path}. {e}")
