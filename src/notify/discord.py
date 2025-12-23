@@ -104,9 +104,8 @@ def send_discord(
             resp_json = response.json()
         except ValueError:
             resp_json = {"text": response.text}
-        logging.info(f"Discord notification sent successfully: status={response.status_code}")
+        logging.info("Discord notification sent successfully: status=%d", response.status_code)
         return response.status_code, resp_json
     except httpx.RequestError as e:
-        error_msg = f"Failed to send Discord notification: {e}"
-        logging.error(error_msg)
-        return 0, {"error": error_msg}
+        logging.exception("Failed to send Discord notification")
+        return 0, {"error": f"Failed to send Discord notification: {e}"}
