@@ -6,6 +6,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 from src.security import reset_rate_limit_buckets
 
+# Configure pytest-asyncio mode
+pytest_plugins = ('pytest_asyncio',)
+
 # =============================================================================
 # Session-scoped fixtures for performance optimization
 # =============================================================================

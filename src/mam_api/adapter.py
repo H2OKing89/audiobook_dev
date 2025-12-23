@@ -219,19 +219,28 @@ class MAMApiAdapter:
         if not torrent:
             return None
             
-        # Normalize to clean format
+        # Use raw torrent for author/narrator lists, normalized for other fields
         normalized = torrent.to_normalized()
+        
+        # Extract series position from raw series_info if available
+        series_position = None
+        if torrent.series_info:
+            # series_info is {id: [name, "position", position_float]}
+            for _, entry in torrent.series_info.items():
+                if len(entry) >= 2:
+                    series_position = str(entry[1])
+                    break
         
         return {
             'asin': normalized.asin,
             'title': normalized.title,
-            'authors': normalized.authors,
-            'narrators': normalized.narrators,
+            'authors': torrent.author_names,  # List from raw
+            'narrators': torrent.narrator_names,  # List from raw
             'series': normalized.series,
-            'series_position': normalized.series_position,
-            'description': normalized.description,
-            'duration': normalized.duration_seconds,
-            'language': normalized.language,
+            'series_position': series_position,
+            'description': torrent.description,
+            'duration': normalized.duration,
+            'language': torrent.lang_code,
             'mam_id': normalized.tid,
             'source': 'mam_api',
         }

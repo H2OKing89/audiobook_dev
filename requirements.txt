@@ -7,7 +7,8 @@ beautifulsoup4
 jinja2
 pytest
 pytest-cov
-httpx
+pytest-asyncio
+httpx[http2]
 cachetools
 lxml
 html5lib
