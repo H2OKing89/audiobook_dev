@@ -22,6 +22,11 @@ jobs:
         paths:
         - ~/.cache/pip
     - run:
+        name: Create config files for testing
+        command: |
+          cp config/config.yaml.example config/config.yaml
+          cp config/mam_config.json.example config/mam_config.json
+    - run:
         name: Run linter
         command: ruff check src/ tests/
     - run:
