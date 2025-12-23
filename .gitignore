@@ -66,3 +66,4 @@ logs/*real*.json
 logs/*.html
 logs/*_debug_*.html
 logs/page_source*.html
+logs/

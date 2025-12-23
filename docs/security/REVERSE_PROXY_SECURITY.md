@@ -14,7 +14,7 @@ Add this to your Nginx configuration to block the queue status endpoint:
 
 ```nginx
 server {
-    server_name audiobook-requests.kingpaging.com;
+    server_name audiobook-requests.example.com;
     
     # Block queue status endpoint from public access
     location /queue/status {
@@ -67,7 +67,7 @@ If you need to monitor the queue status, you can:
    
    Then access with:
    ```bash
-   curl -H "X-API-Key: your-secret-monitoring-key" https://audiobook-requests.kingpaging.com/queue/status
+   curl -H "X-API-Key: your-secret-monitoring-key" https://audiobook-requests.example.com/queue/status
    ```
 
 ## Apache Configuration (Alternative)
@@ -76,7 +76,7 @@ If using Apache instead of Nginx:
 
 ```apache
 <VirtualHost *:443>
-    ServerName audiobook-requests.kingpaging.com
+    ServerName audiobook-requests.example.com
     
     # Block queue status endpoint
     <Location "/queue/status">

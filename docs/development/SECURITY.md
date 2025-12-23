@@ -111,7 +111,7 @@ Images are allowed from specific trusted domains:
 ```yaml
 security:
   allowed_image_domains:
-    - "picsur.kingpaging.com"
+    - "your-image-host.com"
     - "ptpimg.me"
     - "i.imgur.com"
     - "audnex.us"

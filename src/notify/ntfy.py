@@ -66,7 +66,7 @@ def send_ntfy(
     headers = {
         "Title": f"{title}",
         "Markdown": "true",
-        "Icon": "https://picsur.kingpaging.com/i/f1eb91c4-1fc4-40a3-a258-e41448b1f3d9.jpg",
+        "Icon": "https://example.com/images/audiobook-icon.jpg",
     }
     # Add Bearer token if present
     ntfy_token = os.getenv("NTFY_TOKEN")

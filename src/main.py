@@ -87,6 +87,14 @@ logger.handlers.clear()
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 
+# SECURITY: Disable debug logging for httpx/httpcore to prevent cookie/token leakage
+# These libraries log full HTTP headers including sensitive cookies at DEBUG level
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+logging.getLogger('httpcore.http2').setLevel(logging.WARNING)
+logging.getLogger('httpcore.connection').setLevel(logging.WARNING)
+logging.getLogger('hpack').setLevel(logging.WARNING)
+
 app = FastAPI(
     title="Audiobook Approval Service",
     description="A secure audiobook approval workflow with notifications",

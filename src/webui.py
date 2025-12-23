@@ -204,7 +204,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 'error_message': error_message,
                 'og_title': 'Approval Failed',
                 'og_description': error_message,
-                'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+                'og_image': 'https://example.com/images/audiobook-icon.png'
             }
             logging.warning(f"[token={token}] Rendering failure page due to: {error_message}")
             response = render_template(request, 'failure.html', context)
@@ -215,7 +215,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 'close_delay': close_delay,
                 'og_title': 'Approval Successful',
                 'og_description': 'Your audiobook request was approved and processed!',
-                'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+                'og_image': 'https://example.com/images/audiobook-icon.png'
             }
             # Attach non-fatal warning if present
             if warning_message:
@@ -258,7 +258,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
             'token': token,
             'og_title': 'Request Rejected',
             'og_description': 'Your audiobook request was rejected.',
-            'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+            'og_image': 'https://example.com/images/audiobook-icon.png'
         }
         
         # Add CSRF token if protection is enabled
@@ -308,7 +308,7 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
             'token': token,
             'og_title': 'Request Rejected',
             'og_description': 'Your audiobook request was rejected.',
-            'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
+            'og_image': 'https://example.com/images/audiobook-icon.png'
         }
         response = render_template(request, 'rejection.html', context)
         logging.info(f"[token={token}] Rejection processed successfully (POST)")

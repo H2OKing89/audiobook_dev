@@ -165,7 +165,7 @@ Content-Security-Policy:
     default-src 'self'; 
     style-src 'self' fonts.googleapis.com; 
     font-src 'self' fonts.gstatic.com; 
-    img-src 'self' picsur.kingpaging.com; 
+    img-src 'self' example.com; 
     script-src 'self'
 ```
 

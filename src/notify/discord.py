@@ -76,7 +76,7 @@ def send_discord(
 
     cover_url = metadata.get('cover_url') or metadata.get('image')
     icon_url = discord_cfg.get('icon_url', "https://ptpimg.me/44pi19.png")
-    author_url = discord_cfg.get('author_url', "https://audiobookshelf.kingpaging.com/")
+    author_url = discord_cfg.get('author_url', "https://example.com/audiobookshelf/")
     footer_icon_url = discord_cfg.get('footer_icon_url', "https://ptpimg.me/44pi19.png")
     footer_text = discord_cfg.get('footer_text', "Powered by Autobrr")
     embed = {
