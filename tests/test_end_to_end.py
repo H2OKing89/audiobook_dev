@@ -64,20 +64,19 @@ class TestEndToEndIntegration:
             assert token is not None
 
             # Step 3: Access approval page
-            approval_resp = client.get(f"/approve/{token}")
+            approval_resp = self.client.get(f"/approve/{token}")
             assert approval_resp.status_code == 200
             assert "E2E Test Book" in approval_resp.text
 
             # Step 4: Submit approval
             with (
-                patch("src.qbittorrent.get_client") as mock_client,
-                patch("src.qbittorrent.add_torrent_file_with_cookie") as mock_add_torrent,
+                patch("src.webui.add_torrent_file_with_cookie") as mock_add_torrent,
+                patch("src.webui.load_config") as mock_config_approval,
             ):
-                mock_qb_client = MagicMock()
-                mock_client.return_value = mock_qb_client
                 mock_add_torrent.return_value = True
+                mock_config_approval.return_value = {"qbittorrent": {"enabled": True}}
 
-                approve_resp = client.post(f"/approve/{token}")
+                approve_resp = self.client.post(f"/approve/{token}")
                 assert approve_resp.status_code == 200
                 assert "successfully" in approve_resp.text.lower()
 
@@ -377,14 +376,13 @@ class TestEndToEndIntegration:
 
             # Test approval with qBittorrent success
             with (
-                patch("src.qbittorrent.get_client") as mock_client,
-                patch("src.qbittorrent.add_torrent_file_with_cookie") as mock_add,
+                patch("src.webui.add_torrent_file_with_cookie") as mock_add,
+                patch("src.webui.load_config") as mock_config_approval,
             ):
-                mock_qb_client = MagicMock()
-                mock_client.return_value = mock_qb_client
                 mock_add.return_value = True
+                mock_config_approval.return_value = {"qbittorrent": {"enabled": True}}
 
-                approve_resp = client.post(f"/approve/{token}")
+                approve_resp = self.client.post(f"/approve/{token}")
                 assert approve_resp.status_code == 200
                 assert "success" in approve_resp.text.lower()
 

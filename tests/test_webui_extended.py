@@ -27,7 +27,12 @@ class TestWebUIEndpoints:
         assert resp.status_code in (401, 410, 404)
         assert "expired" in resp.text.lower() or "unauthorized" in resp.text.lower() or "not found" in resp.text.lower()
 
-    def test_approve_action_valid_token(self, test_client, _mock_qbittorrent, _mock_notifications):
+    def test_approve_action_valid_token(
+        self,
+        test_client,
+        mock_qbittorrent,  # noqa: ARG002 - fixture must be active
+        mock_notifications,  # noqa: ARG002 - fixture must be active
+    ):
         # Create a test token
         token = "test_action_token"
         metadata = {"title": "Action Test"}
@@ -55,7 +60,11 @@ class TestWebUIEndpoints:
         finally:
             delete_request(token)
 
-    def test_approve_post_with_csrf(self, test_client, _mock_qbittorrent):
+    def test_approve_post_with_csrf(
+        self,
+        test_client,
+        mock_qbittorrent,  # noqa: ARG002 - fixture must be active
+    ):
         token = "test_post_token"
         metadata = {"title": "Post Test"}
         payload = {"url": "http://test.com", "download_url": "http://test.com/download"}
@@ -102,7 +111,7 @@ class TestWebUIEndpoints:
         save_request(token, metadata, payload)
 
         try:
-            with patch("src.qbittorrent.add_torrent_file_with_cookie", return_value=False):
+            with patch("src.webui.add_torrent_file_with_cookie", return_value=False):
                 resp = test_client.get(f"/approve/{token}/action")
                 # Should still return success page but log the error
                 assert resp.status_code == 200

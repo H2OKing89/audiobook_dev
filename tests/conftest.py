@@ -135,7 +135,7 @@ def mock_qbittorrent():
     """
     with (
         patch("src.qbittorrent.get_client") as get_client,
-        patch("src.qbittorrent.add_torrent_file_with_cookie") as add_torrent,
+        patch("src.webui.add_torrent_file_with_cookie") as add_torrent,
     ):
         mock_client = MagicMock()
         get_client.return_value = mock_client
