@@ -214,7 +214,7 @@ function initializePagesComponents() {
         // Time-related state
         timeFactIndex: 0,
         timeFactInterval: null,
-        showTimeHelp: false,
+        isTimeHelpVisible: false,
         showTokenInfo: false,
         
         // Time facts
@@ -264,7 +264,7 @@ function initializePagesComponents() {
         },
         
         showTimeHelp() {
-            this.showTimeHelp = true;
+            this.isTimeHelpVisible = true;
             this.$notify('🕰️ Time help activated! Check the overlay.', 'info');
         },
         
@@ -283,7 +283,7 @@ function initializePagesComponents() {
         },
         
         closeTimeHelp() {
-            this.showTimeHelp = false;
+            this.isTimeHelpVisible = false;
         },
         
         closeTokenInfo() {
