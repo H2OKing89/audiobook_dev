@@ -1,11 +1,11 @@
 import asyncio
 import contextvars
+import ipaddress
 import logging
 import os
 import re
 import time
 import uuid
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
@@ -191,12 +191,30 @@ async def queue_status(request: Request):
     # Check if request is from local network or has API key
     client_ip = get_client_ip(request)
 
-    # Allow local/internal IPs
-    local_ips = ["127.0.0.1", "::1", "10.1.60.11", "localhost"]
-    is_local = (
-        client_ip.startswith(("127.", "10.", "192.168.", "172.16."))
-        or client_ip in local_ips
-    )
+    # Define private/internal network ranges
+    private_networks = [
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("127.0.0.0/8"),       # IPv4 loopback
+        ipaddress.ip_network("::1/128"),           # IPv6 loopback
+    ]
+    
+    # Get additional allowed IPs from environment (comma-separated)
+    extra_allowed = os.getenv("INTERNAL_ALLOWED_IPS", "").strip()
+    allowed_ips = set(ip.strip() for ip in extra_allowed.split(",") if ip.strip())
+    
+    # Check if IP is internal/allowed
+    is_local = False
+    if client_ip in ("localhost", "::1"):
+        is_local = True
+    else:
+        try:
+            ip_obj = ipaddress.ip_address(client_ip)
+            is_local = any(ip_obj in network for network in private_networks) or client_ip in allowed_ips
+        except ValueError:
+            # Invalid IP format - treat as external
+            is_local = False
 
     # Check for API key (optional additional security)
     api_key = request.headers.get("X-API-Key")
