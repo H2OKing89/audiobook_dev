@@ -11,6 +11,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import aiofiles
 import pytest
 
 
@@ -137,8 +138,8 @@ async def test_audnex_with_known_asin():
         try:
             # Ensure logs directory exists
             Path("logs").mkdir(exist_ok=True)
-            with Path(results_file).open("w") as f:
-                json.dump(results, f, indent=2, default=str)
+            async with aiofiles.open(results_file, "w") as f:
+                await f.write(json.dumps(results, indent=2, default=str))
             logging.info(f"💾 Results saved to: {results_file}")
         except OSError as e:
             logging.error(f"Failed to save results to {results_file}: {e}")

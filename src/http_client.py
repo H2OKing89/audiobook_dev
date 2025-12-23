@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -392,7 +393,9 @@ class AsyncHttpClient:
         if result:
             logger.info("Parallel fetch succeeded via region %s", winning_region)
         else:
-            logger.debug("All %d regions failed", len(regions_to_try))
+            logger.debug(
+                "All %d regions failed: %s", len(regions_to_try), {region: str(err) for region, err in errors.items()}
+            )
 
         return result, winning_region
 
@@ -403,12 +406,15 @@ class _ClientHolder:
 
     client: AsyncHttpClient | None = None
     lock: asyncio.Lock | None = None
+    _init_lock: threading.Lock = threading.Lock()
 
     @classmethod
     def get_lock(cls) -> asyncio.Lock:
         """Lazily create the lock to avoid issues with event loop."""
         if cls.lock is None:
-            cls.lock = asyncio.Lock()
+            with cls._init_lock:
+                if cls.lock is None:
+                    cls.lock = asyncio.Lock()
         return cls.lock
 
 

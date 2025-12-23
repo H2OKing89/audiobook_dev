@@ -97,7 +97,6 @@ class AudibleScraper:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
-        pass
 
     def _is_valid_asin(self, asin: str) -> bool:
         """Validate ASIN format (10 characters, alphanumeric)."""

@@ -13,6 +13,7 @@ from src.token_gen import generate_token
 # Configure pytest-asyncio mode
 pytest_plugins = ("pytest_asyncio",)
 
+
 # =============================================================================
 # Global httpx mock to prevent ANY real HTTP calls during tests
 # =============================================================================
@@ -54,8 +55,15 @@ def test_client():
     Using a single client for the entire session significantly speeds up tests
     by avoiding the overhead of creating new app instances.
     """
-    with TestClient(app) as client:
-        yield client
+    client = TestClient(app)
+    client.__enter__()
+    yield client
+    try:
+        client.__exit__(None, None, None)
+    except RuntimeError:
+        # Ignore "Event loop is closed" errors during teardown
+        # This is a known issue with pytest-asyncio and session-scoped fixtures
+        pass
 
 
 @pytest.fixture

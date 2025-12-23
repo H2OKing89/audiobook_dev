@@ -89,7 +89,6 @@ class Audible:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
-        pass
 
     def clean_series_sequence(self, series_name: str, sequence: str) -> str:
         """
@@ -275,7 +274,6 @@ class Audnexus:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
-        pass
 
     async def author_asins_request(self, name: str, region: str = "") -> list[dict[str, Any]]:
         """Get author ASINs by name"""
@@ -511,18 +509,19 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
         # If we still don't have an ASIN, try regions searching
         audible = Audible()
 
-        # Try searching with parallel regions
-        client = await get_default_client()
-        regions_to_try = get_regions_priority(regions[0] if regions else "us", max_regions=len(regions))
+        # Try searching with parallel regions (only if we have an ASIN)
+        if asin:
+            client = await get_default_client()
+            regions_to_try = get_regions_priority(regions[0] if regions else "us", max_regions=len(regions))
 
-        result, found_region = await client.fetch_first_success(
-            regions=regions_to_try,
-            url_factory=lambda r: f"https://api.audnex.us/books/{asin}?region={r}" if asin else "",
-            validator=lambda d: bool(d.get("asin")),
-        )
+            result, _found_region = await client.fetch_first_success(
+                regions=regions_to_try,
+                url_factory=lambda r: f"https://api.audnex.us/books/{asin}?region={r}",
+                validator=lambda d: bool(d.get("asin")),
+            )
 
-        if result:
-            return audible.clean_result(result)
+            if result:
+                return audible.clean_result(result)
 
         # Fallback to catalog search
         for region in regions:
@@ -536,7 +535,7 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
                     # Return the first (best) result
                     return results[0]
             except Exception as e:
-                logger.error("Error searching region %s: %s", region, e)
+                logger.error("Error searching region %s: %s", region, e, exc_info=True)
                 continue
 
         # Final error if we couldn't determine any metadata

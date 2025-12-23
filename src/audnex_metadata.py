@@ -88,7 +88,6 @@ class AudnexMetadata:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
-        pass
 
     async def get_book_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """
