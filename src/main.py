@@ -24,6 +24,7 @@ from src.notify.gotify import send_gotify
 from src.notify.ntfy import send_ntfy
 from src.notify.pushover import send_pushover
 from src.security import (
+    RateLimitExceeded,
     check_endpoint_authorization,
     get_client_ip,
     get_csp_header,
@@ -161,10 +162,6 @@ async def endpoint_authorization_middleware(request: Request, call_next):
     return response
 
 
-# Exception handler for too many requests
-from src.security import RateLimitExceeded  # Ensure this import exists
-
-
 @app.exception_handler(429)
 async def too_many_requests_handler(request: Request, exc: RateLimitExceeded):
     return await rate_limit_exceeded_handler(request, exc)
@@ -199,11 +196,11 @@ async def queue_status(request: Request):
         ipaddress.ip_network("127.0.0.0/8"),       # IPv4 loopback
         ipaddress.ip_network("::1/128"),           # IPv6 loopback
     ]
-    
+
     # Get additional allowed IPs from environment (comma-separated)
     extra_allowed = os.getenv("INTERNAL_ALLOWED_IPS", "").strip()
-    allowed_ips = set(ip.strip() for ip in extra_allowed.split(",") if ip.strip())
-    
+    allowed_ips = {ip.strip() for ip in extra_allowed.split(",") if ip.strip()}
+
     # Check if IP is internal/allowed
     is_local = False
     if client_ip in ("localhost", "::1"):
@@ -414,12 +411,12 @@ async def webhook(request: Request):
             "notification_errors": notification_errors,
         }
 
-    except asyncio.QueueFull:
+    except asyncio.QueueFull as err:
         logging.error(log_prefix + "Failed to enqueue request - queue is full")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Server is busy processing other requests. Please try again later.",
-        )
+        ) from err
 
 
 async def init_metadata_worker():
@@ -610,25 +607,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
 
 
 # Commented out legacy handlers; using webui router instead
-# @app.get("/approve/{token}", response_class=HTMLResponse)
-# async def approve(token: str):
-#     valid_tokens = []  # TODO: Replace with actual valid tokens source
-#     if not verify_token(token, valid_tokens):
-#         logging.warning(f"Approval attempt with invalid/expired token: {token}")
-#         raise HTTPException(status_code=404, detail="Token not found or expired.")
-#     logging.info(f"Token approved: {token}")
-#     # Load metadata and render approval page (to be implemented)
-#     return f"<h1>Approve Audiobook</h1><p>Token: {token}</p>"
 
-# @app.get("/reject/{token}", response_class=HTMLResponse)
-# async def reject(token: str):
-#     valid_tokens = []  # TODO: Replace with actual valid tokens source
-#     if not verify_token(token, valid_tokens):
-#         logging.warning(f"Rejection attempt with invalid/expired token: {token}")
-#         raise HTTPException(status_code=404, detail="Token not found or expired.")
-#     logging.info(f"Token rejected: {token}")
-#     # Handle rejection logic (to be implemented)
-#     return f"<h1>Rejected Audiobook</h1><p>Token: {token}</p>"
 
 
 # Public health check endpoint (safe for monitoring)
@@ -688,18 +667,18 @@ async def css_test():
     <div class="mode-indicator">
         Color Scheme: <span id="scheme">Auto</span>
     </div>
-    
+
     <div class="test-container">
         <h1 style="color: var(--text-accent);">🎨 Light/Dark Mode CSS Test</h1>
         <p>This page tests the CSS variables for both light and dark modes.</p>
-        
+
         <div class="test-section">
             <h3>Background Colors</h3>
             <p><span class="color-swatch" style="background: var(--bg-primary);"></span>Primary Background</p>
             <p><span class="color-swatch" style="background: var(--bg-secondary);"></span>Secondary Background</p>
             <p><span class="color-swatch" style="background: var(--bg-tertiary);"></span>Tertiary Background</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Text Colors</h3>
             <p style="color: var(--text-primary);">Primary Text Color</p>
@@ -709,7 +688,7 @@ async def css_test():
             <p style="color: var(--text-author);">Author Text Color</p>
             <p style="color: var(--text-narrator);">Narrator Text Color</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Accent Colors</h3>
             <p><span class="color-swatch" style="background: var(--accent-cyan);"></span>Cyan Accent</p>
@@ -718,7 +697,7 @@ async def css_test():
             <p><span class="color-swatch" style="background: var(--accent-yellow);"></span>Yellow Accent</p>
             <p><span class="color-swatch" style="background: var(--accent-red);"></span>Red Accent</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Instructions</h3>
             <p>To test the light/dark mode functionality:</p>
@@ -732,14 +711,14 @@ async def css_test():
             <p><strong>Light Mode:</strong> Should show light backgrounds with dark text and blue accents</p>
         </div>
     </div>
-    
+
     <script>
         // Detect and display current color scheme
         function updateSchemeIndicator() {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
             const schemeElement = document.getElementById('scheme');
-            
+
             if (isDark) {
                 schemeElement.textContent = 'Dark';
             } else if (isLight) {
@@ -748,10 +727,10 @@ async def css_test():
                 schemeElement.textContent = 'Auto';
             }
         }
-        
+
         // Update on load
         updateSchemeIndicator();
-        
+
         // Listen for changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSchemeIndicator);
         window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', updateSchemeIndicator);
@@ -810,18 +789,18 @@ async def rejection_css_test():
     <div class="mode-indicator">
         Color Scheme: <span id="scheme">Auto</span>
     </div>
-    
+
     <div class="test-container">
         <h1 style="color: var(--error-primary);">🚫 Rejection Light/Dark Mode CSS Test</h1>
         <p>This page tests the CSS variables for the rejection page in both light and dark modes.</p>
-        
+
         <div class="test-section">
             <h3>Background Colors</h3>
             <p><span class="color-swatch" style="background: var(--bg-primary);"></span>Primary Background</p>
             <p><span class="color-swatch" style="background: var(--bg-secondary);"></span>Secondary Background</p>
             <p><span class="color-swatch" style="background: var(--bg-tertiary);"></span>Tertiary Background</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Text Colors</h3>
             <p style="color: var(--text-primary);">Primary Text Color</p>
@@ -829,7 +808,7 @@ async def rejection_css_test():
             <p style="color: var(--text-muted);">Muted Text Color</p>
             <p style="color: var(--text-footer);">Footer Text Color</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Error & Accent Colors</h3>
             <p><span class="color-swatch" style="background: var(--error-primary);"></span>Error Primary</p>
@@ -839,7 +818,7 @@ async def rejection_css_test():
             <p><span class="color-swatch" style="background: var(--accent-yellow);"></span>Yellow Accent</p>
             <p><span class="color-swatch" style="background: var(--accent-pink);"></span>Pink Accent</p>
         </div>
-        
+
         <div class="test-section">
             <h3>Instructions</h3>
             <p>To test the light/dark mode functionality:</p>
@@ -853,14 +832,14 @@ async def rejection_css_test():
             <p><strong>Light Mode:</strong> Should show light backgrounds with darker red errors and muted accents</p>
         </div>
     </div>
-    
+
     <script>
         // Detect and display current color scheme
         function updateSchemeIndicator() {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
             const schemeElement = document.getElementById('scheme');
-            
+
             if (isDark) {
                 schemeElement.textContent = 'Dark';
             } else if (isLight) {
@@ -869,10 +848,10 @@ async def rejection_css_test():
                 schemeElement.textContent = 'Auto';
             }
         }
-        
+
         // Update on load
         updateSchemeIndicator();
-        
+
         // Listen for changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateSchemeIndicator);
         window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', updateSchemeIndicator);
