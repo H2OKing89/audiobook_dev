@@ -6,7 +6,6 @@ Searches for audiobook metadata using Audible's search API
 
 import argparse
 import logging
-import os
 import re
 import sys
 import time

@@ -6,10 +6,12 @@ This simulates what would happen if MAM extraction succeeded
 
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -22,10 +24,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/audnex_direct_test.log")],
 )
-
-import os
-
-import pytest
 
 
 @pytest.mark.skipif(os.getenv("RUN_AUDNEX_DIRECT") != "1", reason="Audnex direct tests are skipped by default")

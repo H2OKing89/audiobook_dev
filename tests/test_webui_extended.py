@@ -2,6 +2,7 @@ import re
 import time
 from unittest.mock import patch
 
+import src.db as dbmod
 from src.db import delete_request, save_request
 
 
@@ -157,7 +158,6 @@ class TestWebUIEndpoints:
 
     def test_token_expiry_handling(self, test_client, monkeypatch):
         # Test expired token handling
-        import src.db as dbmod
 
         token = "test_expire_token"
         metadata = {"title": "Expire Test"}

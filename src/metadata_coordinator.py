@@ -250,14 +250,13 @@ class MetadataCoordinator:
 
 def main():
     """Main function for command line usage."""
-    import asyncio
+    parser = argparse.ArgumentParser(description="Metadata Coordinator")
+    parser.add_argument("--url", help="MAM URL to process")
+    parser.add_argument("--name", help="Torrent name to parse")
+    parser.add_argument("--asin", help="Direct ASIN lookup")
+    parser.add_argument("--title", help="Title to search for")
 
     async def async_main():
-        parser = argparse.ArgumentParser(description="Metadata Coordinator")
-        parser.add_argument("--url", help="MAM URL to process")
-        parser.add_argument("--name", help="Torrent name to parse")
-        parser.add_argument("--asin", help="Direct ASIN lookup")
-        parser.add_argument("--title", help="Title to search for")
         parser.add_argument("--author", default="", help="Author to search for")
         parser.add_argument("--region", default="us", help="Audible region")
         parser.add_argument("--enhanced", action="store_true", help="Get enhanced metadata with chapters")

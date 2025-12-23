@@ -1,7 +1,6 @@
 from unittest.mock import mock_open, patch
 
 import pytest
-import yaml
 
 import src.config
 from src.config import load_config

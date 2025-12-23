@@ -437,6 +437,8 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
     """
     Compatibility wrapper: Enhanced fetch using the new modular coordinator
     """
+    import asyncio
+
     from src.metadata_coordinator import MetadataCoordinator
 
     # Validate payload early to fail fast for invalid input
@@ -451,7 +453,6 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
         raise ValueError("External API calls are disabled in this environment")
 
     coordinator = MetadataCoordinator()
-    import asyncio
 
     metadata = asyncio.run(coordinator.get_metadata_from_webhook(payload))
 

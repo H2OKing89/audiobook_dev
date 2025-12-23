@@ -2,6 +2,7 @@ import time
 
 import pytest
 
+import src.db as dbmod
 from src.db import delete_request, get_request, save_request
 from src.metadata import clean_metadata
 from src.utils import (
@@ -72,8 +73,6 @@ def test_db_token_expiry(monkeypatch):
     payload = {"baz": 1}
     save_request(token, meta, payload)
     # Simulate expiry by patching time
-    import src.db as dbmod
-
     old_time = time.time
     dbmod.TTL = 1
     monkeypatch.setattr(time, "time", lambda: old_time() + 3600)

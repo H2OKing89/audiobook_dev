@@ -4,6 +4,7 @@ Audnex API metadata fetcher
 Gets audiobook metadata from api.audnex.us using ASIN
 """
 
+import argparse
 import logging
 import re
 import sys
@@ -377,8 +378,6 @@ class AudnexMetadata:
 
 def main():
     """Main function for command line usage."""
-    import argparse
-
     parser = argparse.ArgumentParser(description="Audnex Metadata Fetcher")
     parser.add_argument("asin", help="ASIN to fetch metadata for")
     parser.add_argument("--region", default="us", help="Audible region (default: us)")

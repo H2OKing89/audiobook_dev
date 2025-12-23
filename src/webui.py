@@ -11,7 +11,7 @@ from src.config import load_config
 from src.db import get_request  # use persistent DB store
 from src.security import generate_csrf_token, get_client_ip
 from src.template_helpers import render_template
-from src.utils import format_release_date, format_size
+from src.utils import format_release_date, format_size, strip_html_tags
 
 
 router = APIRouter()
@@ -93,8 +93,6 @@ async def approve(token: str, request: Request) -> HTMLResponse:
         metadata["url"] = payload.get("url")
         metadata["download_url"] = payload.get("download_url")
         # Sanitize description to prevent XSS and strip dangerous HTML
-        from src.utils import strip_html_tags
-
         raw_desc = metadata.get("description", "") or ""
         cleaned_desc = strip_html_tags(raw_desc)
         # Collapse excessive whitespace

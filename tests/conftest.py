@@ -1,15 +1,13 @@
 import os
-import sys
-
-
-# allow tests to import from the 'src' package
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+from src.db import delete_request, save_request
+from src.main import app
 from src.security import reset_rate_limit_buckets
+from src.token_gen import generate_token
 
 
 # Configure pytest-asyncio mode
@@ -54,10 +52,6 @@ def test_client():
     Using a single client for the entire session significantly speeds up tests
     by avoiding the overhead of creating new app instances.
     """
-    from fastapi.testclient import TestClient
-
-    from src.main import app
-
     with TestClient(app) as client:
         yield client
 
@@ -72,8 +66,6 @@ def valid_token(test_client):
     Args:
         test_client: Dependency to ensure FastAPI app is initialized before token creation
     """
-    from src.db import delete_request, save_request
-    from src.token_gen import generate_token
 
     token = generate_token()
     metadata = {"title": "Test Book", "author": "Test Author"}

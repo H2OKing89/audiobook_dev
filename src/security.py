@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, RedirectResponse
 
 from src.config import load_config
+from src.template_helpers import render_template
 
 
 # Initialize rate limiter with client IP address as key
@@ -259,8 +260,6 @@ async def check_endpoint_authorization(request: Request) -> Response | None:
     logging.warning(f"Unauthorized access attempt to {path} from IP: {client_ip}")
 
     # Return 401 response with HTML template
-    from src.template_helpers import render_template
-
     try:
         response = render_template(request, "401_page.html", {"requested_path": path, "client_ip": client_ip})
         response.status_code = 401
