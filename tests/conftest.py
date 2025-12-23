@@ -45,10 +45,11 @@ def valid_token(test_client):
     delete_request(token)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_notifications():
-    """Mock all notification services.
+    """Mock all notification services by default to prevent real API calls.
     
+    This is autouse=True to ensure no test accidentally sends real notifications.
     Returns a dict of mocks that can be used to verify notification calls:
         mocks = mock_notifications
         mocks['pushover'].assert_called_once()
@@ -158,8 +159,7 @@ def mock_external_apis():
 # =============================================================================
 
 def pytest_configure(config):
-    # Register markers so tests can opt-in to enable notifications when needed
-    config.addinivalue_line("markers", "allow_notifications: enable external notifications for this test")
+    # Register markers for test organization
     config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
     config.addinivalue_line("markers", "allow_network: allow real network calls (disables mock_external_apis)")
 
@@ -202,20 +202,6 @@ def speed_up_rate_limits():
     finally:
         _config_mod._config = prev
 
-
-@pytest.fixture(autouse=True)
-def maybe_enable_notifications(request):
-    """If a test is marked with @pytest.mark.allow_notifications, temporarily enable notifications."""
-    marker = request.node.get_closest_marker("allow_notifications")
-    if marker:
-        prev = os.environ.pop("DISABLE_WEBHOOK_NOTIFICATIONS", None)
-        try:
-            yield
-        finally:
-            if prev is not None:
-                os.environ["DISABLE_WEBHOOK_NOTIFICATIONS"] = prev
-    else:
-        yield
 
 @pytest.fixture
 def sample_html():

@@ -119,14 +119,17 @@ class TestMetadataModule:
             asin = get_audible_asin("Test Title", "Test Author")
             assert asin is None
             
+    @patch('src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook')
     @patch("src.metadata.get_cached_metadata")
-    def test_fetch_metadata_success(self, mock_cached):
+    def test_fetch_metadata_success(self, mock_cached, mock_coord):
         # Mock successful metadata fetch
-        mock_cached.return_value = {
+        expected_metadata = {
             "title": "Test Book",
             "authors": [{"name": "Test Author"}],
             "asin": "B123456789"
         }
+        mock_cached.return_value = expected_metadata
+        mock_coord.return_value = expected_metadata
         
         payload = {
             "name": "Test Book by Test Author [B123456789]",
@@ -138,9 +141,10 @@ class TestMetadataModule:
         assert result["title"] == "Test Book"
         assert "asin" in result
         
+    @patch('src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook')
     @patch("src.metadata.get_cached_metadata")
     @patch("src.metadata.get_audible_asin")
-    def test_fetch_metadata_fallback_to_scraping(self, mock_scrape, mock_cached):
+    def test_fetch_metadata_fallback_to_scraping(self, mock_scrape, mock_cached, mock_coord):
         # Test fallback when API fails but scraping succeeds
         mock_cached.return_value = None
         mock_scrape.return_value = "B987654321"
@@ -152,6 +156,7 @@ class TestMetadataModule:
             return None
             
         mock_cached.side_effect = cached_side_effect
+        mock_coord.return_value = {"title": "Scraped Book", "asin": "B987654321"}
         
         payload = {
             "name": "Unknown Book by Unknown Author",
@@ -163,13 +168,17 @@ class TestMetadataModule:
         assert "title" in result
         assert result.get("asin") == "B987654321"
         
-    def test_fetch_metadata_no_asin_found(self):
+    @patch('src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook')
+    def test_fetch_metadata_no_asin_found(self, mock_coord):
         # Test when no ASIN can be extracted or found
         payload = {
             "name": "Very Obscure Book",
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent"
         }
+        
+        # Override autouse mock to raise ValueError
+        mock_coord.return_value = None
         
         with patch("src.metadata.get_cached_metadata", return_value=None), \
              patch("src.metadata.get_audible_asin", return_value=None):
