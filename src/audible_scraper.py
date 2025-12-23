@@ -6,6 +6,7 @@ Searches for audiobook metadata using Audible's search API
 
 import argparse
 import logging
+import os
 import re
 import sys
 import time
@@ -22,11 +23,15 @@ from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 
 
+# Ensure logs directory exists before configuring FileHandler
+_log_dir = Path("logs")
+_log_dir.mkdir(parents=True, exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/audible_scraper.log")],
+    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audible_scraper.log")],
 )
 
 
