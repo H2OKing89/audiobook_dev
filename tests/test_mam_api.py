@@ -240,11 +240,11 @@ class TestMamTorrentRaw:
         assert "Narrator One" in names
         
     def test_series_display_property(self, sample_torrent_data):
-        """Test series_display() method."""
+        """Test series_display property."""
         torrent = MamTorrentRaw(**sample_torrent_data)
         
-        # series_display() is a method, not a property
-        series = torrent.series_display()
+        # series_display is a property, not a method
+        series = torrent.series_display
         assert series is not None
         assert "Test Series" in series
         
