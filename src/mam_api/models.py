@@ -8,14 +8,16 @@ This module provides:
 IMPORTANT: Several MAM fields are JSON-encoded strings that must be parsed:
 - author_info, narrator_info, series_info, mediainfo, ownership
 """
+
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,17 +80,17 @@ def _to_int(value: Any, *, default: int = 0) -> int:
     return default
 
 
-def _parse_added_datetime(value: Any) -> Optional[datetime]:
+def _parse_added_datetime(value: Any) -> datetime | None:
     """
     Parse MAM's 'added' field to UTC datetime.
-    
+
     Docs say 'added' is UTC. MAM returns string like 'YYYY-MM-DD HH:MM:SS'.
     We normalize into an aware datetime in UTC. If parsing fails, return None.
     """
     if value is None:
         return None
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
     if isinstance(value, str):
         s = value.strip()
         if not s:
@@ -96,7 +98,7 @@ def _parse_added_datetime(value: Any) -> Optional[datetime]:
         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
             try:
                 dt = datetime.strptime(s, fmt)
-                return dt.replace(tzinfo=timezone.utc)
+                return dt.replace(tzinfo=UTC)
             except ValueError:
                 continue
     return None
@@ -104,46 +106,50 @@ def _parse_added_datetime(value: Any) -> Optional[datetime]:
 
 class MamMediaInfoGeneral(BaseModel):
     """General section of mediainfo."""
+
     model_config = ConfigDict(extra="allow")
 
-    Title: Optional[str] = None
-    Format: Optional[str] = None
-    Duration: Optional[str] = None
+    Title: str | None = None
+    Format: str | None = None
+    Duration: str | None = None
 
 
 class MamMediaInfoAudio(BaseModel):
     """Audio section of mediainfo."""
+
     model_config = ConfigDict(extra="allow")
 
-    Format: Optional[str] = None
-    BitRate: Optional[str] = None
-    BitRate_Mode: Optional[str] = None
-    Channels: Optional[int] = None
-    SamplingRate: Optional[str] = None
-    BitRate_Maximum: Optional[str] = None
-    Compression_Mode: Optional[str] = None
+    Format: str | None = None
+    BitRate: str | None = None
+    BitRate_Mode: str | None = None
+    Channels: int | None = None
+    SamplingRate: str | None = None
+    BitRate_Maximum: str | None = None
+    Compression_Mode: str | None = None
 
 
 class MamMediaInfo(BaseModel):
     """
     Parsed form of the `mediainfo` JSON string.
-    
+
     MAM's structure varies slightly by upload; keep it permissive.
     """
+
     model_config = ConfigDict(extra="allow")
 
-    General: Optional[MamMediaInfoGeneral] = None
-    Audio1: Optional[MamMediaInfoAudio] = None
-    menu: Optional[Dict[str, Any]] = None
+    General: MamMediaInfoGeneral | None = None
+    Audio1: MamMediaInfoAudio | None = None
+    menu: dict[str, Any] | None = None
 
 
 class MamTorrentRaw(BaseModel):
     """
     Raw torrent object as returned inside response.data[].
 
-    This model *decodes* JSON-inside-string fields (author_info, narrator_info, 
+    This model *decodes* JSON-inside-string fields (author_info, narrator_info,
     series_info, mediainfo, ownership). It also coerces 0/1 flags into booleans.
     """
+
     model_config = ConfigDict(extra="allow")
 
     id: int
@@ -153,7 +159,7 @@ class MamTorrentRaw(BaseModel):
     main_cat: int = 0
     category: int = 0
     catname: str = ""
-    cat: Optional[str] = None
+    cat: str | None = None
     language: int = 0
     lang_code: str = ""
 
@@ -180,33 +186,51 @@ class MamTorrentRaw(BaseModel):
     comments: int = 0
 
     # User-related
-    bookmarked: Optional[str] = None
+    bookmarked: str | None = None
     my_snatched: bool = False
 
     # Metadata
     tags: str = ""
-    isbn: Optional[str] = None
-    poster_type: Optional[str] = None
-    
+    isbn: str | None = None
+    poster_type: str | None = None
+
+    @field_validator("isbn", mode="before")
+    @classmethod
+    def _coerce_isbn_to_str(cls, v: Any) -> str | None:
+        """MAM sometimes returns ISBN as int, convert to string."""
+        if v is None:
+            return None
+        return str(v)
+
     # Added timestamp (UTC)
-    added: Optional[str] = None
+    added: str | None = None
 
     # Optional bulk HTML / download token
-    description: Optional[str] = None
-    dl: Optional[str] = None
+    description: str | None = None
+    dl: str | None = None
 
     # JSON-inside-string fields (decoded)
-    author_info: Dict[int, str] = Field(default_factory=dict)
-    narrator_info: Dict[int, str] = Field(default_factory=dict)
-    series_info: Dict[int, List[Any]] = Field(default_factory=dict)
-    mediainfo: Optional[MamMediaInfo] = None
-    ownership: Optional[Tuple[int, str]] = None
+    author_info: dict[int, str] = Field(default_factory=dict)
+    narrator_info: dict[int, str] = Field(default_factory=dict)
+    series_info: dict[int, list[Any]] = Field(default_factory=dict)
+    mediainfo: MamMediaInfo | None = None
+    ownership: tuple[int, str] | None = None
 
     # --- Validators / coercions ---
 
     @field_validator(
-        "main_cat", "category", "language", "numfiles", "mediatype", "vip_expire",
-        "browseflags", "w", "seeders", "leechers", "times_completed", "comments",
+        "main_cat",
+        "category",
+        "language",
+        "numfiles",
+        "mediatype",
+        "vip_expire",
+        "browseflags",
+        "w",
+        "seeders",
+        "leechers",
+        "times_completed",
+        "comments",
         mode="before",
     )
     @classmethod
@@ -220,11 +244,11 @@ class MamTorrentRaw(BaseModel):
 
     @field_validator("author_info", "narrator_info", mode="before")
     @classmethod
-    def _parse_id_name_map(cls, v: Any) -> Dict[int, str]:
+    def _parse_id_name_map(cls, v: Any) -> dict[int, str]:
         data = _safe_json_loads(v, default={})
         if not isinstance(data, dict):
             return {}
-        out: Dict[int, str] = {}
+        out: dict[int, str] = {}
         for k, name in data.items():
             key = _to_int(k, default=0)
             if key != 0:
@@ -233,11 +257,11 @@ class MamTorrentRaw(BaseModel):
 
     @field_validator("series_info", mode="before")
     @classmethod
-    def _parse_series_info(cls, v: Any) -> Dict[int, List[Any]]:
+    def _parse_series_info(cls, v: Any) -> dict[int, list[Any]]:
         data = _safe_json_loads(v, default={})
         if not isinstance(data, dict):
             return {}
-        out: Dict[int, List[Any]] = {}
+        out: dict[int, list[Any]] = {}
         for k, val in data.items():
             key = _to_int(k, default=0)
             if key == 0:
@@ -250,7 +274,7 @@ class MamTorrentRaw(BaseModel):
 
     @field_validator("mediainfo", mode="before")
     @classmethod
-    def _parse_mediainfo(cls, v: Any) -> Optional[MamMediaInfo]:
+    def _parse_mediainfo(cls, v: Any) -> MamMediaInfo | None:
         data = _safe_json_loads(v, default=None)
         if data is None:
             return None
@@ -262,7 +286,7 @@ class MamTorrentRaw(BaseModel):
 
     @field_validator("ownership", mode="before")
     @classmethod
-    def _parse_ownership(cls, v: Any) -> Optional[Tuple[int, str]]:
+    def _parse_ownership(cls, v: Any) -> tuple[int, str] | None:
         data = _safe_json_loads(v, default=None)
         if data is None:
             return None
@@ -289,17 +313,17 @@ class MamTorrentRaw(BaseModel):
         return self.isbn
 
     @property
-    def added_utc(self) -> Optional[datetime]:
+    def added_utc(self) -> datetime | None:
         """Parse added timestamp to UTC datetime."""
         return _parse_added_datetime(self.added)
 
     @property
-    def author_names(self) -> List[str]:
+    def author_names(self) -> list[str]:
         """Get sorted list of author names."""
         return [name for _, name in sorted(self.author_info.items(), key=lambda kv: kv[0])]
 
     @property
-    def narrator_names(self) -> List[str]:
+    def narrator_names(self) -> list[str]:
         """Get sorted list of narrator names."""
         return [name for _, name in sorted(self.narrator_info.items(), key=lambda kv: kv[0])]
 
@@ -311,7 +335,7 @@ class MamTorrentRaw(BaseModel):
         """
         if not self.series_info:
             return ""
-        parts: List[str] = []
+        parts: list[str] = []
         for _, entry in sorted(self.series_info.items(), key=lambda kv: kv[0]):
             if not entry:
                 continue
@@ -324,7 +348,7 @@ class MamTorrentRaw(BaseModel):
                 parts.append(name)
         return ", ".join(parts)
 
-    def to_normalized(self) -> "MamTorrentNormalized":
+    def to_normalized(self) -> MamTorrentNormalized:
         """Convert to normalized internal format."""
         mi = self.mediainfo
         return MamTorrentNormalized(
@@ -355,11 +379,12 @@ class MamSearchResponseRaw(BaseModel):
     """
     Top-level response from loadSearchJSONbasic.php.
     """
+
     model_config = ConfigDict(extra="allow")
 
     perpage: int = 0
     start: int = 0
-    data: List[MamTorrentRaw] = Field(default_factory=list)
+    data: list[MamTorrentRaw] = Field(default_factory=list)
     total: int = 0
     found: int = 0
 
@@ -372,9 +397,10 @@ class MamSearchResponseRaw(BaseModel):
 class MamTorrentNormalized(BaseModel):
     """
     Internal normalized torrent record.
-    
+
     Clean, typed fields for internal use after parsing MAM's raw response.
     """
+
     model_config = ConfigDict(extra="forbid")
 
     tid: int
@@ -384,13 +410,13 @@ class MamTorrentNormalized(BaseModel):
     size: str
 
     # Parsed UTC datetime (or None if unavailable)
-    added: Optional[datetime] = None
+    added: datetime | None = None
 
     # Freeleech flags
     vip: bool
     free: bool
     fl_vip: bool
-    
+
     # Stats
     seeders: int
     leechers: int
@@ -399,13 +425,13 @@ class MamTorrentNormalized(BaseModel):
     asin: str = ""
     author: str = ""
     narrator: str = ""
-    series: Optional[str] = None
+    series: str | None = None
     tags: str = ""
 
     # Audio info (from mediainfo)
-    duration: Optional[str] = None
-    bitrate: Optional[str] = None
-    codec: Optional[str] = None
-    
+    duration: str | None = None
+    bitrate: str | None = None
+    codec: str | None = None
+
     # Download token (if dlLink was requested)
-    dl_token: Optional[str] = None
+    dl_token: str | None = None
