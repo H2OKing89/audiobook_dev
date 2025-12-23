@@ -63,11 +63,11 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "logs/audiobook_requests.log"
   max_size: 10 # MB
-  max_files: 5 # Number of log files to keep
-  backup_count: 5 # Number of backup log files to keep
-  rotation: "midnight" # Rotate logs at midnight
+  max_files: 5 # Number of log files to keep (used with size-based rotation)
+  backup_count: 5 # Number of backup log files to keep (alternative to max_files)
+  rotation: "midnight" # Rotate logs at midnight (time-based rotation)
   compression: "zip" # Compress rotated logs
-  retention: "7 days" # How long to keep rotated logs
+  retention: "7 days" # How long to keep rotated logs (time-based cleanup)
 
 
 qbittorrent:
