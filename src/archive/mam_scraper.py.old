@@ -4,33 +4,44 @@ MyAnonamouse.net ASIN scraper
 Extracts ASIN from MAM torrent pages using Playwright
 """
 
-from playwright.async_api import async_playwright
-from datetime import datetime
+import argparse
+import asyncio
 import json
 import logging
-import sys
+import os
 import re
+import sys
 import time
-import argparse
-from typing import Optional, Dict, Any
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+from playwright.async_api import async_playwright
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import load_config
 
-# Configure logging
+# Ensure logs directory exists before configuring FileHandler
+_log_dir = Path("logs")
+_log_dir.mkdir(parents=True, exist_ok=True)
+
+# Configure logging with fallback if FileHandler fails
+_handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+try:
+    _handlers.append(logging.FileHandler(_log_dir / "mam_scraper.log"))
+except Exception:
+    pass  # Fall back to stdout only
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('logs/mam_scraper.log')
-    ]
+    handlers=_handlers
 )
 
+
 class MAMScraper:
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = load_config()
         self.mam_config = self.config.get('metadata', {}).get('mam', {})
         self.config_file = self.mam_config.get('config_file', 'mam_config.json')
@@ -39,7 +50,7 @@ class MAMScraper:
         self.global_rate_limit = self.config.get('metadata', {}).get('rate_limit_seconds', 120)
         self.last_global_request_time = 0
         
-    def _check_global_rate_limit(self):
+    async def _check_global_rate_limit(self) -> None:
         """Check if we need to wait for global rate limit."""
         current_time = time.time()
         time_since_last_global = current_time - self.last_global_request_time
@@ -47,7 +58,7 @@ class MAMScraper:
         if time_since_last_global < self.global_rate_limit:
             wait_time = self.global_rate_limit - time_since_last_global
             logging.info(f"Global rate limit: waiting {wait_time:.1f} seconds...")
-            time.sleep(wait_time)
+            await asyncio.sleep(wait_time)
         
         self.last_global_request_time = time.time()
         
@@ -65,7 +76,7 @@ class MAMScraper:
             logging.error(f"Invalid JSON in MAM config file: {e}")
             raise
 
-    def save_mam_config(self, config: Dict[str, Any]):
+    def save_mam_config(self, config: Dict[str, Any]) -> None:
         """Save MAM configuration to JSON file."""
         try:
             with open(self.config_file, 'w') as f:
@@ -77,6 +88,11 @@ class MAMScraper:
 
     async def login_and_get_cookies(self, email: str, password: str) -> Dict[str, str]:
         """Login to MAM and retrieve session cookies."""
+        # Validate credentials before launching browser
+        if not email or not password:
+            logging.warning("Login attempted with missing credentials")
+            raise ValueError("Email and password must be provided for login")
+        
         logging.info("Starting MAM login process...")
         
         async with async_playwright() as p:
@@ -106,6 +122,8 @@ class MAMScraper:
                 
                 if await email_input.count() == 0:
                     logging.error("Could not find email input field")
+                    # Ensure logs directory exists before writing debug file
+                    os.makedirs('logs', exist_ok=True)
                     with open('logs/login_page_debug.html', 'w', encoding='utf-8') as f:
                         f.write(await page.content())
                     raise Exception("Login form not found")
@@ -251,32 +269,50 @@ class MAMScraper:
         
         # If we got a login-required result and haven't already tried to re-login, attempt auto re-login
         if result is None and not force_login:
-            logging.info("Scraping failed, possibly due to expired cookies. Attempting auto re-login...")
-            
-            email = mam_config.get('email')
-            password = mam_config.get('password')
-            
-            if email and password:
-                try:
-                    logging.info("Performing automatic re-login to refresh cookies...")
-                    fresh_cookies = await self.login_and_get_cookies(email, password)
-                    mam_config['cookies'] = fresh_cookies
-                    mam_config['last_login'] = datetime.now().isoformat()
-                    self.save_mam_config(mam_config)
-                    logging.info("Auto re-login successful, retrying scrape with fresh cookies...")
-                    
-                    # Retry with fresh cookies
-                    result = await self._scrape_with_cookies(url, fresh_cookies)
-                    if result:
-                        logging.info("✅ Auto re-login and retry successful!")
-                    else:
-                        logging.warning("❌ Retry after auto re-login still failed")
-                except Exception as e:
-                    logging.error(f"Auto re-login failed: {e}")
-            else:
-                logging.error("Cannot perform auto re-login: missing email or password in config")
+            result = await self._auto_relogin_and_retry(url, mam_config, cookies)
         
         return result
+
+    async def _auto_relogin_and_retry(
+        self, url: str, mam_config: Dict[str, Any], cookies: Dict[str, str]
+    ) -> Optional[str]:
+        """Attempt automatic re-login and retry scraping when cookies are expired.
+        
+        Args:
+            url: The MAM URL to scrape
+            mam_config: The MAM configuration dict
+            cookies: The current (possibly expired) cookies
+            
+        Returns:
+            The ASIN if found after re-login, None otherwise
+        """
+        logging.info("Scraping failed, possibly due to expired cookies. Attempting auto re-login...")
+        
+        email = mam_config.get('email')
+        password = mam_config.get('password')
+        
+        if not email or not password:
+            logging.error("Cannot perform auto re-login: missing email or password in config")
+            return None
+        
+        try:
+            logging.info("Performing automatic re-login to refresh cookies...")
+            fresh_cookies = await self.login_and_get_cookies(email, password)
+            mam_config['cookies'] = fresh_cookies
+            mam_config['last_login'] = datetime.now().isoformat()
+            self.save_mam_config(mam_config)
+            logging.info("Auto re-login successful, retrying scrape with fresh cookies...")
+            
+            # Retry with fresh cookies
+            result = await self._scrape_with_cookies(url, fresh_cookies)
+            if result:
+                logging.info("✅ Auto re-login and retry successful!")
+            else:
+                logging.warning("❌ Retry after auto re-login still failed")
+            return result
+        except Exception as e:
+            logging.error(f"Auto re-login failed: {e}")
+            return None
 
     async def _scrape_with_cookies(self, url: str, cookies: Dict[str, str]) -> Optional[str]:
         """Scrape the torrent page using cookies."""
@@ -304,8 +340,8 @@ class MAMScraper:
                 page = await context.new_page()
                 logging.info(f"Navigating to {url}")
                 
-                # Apply global rate limiting
-                self._check_global_rate_limit()
+                # Apply global rate limiting (async)
+                await self._check_global_rate_limit()
                 
                 response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                 
@@ -352,11 +388,10 @@ class MAMScraper:
                     await browser.close()
 
 
-def main():
+def main() -> int | None:
     """Main function for command line usage."""
-    import asyncio
     
-    async def async_main():
+    async def async_main() -> str | None:
         parser = argparse.ArgumentParser(description="MAM ASIN Scraper")
         parser.add_argument("url", help="MAM torrent URL to scrape")
         parser.add_argument("--force-login", action="store_true", help="Force re-login even if cookies exist")
@@ -372,7 +407,8 @@ def main():
             print("❌ No ASIN found")
             return None
     
-    return asyncio.run(async_main())
+    result = asyncio.run(async_main())
+    return 0 if result else 1
 
 
 if __name__ == "__main__":
