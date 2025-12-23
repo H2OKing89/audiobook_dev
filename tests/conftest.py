@@ -1,3 +1,4 @@
+import contextlib
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -50,20 +51,18 @@ def mock_httpx_globally(request):
 
 @pytest.fixture(scope="session")
 def test_client():
-    """Session-scoped FastAPI TestClient to avoid repeated app creation.
+    """Session-scoped FastAPI TestClient for testing.
 
-    Using a single client for the entire session significantly speeds up tests
-    by avoiding the overhead of creating new app instances.
+    Uses manual lifecycle management to handle event loop cleanup issues
+    that occur when pytest-asyncio closes the loop before session teardown.
     """
     client = TestClient(app)
     client.__enter__()
     yield client
-    try:
+    # Suppress "Event loop is closed" during session teardown
+    # This is expected with session-scoped fixtures and pytest-asyncio
+    with contextlib.suppress(RuntimeError):
         client.__exit__(None, None, None)
-    except RuntimeError:
-        # Ignore "Event loop is closed" errors during teardown
-        # This is a known issue with pytest-asyncio and session-scoped fixtures
-        pass
 
 
 @pytest.fixture
