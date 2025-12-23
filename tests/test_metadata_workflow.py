@@ -67,7 +67,7 @@ class MetadataFlowTester:
 
             # We'll test the workflow preparation without actually making requests
             url = test_payload.get("url")
-            name = test_payload.get("name", "")
+            test_payload.get("name", "")
 
             if url and "myanonamouse.net" in url:
                 logging.info("✅ MAM URL detected - would attempt ASIN extraction")
@@ -90,7 +90,7 @@ class MetadataFlowTester:
             logging.info(f"Testing rate limit of {rate_limit} seconds")
 
             # Test the rate limiting mechanism
-            start_time = time.time()
+            time.time()
 
             # First call should not wait
             self.coordinator._enforce_rate_limit()

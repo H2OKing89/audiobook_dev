@@ -101,7 +101,7 @@ class TestSecurity:
 
         # Test rate limiting (if implemented)
         rapid_requests = []
-        for i in range(20):
+        for _i in range(20):
             resp = client.post(
                 "/webhook/audiobook-requests", json={"name": "test"}, headers={"X-Autobrr-Token": "invalid_token"}
             )
@@ -209,9 +209,6 @@ class TestSecurity:
             "\ufeff",  # Byte order mark
             "\u2028",  # Line separator
             "\u2029",  # Paragraph separator
-            # Skip invalid surrogates as they cause encoding errors in httpx
-            # "\ud800",  # High surrogate (invalid alone)
-            # "\udc00",  # Low surrogate (invalid alone)
         ]
 
         for dangerous_char in dangerous_unicode:
