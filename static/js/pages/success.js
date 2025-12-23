@@ -416,7 +416,8 @@ class SuccessPageController {
         // Auto-start some celebration effects
 
         // Implement UI action handlers
-        this.showStatusUpdate = function() {
+        // Bind instance methods as arrow functions so `this` remains the SuccessPageController instance
+        this.showStatusUpdate = () => {
             // Simple status overlay or alert if not available
             const overlay = document.getElementById('successOverlay');
             if (overlay) {
@@ -427,9 +428,14 @@ class SuccessPageController {
             }
         };
 
-        this.triggerEasterEgg = function() {
-            this.celebrationEngine.createFirework(window.innerWidth/2, window.innerHeight/2);
-            this.celebrationEngine.startConfetti();
+        this.triggerEasterEgg = () => {
+            // Ensure celebrationEngine exists before calling
+            if (this.celebrationEngine) {
+                this.celebrationEngine.createFirework(window.innerWidth/2, window.innerHeight/2);
+                this.celebrationEngine.startConfetti();
+            } else {
+                console.warn('triggerEasterEgg called but celebrationEngine is not initialized');
+            }
         };
 
         setTimeout(() => {

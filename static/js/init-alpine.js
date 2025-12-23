@@ -27,7 +27,11 @@ function waitForAlpine() {
     if (retryCount < maxRetries) {
         setTimeout(waitForAlpine, 100);
     } else {
-        console.error('Alpine.js failed to load after 5 seconds');
+        if (typeof debugLog === 'function') {
+            debugLog('Alpine.js failed to load after 5 seconds');
+        } else {
+            console.error('Alpine.js failed to load after 5 seconds');
+        }
     }
 }
 

@@ -4,9 +4,17 @@
  */
 
 // Wait for Alpine to be available
+let pagesRetryCount = 0;
+const pagesMaxRetries = 100;
+
 function initializePagesComponents() {
     if (typeof Alpine === 'undefined') {
-        setTimeout(initializePagesComponents, 50);
+        pagesRetryCount++;
+        if (pagesRetryCount < pagesMaxRetries) {
+            setTimeout(initializePagesComponents, 50);
+        } else {
+            console.error(`Alpine.js not available for pages components after ${pagesMaxRetries} attempts`);
+        }
         return;
     }
 
@@ -42,34 +50,71 @@ function initializePagesComponents() {
             this.triggerInitialCelebration();
         },
         
+        // Track running intervals for cleanup
+        _rateInterval: null,
+        _happinessInterval: null,
+        _confettiInterval: null,
+        _intervals: [],
+
         animateStats() {
             // Animate success rate to 100%
             let rate = 0;
-            const rateInterval = setInterval(() => {
+            this._rateInterval = setInterval(() => {
                 rate += 2;
                 this.systemStats.successRate = Math.min(rate, 100);
-                if (rate >= 100) clearInterval(rateInterval);
+                if (rate >= 100) {
+                    clearInterval(this._rateInterval);
+                    this._rateInterval = null;
+                }
             }, 50);
-            
+            this._intervals.push(this._rateInterval);
+
             // Animate happiness level
             let happiness = 0;
-            const happinessInterval = setInterval(() => {
+            this._happinessInterval = setInterval(() => {
                 happiness += 5;
                 this.systemStats.happinessLevel = Math.min(happiness, 100);
-                if (happiness >= 100) clearInterval(happinessInterval);
+                if (happiness >= 100) {
+                    clearInterval(this._happinessInterval);
+                    this._happinessInterval = null;
+                }
             }, 30);
-            
+            this._intervals.push(this._happinessInterval);
+
             // Animate confetti count
             let confetti = 0;
-            const confettiInterval = setInterval(() => {
+            this._confettiInterval = setInterval(() => {
                 confetti += 10;
                 this.systemStats.confettiDeployed = confetti;
                 if (confetti >= 1000) {
                     this.systemStats.confettiDeployed = '∞';
-                    clearInterval(confettiInterval);
+                    clearInterval(this._confettiInterval);
+                    this._confettiInterval = null;
                 }
             }, 100);
+            this._intervals.push(this._confettiInterval);
         },
+
+        destroy() {
+            // Clear any intervals started by this component
+            if (this._rateInterval) {
+                clearInterval(this._rateInterval);
+                this._rateInterval = null;
+            }
+            if (this._happinessInterval) {
+                clearInterval(this._happinessInterval);
+                this._happinessInterval = null;
+            }
+            if (this._confettiInterval) {
+                clearInterval(this._confettiInterval);
+                this._confettiInterval = null;
+            }
+            if (Array.isArray(this._intervals)) {
+                this._intervals.forEach(id => { if (id) clearInterval(id); });
+                this._intervals = [];
+            }
+        },
+
         
         triggerInitialCelebration() {
             setTimeout(() => {
@@ -176,6 +221,7 @@ function initializePagesComponents() {
     Alpine.data('tokenExpiredPage', () => ({
         // Time-related state
         timeFactIndex: 0,
+        timeFactInterval: null,
         showTimeHelp: false,
         showTokenInfo: false,
         
@@ -201,10 +247,28 @@ function initializePagesComponents() {
         },
         
         startTimeFactRotation() {
-            setInterval(() => {
+            // Clear existing interval if present
+            if (this.timeFactInterval) {
+                clearInterval(this.timeFactInterval);
+                this.timeFactInterval = null;
+            }
+
+            this.timeFactInterval = setInterval(() => {
                 this.timeFactIndex = (this.timeFactIndex + 1) % this.timeFacts.length;
                 this.currentTimeFact = this.timeFacts[this.timeFactIndex];
             }, 3000);
+        },
+
+        stopTimeFactRotation() {
+            if (this.timeFactInterval) {
+                clearInterval(this.timeFactInterval);
+                this.timeFactInterval = null;
+            }
+        },
+
+        destroy() {
+            // Cleanup when component is torn down
+            this.stopTimeFactRotation();
         },
         
         showTimeHelp() {
@@ -295,11 +359,13 @@ User Agent: ${this.errorInfo.userAgent}
 
 // Initialize when ready
 document.addEventListener('DOMContentLoaded', initializePagesComponents);
-initializePagesComponents();
 
-// Add confetti animation CSS
-const confettiStyle = document.createElement('style');
-confettiStyle.textContent = `
+// Add confetti animation CSS (idempotent)
+if (!document.getElementById('confetti-style')) {
+    const confettiStyle = document.createElement('style');
+    confettiStyle.id = 'confetti-style';
+    confettiStyle.dataset.confettiStyle = '1';
+    confettiStyle.textContent = `
 @keyframes confetti-fall {
     0% {
         transform: translateY(-10px) rotate(0deg);
@@ -311,4 +377,5 @@ confettiStyle.textContent = `
     }
 }
 `;
-document.head.appendChild(confettiStyle);
+    document.head.appendChild(confettiStyle);
+}

@@ -28,6 +28,8 @@ document.addEventListener('alpine:init', () => {
         // Visual effects
         glitchActive: false,
         terminalLines: [],
+        terminalInterval: null,
+        _scannerInterval: null,
         
         init() {
             this.initializeTerminal();
@@ -38,30 +40,48 @@ document.addEventListener('alpine:init', () => {
         },
         
         initializeTerminal() {
-            this.terminalLines = [
+            const fullLines = [
                 '> Initializing approval protocol...',
                 '> Loading book metadata...',
                 '> Activating decision matrix...',
                 '> Standing by for human input...'
             ];
             
+            this.terminalLines = [];
+            
             // Simulate typing effect
             let index = 0;
-            const typeInterval = setInterval(() => {
-                if (index < this.terminalLines.length) {
-                    // Simulate typing with a delay
-                    setTimeout(() => {
-                        index++;
-                    }, 500);
+            this.terminalInterval = setInterval(() => {
+                if (index < fullLines.length) {
+                    this.terminalLines.push(fullLines[index]);
+                    index++;
                 } else {
-                    clearInterval(typeInterval);
+                    clearInterval(this.terminalInterval);
+                    this.terminalInterval = null;
                 }
             }, 800);
         },
         
+        destroy() {
+            // Clean up intervals on component teardown
+            if (this.terminalInterval) {
+                clearInterval(this.terminalInterval);
+                this.terminalInterval = null;
+            }
+            if (this._scannerInterval) {
+                clearInterval(this._scannerInterval);
+                this._scannerInterval = null;
+            }
+        },
+        
         startScanner() {
             // Simulate the scanning line animation
-            setInterval(() => {
+            // Clear existing interval if present to avoid duplicates
+            if (this._scannerInterval) {
+                clearInterval(this._scannerInterval);
+                this._scannerInterval = null;
+            }
+            this._scannerInterval = setInterval(() => {
                 this.scannerActive = !this.scannerActive;
             }, 2000);
         },
@@ -88,7 +108,13 @@ document.addEventListener('alpine:init', () => {
             this.$notify('🎉 Approval sequence initiated!', 'success');
             
             setTimeout(() => {
-                window.location.href = this.$el.querySelector('.approve-matrix').href;
+                const link = this.$el.querySelector('.approve-matrix');
+                if (link && link.href) {
+                    window.location.href = link.href;
+                } else {
+                    console.error('[approval] Approve link (.approve-matrix) not found or missing href.');
+                    this.$notify('🔗 Approval link not available. Please try again or use the admin dashboard.', 'error');
+                }
             }, 1000);
         },
         
@@ -98,7 +124,13 @@ document.addEventListener('alpine:init', () => {
             this.$notify('🚫 Rejection protocol activated!', 'error');
             
             setTimeout(() => {
-                window.location.href = this.$el.querySelector('.reject-matrix').href;
+                const link = this.$el.querySelector('.reject-matrix');
+                if (link && link.href) {
+                    window.location.href = link.href;
+                } else {
+                    console.error('[approval] Reject link (.reject-matrix) not found or missing href.');
+                    this.$notify('🔗 Rejection link not available. Please try again or use the admin dashboard.', 'error');
+                }
             }, 1000);
         },
         

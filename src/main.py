@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 from src.metadata_coordinator import MetadataCoordinator
+from src.metadata import fetch_metadata
 from src.token_gen import generate_token, verify_token
 from src.notify.pushover import send_pushover
 from src.notify.gotify import send_gotify
@@ -24,6 +25,7 @@ import uuid
 import contextvars
 import asyncio
 import time
+import re
 from typing import Optional, Dict, Any
 
 load_dotenv()
@@ -188,6 +190,46 @@ async def queue_status(request: Request):
         "timestamp": time.time()
     }
 
+def _create_fallback_metadata(payload: Dict[str, Any], log_prefix: str, error: Exception) -> Dict[str, Any]:
+    """Create fallback metadata when all metadata sources fail.
+    
+    Args:
+        payload: The webhook payload
+        log_prefix: Log prefix for the request
+        error: The original error that triggered fallback
+        
+    Returns:
+        Dict containing fallback metadata
+    """
+    name = payload.get("name", "Unknown Title")
+    title = name
+    # Remove trailing format tags like [English / m4b]
+    if re.search(r'\[[A-Z0-9]+\]$', name):
+        title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
+    
+    metadata = {
+        "title": title,
+        "author": "Unknown Author",
+        "asin": "B000000000",
+        "description": f"Fallback metadata for {title}",
+        "cover": "",
+        "publisher": "Unknown Publisher",
+        "publishedYear": "",
+        "duration": 0,
+        "narrator": "Unknown Narrator",
+        "series": None,
+        "genres": None,
+        "tags": None,
+        "language": "English",
+        "rating": None,
+        "abridged": False,
+        "source": "fallback",
+        "workflow_path": "fallback"
+    }
+    
+    logging.warning(log_prefix + f"Using fallback metadata due to error: {error}")
+    return metadata
+
 # Middleware to set request_id from path token or generate new one
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
@@ -260,100 +302,44 @@ async def webhook(request: Request):
             metadata_coordinator = MetadataCoordinator()
             logging.info(log_prefix + "Initialized metadata coordinator for inline processing")
 
-        # First, try the compatibility wrapper (tests often patch this)
+        metadata = None
+        last_error = None
+        
+        # Try 1: Compatibility wrapper (tests often patch fetch_metadata)
         try:
-            import asyncio as _asyncio
-            loop = _asyncio.get_running_loop()
-            # Dynamically fetch fetch_metadata from module so tests that patch it are respected
-            import importlib
-            metadata_mod = importlib.import_module('src.metadata')
-            metadata_func = getattr(metadata_mod, 'fetch_metadata')
-            try:
-                metadata = await loop.run_in_executor(None, metadata_func, payload)
-            except Exception as e:
-                # If the patched fetch_metadata raises, let it surface as a ValueError for fallback handling
-                logging.error(log_prefix + f"fetch_metadata raised an exception in executor: {e}")
-                raise
-
+            loop = asyncio.get_running_loop()
+            metadata = await loop.run_in_executor(None, fetch_metadata, payload)
             if metadata:
                 logging.info(log_prefix + "Metadata obtained from fetch_metadata() wrapper")
                 metadata = metadata_coordinator.get_enhanced_metadata(metadata)
-            else:
-                raise ValueError("No metadata found from fetch_metadata()")
-        except ValueError as ve:
-            logging.info(log_prefix + f"fetch_metadata did not provide metadata: {ve}")
-            # Fallback to coordinator async workflow
-            try:
-                metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
-                if metadata:
-                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
-                else:
-                    raise ValueError("No metadata found from any source")
-            except Exception as e:
-                logging.error(log_prefix + f"Metadata fetch failed: {e}")
-                # Create fallback metadata
-                name = payload.get("name", "Unknown Title")
-                import re
-                title = name
-                if re.search(r'\[[A-Z0-9]+\]$', name):
-                    title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
-                metadata = {
-                    "title": title,
-                    "author": "Unknown Author",
-                    "asin": "B000000000",
-                    "description": f"Fallback metadata for {title}",
-                    "cover": "",
-                    "publisher": "Unknown Publisher",
-                    "publishedYear": "",
-                    "duration": 0,
-                    "narrator": "Unknown Narrator",
-                    "series": None,
-                    "genres": None,
-                    "tags": None,
-                    "language": "English",
-                    "rating": None,
-                    "abridged": False,
-                    "source": "fallback",
-                    "workflow_path": "fallback"
-                }
-                logging.warning(log_prefix + f"Using fallback metadata due to fetch error: {e}")
+        except ValueError as e:
+            # Expected when fetch_metadata returns None or finds no metadata
+            logging.info(log_prefix + f"fetch_metadata did not provide metadata: {e}")
+            last_error = e
         except Exception as e:
-            # Any other exception from fetch_metadata should cause fallback to coordinator
-            logging.error(log_prefix + f"fetch_metadata raised an unexpected exception: {e}")
+            # Unexpected exceptions from fetch_metadata - log and continue to next method
+            logging.exception(log_prefix + f"Unexpected error in fetch_metadata: {e}")
+            last_error = e
+        
+        # Try 2: Coordinator async workflow
+        if not metadata:
             try:
                 metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
                 if metadata:
                     metadata = metadata_coordinator.get_enhanced_metadata(metadata)
-                else:
-                    raise ValueError("No metadata found from any source")
-            except Exception as exc:
-                logging.error(log_prefix + f"Metadata fetch failed: {exc}")
-                # Create fallback metadata
-                name = payload.get("name", "Unknown Title")
-                import re
-                title = name
-                if re.search(r'\[[A-Z0-9]+\]$', name):
-                    title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
-                metadata = {
-                    "title": title,
-                    "author": "Unknown Author",
-                    "asin": "B000000000",
-                    "description": f"Fallback metadata for {title}",
-                    "cover": "",
-                    "publisher": "Unknown Publisher",
-                    "publishedYear": "",
-                    "duration": 0,
-                    "narrator": "Unknown Narrator",
-                    "series": None,
-                    "genres": None,
-                    "tags": None,
-                    "language": "English",
-                    "rating": None,
-                    "abridged": False,
-                    "source": "fallback",
-                    "workflow_path": "fallback"
-                }
-                logging.warning(log_prefix + f"Using fallback metadata due to fetch error: {exc}")
+                    logging.info(log_prefix + "Metadata obtained from coordinator workflow")
+            except ValueError as e:
+                # Expected when coordinator finds no metadata
+                logging.info(log_prefix + f"Coordinator did not provide metadata: {e}")
+                last_error = e
+            except Exception as e:
+                # Network errors or other issues from coordinator
+                logging.exception(log_prefix + f"Coordinator workflow failed: {e}")
+                last_error = e
+        
+        # Try 3: Fallback metadata
+        if not metadata:
+            metadata = _create_fallback_metadata(payload, log_prefix, last_error or Exception("No metadata sources available"))
 
         # Process notifications synchronously and return a summary
         summary = await process_metadata_and_notify(token, metadata, payload)
@@ -437,33 +423,9 @@ async def metadata_worker():
                     raise ValueError("No metadata found from any source")
                     
             except Exception as e:
-                logging.error(log_prefix + f"Metadata fetch failed: {e}")
-                # Create fallback metadata
-                name = payload.get("name", "Unknown Title")
-                import re
-                title = name
-                if re.search(r'\[[A-Z0-9]+\]$', name):
-                    title = re.sub(r'\s*\[[A-Z0-9]+\]$', '', name)
-                metadata = {
-                    "title": title,
-                    "author": "Unknown Author",
-                    "asin": "B000000000",
-                    "description": f"Fallback metadata for {title}",
-                    "cover": "",
-                    "publisher": "Unknown Publisher",
-                    "publishedYear": "",
-                    "duration": 0,
-                    "narrator": "Unknown Narrator",
-                    "series": None,
-                    "genres": None,
-                    "tags": None,
-                    "language": "English",
-                    "rating": None,
-                    "abridged": False,
-                    "source": "fallback",
-                    "workflow_path": "fallback"
-                }
-                logging.warning(log_prefix + f"Using fallback metadata due to fetch error")
+                logging.exception(log_prefix + f"Metadata fetch failed: {e}")
+                # Use helper function to create fallback metadata
+                metadata = _create_fallback_metadata(payload, log_prefix, e)
             
             # Continue with the rest of the processing (notifications, etc.)
             await process_metadata_and_notify(token, metadata, payload)
@@ -479,7 +441,7 @@ async def metadata_worker():
             except ValueError:
                 pass  # task_done() called more times than get()
 
-async def process_metadata_and_notify(token: str, metadata: Dict[str, Any], payload: Dict[str, Any]):
+async def process_metadata_and_notify(token: str, metadata: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
     """Process metadata and send notifications (simplified synchronous version)
 
     Returns a summary dict: {"notifications_sent": int, "notification_errors": list}

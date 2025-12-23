@@ -64,6 +64,9 @@ function initializeHomePageComponents() {
         // Current rotating content
         currentTagline: '',
         currentFooterPhrase: '',
+        // Interval IDs for rotations (used for cleanup)
+        taglineIntervalId: null,
+        footerIntervalId: null,
         
         // Stats
         stats: {
@@ -126,19 +129,45 @@ function initializeHomePageComponents() {
         },
         
         startRotations() {
+            // Clear existing intervals if present to avoid duplicates
+            if (this.taglineIntervalId) {
+                clearInterval(this.taglineIntervalId);
+                this.taglineIntervalId = null;
+            }
+            if (this.footerIntervalId) {
+                clearInterval(this.footerIntervalId);
+                this.footerIntervalId = null;
+            }
+
             // Tagline rotation
-            setInterval(() => {
+            this.taglineIntervalId = setInterval(() => {
                 const randomIndex = Math.floor(Math.random() * this.taglines.length);
                 this.currentTagline = this.taglines[randomIndex];
             }, 4000);
-            
+
             // Footer rotation
-            setInterval(() => {
+            this.footerIntervalId = setInterval(() => {
                 const randomIndex = Math.floor(Math.random() * this.footerPhrases.length);
                 this.currentFooterPhrase = this.footerPhrases[randomIndex];
             }, 6000);
         },
-        
+
+        stopRotations() {
+            if (this.taglineIntervalId) {
+                clearInterval(this.taglineIntervalId);
+                this.taglineIntervalId = null;
+            }
+            if (this.footerIntervalId) {
+                clearInterval(this.footerIntervalId);
+                this.footerIntervalId = null;
+            }
+        },
+
+        destroy() {
+            // Clean up any running timers when the component is torn down
+            this.stopRotations();
+        },
+
         animateStats() {
             Object.keys(this.stats).forEach(key => {
                 const stat = this.stats[key];
@@ -255,4 +284,7 @@ if (typeof Alpine !== 'undefined') {
     });
 }
 
-initializeHomePageComponents();
+// If DOM is already ready and Alpine is present, initialize immediately; otherwise wait for DOMContentLoaded
+if (document.readyState !== 'loading' && typeof Alpine !== 'undefined') {
+    initializeHomePageComponents();
+}

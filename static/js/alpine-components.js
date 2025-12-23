@@ -107,12 +107,15 @@ function initializeAlpineComponents() {
     });
 
     // Alpine.js Directives
-    Alpine.directive('tooltip', (el, { expression }, { evaluate }) => {
+    Alpine.directive('tooltip', (el, { expression }, { evaluate, cleanup }) => {
         const tooltipText = evaluate(expression);
         
         let tooltip = null;
-        
-        el.addEventListener('mouseenter', (e) => {
+        let onMouseEnter, onMouseLeave, onMouseMove;
+        let observer = null;
+
+        onMouseEnter = (e) => {
+            // Create tooltip element
             tooltip = document.createElement('div');
             tooltip.className = 'alpine-tooltip';
             tooltip.textContent = tooltipText;
@@ -129,21 +132,81 @@ function initializeAlpineComponents() {
                 top: ${e.pageY + 10}px;
             `;
             document.body.appendChild(tooltip);
-        });
-        
-        el.addEventListener('mouseleave', () => {
+        };
+
+        onMouseLeave = () => {
             if (tooltip) {
                 tooltip.remove();
                 tooltip = null;
             }
-        });
-        
-        el.addEventListener('mousemove', (e) => {
+
+            // If element is no longer in the document, perform full cleanup to avoid leaks
+            if (!document.body.contains(el)) {
+                el.removeEventListener('mouseenter', onMouseEnter);
+                el.removeEventListener('mouseleave', onMouseLeave);
+                el.removeEventListener('mousemove', onMouseMove);
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
+            }
+        };
+
+        onMouseMove = (e) => {
             if (tooltip) {
                 tooltip.style.left = e.pageX + 10 + 'px';
                 tooltip.style.top = e.pageY + 10 + 'px';
             }
-        });
+        };
+
+        el.addEventListener('mouseenter', onMouseEnter);
+        el.addEventListener('mouseleave', onMouseLeave);
+        el.addEventListener('mousemove', onMouseMove);
+
+        // Observe DOM removals to clean up if the element is detached
+        try {
+            observer = new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                    for (const node of m.removedNodes) {
+                        if (node === el || (node.contains && node.contains(el))) {
+                            // Element (or its ancestor) has been removed from the DOM
+                            if (tooltip) {
+                                tooltip.remove();
+                                tooltip = null;
+                            }
+                            el.removeEventListener('mouseenter', onMouseEnter);
+                            el.removeEventListener('mouseleave', onMouseLeave);
+                            el.removeEventListener('mousemove', onMouseMove);
+                            if (observer) {
+                                observer.disconnect();
+                                observer = null;
+                            }
+                            return;
+                        }
+                    }
+                }
+            });
+
+            // Observe the document body subtree so we catch removals anywhere
+            observer.observe(document.body, { childList: true, subtree: true });
+        } catch (err) {
+            // MutationObserver may not be available in some environments; fail gracefully
+            console.warn('Tooltip cleanup observer not available:', err);
+        }
+
+        // Alpine's cleanup hook when available
+        if (typeof cleanup === 'function') {
+            cleanup(() => {
+                if (tooltip) tooltip.remove();
+                el.removeEventListener('mouseenter', onMouseEnter);
+                el.removeEventListener('mouseleave', onMouseLeave);
+                el.removeEventListener('mousemove', onMouseMove);
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
+            });
+        }
     });
 }
 
@@ -190,10 +253,24 @@ window.AlpineComponents = {
                     this.remaining--;
                     if (this.remaining <= 0) {
                         clearInterval(interval);
-                        window.close();
-                    }
-                }, 1000);
-            }
+                        try {
+                            // Only attempt automatic close if window was opened by script or has an opener
+                            if (window.opener || window._openedByScript) {
+                                window.close();
+                            } else {
+                                throw new Error('Automatic close not permitted by browser');
+                            }
+                        } catch (err) {
+                            console.warn('Auto-close failed:', err);
+                            // Reveal a user-facing message/button as a fallback
+                            const closeBtn = document.createElement('button');
+                            closeBtn.textContent = 'Close window';
+                            closeBtn.className = 'btn-details';
+                            closeBtn.onclick = () => window.close();
+                            document.body.appendChild(closeBtn);
+                            // Notify user in UI if notifications store is available
+                            if (window.Alpine && Alpine.store && Alpine.store('notifications')) {
+                                Alpine.store('notifications').add('Auto-close failed; please click the 
         }
     },
     
@@ -284,24 +361,61 @@ window.AlpineComponents = {
             currentIndex: 0,
             currentTagline: '',
             isVisible: true,
-            
+            // Track timer IDs so we can clear them on teardown
+            rotationInterval: null,
+            rotationTimeout: null,
+
             init() {
                 if (taglines.length > 0) {
                     this.currentTagline = taglines[0];
                     this.startRotation();
                 }
             },
-            
+
             startRotation() {
-                setInterval(() => {
+                // Clear any existing timers to avoid duplicates
+                if (this.rotationInterval) {
+                    clearInterval(this.rotationInterval);
+                    this.rotationInterval = null;
+                }
+                if (this.rotationTimeout) {
+                    clearTimeout(this.rotationTimeout);
+                    this.rotationTimeout = null;
+                }
+
+                this.rotationInterval = setInterval(() => {
                     this.isVisible = false;
-                    
-                    setTimeout(() => {
+
+                    // Clear previous timeout if any
+                    if (this.rotationTimeout) {
+                        clearTimeout(this.rotationTimeout);
+                        this.rotationTimeout = null;
+                    }
+
+                    this.rotationTimeout = setTimeout(() => {
                         this.currentIndex = (this.currentIndex + 1) % taglines.length;
                         this.currentTagline = taglines[this.currentIndex];
                         this.isVisible = true;
+                        // Clear reference to completed timeout
+                        this.rotationTimeout = null;
                     }, 300);
                 }, 4000);
+            },
+
+            stopRotation() {
+                if (this.rotationInterval) {
+                    clearInterval(this.rotationInterval);
+                    this.rotationInterval = null;
+                }
+                if (this.rotationTimeout) {
+                    clearTimeout(this.rotationTimeout);
+                    this.rotationTimeout = null;
+                }
+            },
+
+            destroy() {
+                // Ensure all timers are cleared when component is torn down
+                this.stopRotation();
             }
         }
     },
@@ -365,6 +479,3 @@ window.AlpineComponents = {
 
 // Initialize when Alpine is ready
 document.addEventListener('DOMContentLoaded', initializeAlpineComponents);
-
-// Also try to initialize immediately in case DOMContentLoaded already fired
-initializeAlpineComponents();

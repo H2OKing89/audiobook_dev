@@ -9,6 +9,7 @@ from src.template_helpers import render_template
 from src.db import get_request  # use persistent DB store
 from src.utils import format_release_date, format_size
 import logging
+import os
 from datetime import datetime
 from starlette.concurrency import run_in_threadpool
 from src.security import generate_csrf_token, get_client_ip
@@ -142,6 +143,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
         qb_cfg = config.get('qbittorrent', {})
         enabled = qb_cfg.get('enabled', False)
         error_message = None
+        warning_message = None
         
         if enabled:
             payload = entry.get('payload', {})
@@ -155,7 +157,6 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             contentLayout = qb_cfg.get('content_layout', 'Subfolder')
 
             # Validate download URL before attempting network call
-            warning_message = None
             if not download_url:
                 # Do not treat missing download_url as fatal — mark approved but skip qBittorrent
                 warning_message = "No download URL provided for this request; approved without queuing a download."
@@ -215,7 +216,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 'og_image': 'https://picsur.kingpaging.com/i/e233d240-fe13-4804-a0dd-860dfd70834b.png'
             }
             # Attach non-fatal warning if present
-            if 'warning_message' in locals() and warning_message:
+            if warning_message:
                 context['warning_message'] = warning_message
                 logging.info(f"[token={token}] Success with warning: {warning_message}")
 
@@ -281,8 +282,7 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
     try:
         # Validate CSRF token if protection is enabled
         if get_csrf_protection_enabled():
-            # Allow tests to bypass CSRF when notifications are disabled in the test environment
-            import os
+            # Test environment bypass: skip CSRF validation when webhook notifications are disabled
             if os.getenv('DISABLE_WEBHOOK_NOTIFICATIONS') == '1':
                 logging.info(f"[token={token}] DISABLE_WEBHOOK_NOTIFICATIONS set - bypassing CSRF validation for test run")
             else:
@@ -328,8 +328,7 @@ async def approve_post(token: str, request: Request) -> HTMLResponse:
     try:
         # Validate CSRF token if protection is enabled
         if get_csrf_protection_enabled():
-            # Allow tests to bypass CSRF when notifications are disabled in the test environment
-            import os
+            # Test environment bypass: skip CSRF validation when webhook notifications are disabled
             if os.getenv('DISABLE_WEBHOOK_NOTIFICATIONS') == '1':
                 logging.info(f"[token={token}] DISABLE_WEBHOOK_NOTIFICATIONS set - bypassing CSRF validation for test run")
             else:

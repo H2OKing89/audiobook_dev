@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 from src.main import app
 from src.db import get_request, delete_request, list_tokens
 from src.token_gen import generate_token
-import httpx
 
 client = TestClient(app)
 
@@ -409,7 +408,7 @@ class TestEndToEndIntegration:
                 args = mock_add.call_args
                 assert "test.torrent" in args[0][1]  # torrent URL
 
-    def test_token_expiration_workflow(self):
+    def test_token_expiration_workflow(self, monkeypatch):
         """Test workflow with token expiration"""
         payload = {
             "name": "Expiration Test Book",
@@ -417,10 +416,16 @@ class TestEndToEndIntegration:
             "download_url": "http://example.com/download.torrent"
         }
         
+        # Get current time for manipulation
+        current_time = time.time()
+        
         # Use very short TTL for testing
         with patch('src.db.TTL', 1), \
              patch.dict('os.environ', {'AUTOBRR_TOKEN': 'test_token'}), \
              patch("src.metadata.fetch_metadata", return_value={"title": "Expiration Book"}):
+            
+            # Save with current time
+            monkeypatch.setattr(time, 'time', lambda: current_time)
             
             # Submit webhook
             resp = client.post(
@@ -435,8 +440,8 @@ class TestEndToEndIntegration:
             token = resp.json().get('token')
             assert token is not None
             
-            # Wait for expiration
-            time.sleep(2)
+            # Simulate time passing - move time forward past TTL
+            monkeypatch.setattr(time, 'time', lambda: current_time + 5)
             
             # Try to access expired token
             approval_resp = client.get(f"/approve/{token}")

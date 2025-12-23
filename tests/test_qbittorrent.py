@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock, mock_open
 from src.qbittorrent import get_client, add_torrent, add_torrent_file_with_cookie
 import os
 import tempfile
+import httpx
 
 
 class TestQbittorrentClient:
@@ -86,7 +87,7 @@ class TestQbittorrentClient:
             mock_client.torrents_add.assert_called_once()
 
     def test_add_torrent_file_network_error(self):
-        with patch("src.qbittorrent.httpx.stream", side_effect=Exception("Network error")):
+        with patch("src.qbittorrent.httpx.stream", side_effect=httpx.RequestError("Network error")):
             result = add_torrent_file_with_cookie(
                 download_url="http://example.com/test.torrent",
                 name="Test Torrent"

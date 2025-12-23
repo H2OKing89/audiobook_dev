@@ -93,6 +93,7 @@ def send_pushover(
                 files = {'attachment': (os.path.basename(temp_file.name), open(temp_file.name, 'rb'), 'image/jpeg')}
                 logging.debug(f"[token={token}] Cover image downloaded and prepared for upload")
             except httpx.RequestError as e:
+                logging.debug(f"[token={token}] Failed to download cover image: {e}")
                 files = None
         
         try:

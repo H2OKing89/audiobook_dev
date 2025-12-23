@@ -351,9 +351,24 @@ class Audnexus:
 
 # Main fetch metadata function compatible with existing code
 def get_cached_metadata(asin: str, region: str = 'us', api_url: Optional[str] = None) -> Optional[dict]:
-    """Stub: compatibility helper to lookup cached metadata by ASIN.
-
-    Tests patch this function; real implementation may query a local cache or external API.
+    """Intentional stub kept for signature compatibility - tests are expected to patch/override this.
+    
+    This function is a placeholder whose parameters are currently unused in the default implementation.
+    The function signature is maintained for backwards compatibility with existing code and tests.
+    
+    Args:
+        asin: The Amazon Standard Identification Number (10 alphanumeric characters) to look up
+        region: The Audible region/marketplace (e.g., 'us', 'uk', 'ca') for regional content
+        api_url: Optional custom API endpoint URL for metadata lookup (typically None)
+    
+    Returns:
+        None by default. Tests should patch this function to return mock metadata dict when needed.
+        A real implementation might query a local cache or external API.
+    
+    Note:
+        This is an intentional no-op stub. The default behavior returns None to indicate no cached
+        metadata is available. Tests that require cached metadata should mock/patch this function
+        to return appropriate test data.
     """
     # Default behavior: no cache. Tests may patch this to return values.
     return None
@@ -392,9 +407,17 @@ def get_audible_asin(title: str, author: str = '') -> Optional[str]:
         return None
     except httpx.RequestError as e:
         raise
-    except Exception as e:
+    except (AttributeError, ValueError, TypeError) as e:
+        # Expected parsing-related errors - log and return None
         logging.debug(f"get_audible_asin failed: {e}")
         return None
+    except Exception as e:
+        # bs4.FeatureNotFound and other BeautifulSoup parsing exceptions
+        if 'bs4' in type(e).__module__:
+            logging.debug(f"get_audible_asin BeautifulSoup parsing failed: {e}")
+            return None
+        # Unexpected exceptions should propagate
+        raise
 
 
 def fetch_metadata(payload: dict, regions: Optional[List[str]] = None) -> dict:

@@ -102,7 +102,7 @@ def send_gotify(
         response.raise_for_status()
         logging.info(f"Gotify notification sent successfully: status={response.status_code}")
         return response.status_code, response.json()
-    except httpx.RequestError as e:
+    except (httpx.RequestError, httpx.HTTPStatusError) as e:
         error_msg = f"Failed to send Gotify notification: {e}"
         logging.error(error_msg)
         return 0, {"error": error_msg}
