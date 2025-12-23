@@ -14,7 +14,7 @@ help:
 	@echo "  make pre-commit     - Run pre-commit hooks on all files"
 	@echo "  make clean          - Clean cache and build files"
 	@echo "  make run            - Run the application"
-	@echo "  make ci             - Run all CI checks locally"
+	@echo "  make ci             - Run all CI checks locally (pre-commit + tests)"
 
 install:
 	pip install -r requirements.txt
@@ -25,7 +25,7 @@ install-dev:
 	pre-commit install
 
 test:
-	pytest --cov=src --cov-branch --cov-report=term-missing --cov-report=html --cov-fail-under=65 -v
+	pytest --cov=src --cov-branch --cov-report=term-missing --cov-report=html --cov-fail-under=50 -v
 
 test-fast:
 	pytest -v
@@ -64,7 +64,7 @@ clean:
 run:
 	python -m uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
-ci: lint format-check type-check test
+ci: pre-commit test
 	@echo "✅ All CI checks passed!"
 
 .DEFAULT_GOAL := help

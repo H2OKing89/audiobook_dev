@@ -57,7 +57,9 @@ class TestEndToEndIntegration:
             mock_discord.return_value = (204, {})
 
             # Submit webhook
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
             # Use token returned in response to avoid race conditions when tests run concurrently
@@ -101,7 +103,9 @@ class TestEndToEndIntegration:
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata.fetch_metadata", return_value={"title": "Rejection Book"}),
         ):
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
             token = resp.json().get("token")
@@ -174,7 +178,9 @@ class TestEndToEndIntegration:
 
             mock_fetch.return_value = {"title": "Pipeline Book", "author": "Pipeline Author"}
 
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
 
@@ -206,7 +212,9 @@ class TestEndToEndIntegration:
             ),
             patch("src.metadata.fetch_metadata", return_value=expected_metadata),
         ):
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
             # Get the token from the response
@@ -234,7 +242,9 @@ class TestEndToEndIntegration:
             patch("src.metadata.fetch_metadata", return_value={"title": "Lifecycle Book"}),
         ):
             # Step 1: Create token via webhook
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
 
@@ -306,7 +316,9 @@ class TestEndToEndIntegration:
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata.fetch_metadata", side_effect=Exception("Metadata failed")),
         ):
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             # Should still succeed with empty metadata
             assert resp.status_code == 200
@@ -335,7 +347,9 @@ class TestEndToEndIntegration:
             patch("src.notify.pushover.send_pushover", side_effect=Exception("Pushover failed")),
             patch("src.notify.discord.send_discord", side_effect=Exception("Discord failed")),
         ):
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             # Should still succeed despite notification failures
             assert resp.status_code == 200
@@ -369,7 +383,9 @@ class TestEndToEndIntegration:
             mock_config.return_value = {"qbittorrent": {"enabled": True}}
 
             # Submit webhook
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
             token = resp.json().get("token")
@@ -414,7 +430,9 @@ class TestEndToEndIntegration:
             monkeypatch.setattr(time, "time", lambda: current_time)
 
             # Submit webhook
-            resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
 
