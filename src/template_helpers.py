@@ -3,11 +3,12 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from src.config import load_config
 import logging
+from typing import Dict, Any
 
 # Initialize Jinja2 templates (looks for 'templates/' at project root)
 templates = Jinja2Templates(directory="templates")
 
-def get_config():
+def get_config() -> Dict[str, Any]:
     """Template helper to access config in templates"""
     return load_config()
 
