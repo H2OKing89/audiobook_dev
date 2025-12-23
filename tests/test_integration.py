@@ -1,10 +1,8 @@
 import pytest
 import time
-import threading
 from typing import Any
 from unittest.mock import patch, MagicMock
-from src.db import get_request, delete_request, list_tokens
-from src.token_gen import generate_token
+from src.db import get_request, list_tokens
 
 
 class TestEndToEndIntegration:
