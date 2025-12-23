@@ -2,6 +2,7 @@ import logging
 import os
 import tempfile
 from typing import IO, Any
+from urllib.parse import urlparse
 
 import httpx
 from qbittorrentapi import Client, LoginFailed
@@ -18,7 +19,14 @@ def get_client() -> Client:
     logger.debug("Initializing qBittorrent client with host=%s, username=%s", host, username)
     if not host or not username or not password:
         raise ValueError("QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set")
-    return Client(host=host, username=username, password=password)
+    try:
+        return Client(host=host, username=username, password=password)
+    except LoginFailed as e:
+        logger.error("qBittorrent login failed for host=%s, username=%s: %s", host, username, e)
+        raise ConnectionError(f"Failed to authenticate with qBittorrent at {host}") from e
+    except Exception as e:
+        logger.error("Failed to connect to qBittorrent at host=%s: %s", host, e)
+        raise ConnectionError(f"Failed to connect to qBittorrent at {host}: {e}") from e
 
 
 def add_torrent(torrent_data: dict[str, Any]) -> bool:
@@ -51,8 +59,6 @@ def add_torrent_file_with_cookie(
     tmp: IO[bytes] | None = None
     try:
         # Validate download URL before attempting network call
-        from urllib.parse import urlparse
-
         parsed = urlparse(download_url or "")
         if not (parsed.scheme in ("http", "https") and parsed.netloc):
             logger.error("Invalid download URL provided: %s", download_url)
