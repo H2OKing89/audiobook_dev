@@ -292,15 +292,15 @@
     padding: var(--spacing-md);
     font-size: 0.9rem;
   }
-  
+
   .card, .box, .info-box, .main-box {
     padding: var(--spacing-lg);
   }
-  
+
   .mascot, .mascot-img {
     max-width: 150px;
   }
-  
+
   .easter-egg {
     width: 40px;
     height: 40px;

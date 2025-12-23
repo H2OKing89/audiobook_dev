@@ -10,11 +10,17 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    assignees:
+      - "H2OKing89"
+    reviewers:
+      - "H2OKing89"
     labels:
       - "dependencies"
       - "python"
     commit-message:
       prefix: "deps"
+      include: "scope"
+    rebase-strategy: "auto"
     groups:
       python-minor:
         update-types:
@@ -28,8 +34,19 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 3
+    assignees:
+      - "H2OKing89"
+    reviewers:
+      - "H2OKing89"
     labels:
       - "dependencies"
       - "github-actions"
     commit-message:
       prefix: "ci"
+      include: "scope"
+    rebase-strategy: "auto"
+    groups:
+      actions-minor:
+        update-types:
+          - "minor"
+          - "patch"

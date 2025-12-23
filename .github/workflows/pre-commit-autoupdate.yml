@@ -1,0 +1,38 @@
+name: Pre-commit Auto-update
+
+on:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  auto-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        # Pin version for reproducible CI builds
+        run: pip install pre-commit==4.0.1
+
+      - name: Run pre-commit autoupdate
+        run: pre-commit autoupdate
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: pre-commit-autoupdate
+          title: '[pre-commit.ci] pre-commit autoupdate'
+          commit-message: 'chore: pre-commit autoupdate'
+          body: |
+            Auto-update pre-commit hooks to latest versions.
+
+            This PR is automatically created by the pre-commit autoupdate workflow.
+          labels: dependencies, automated

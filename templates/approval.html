@@ -12,7 +12,7 @@
 {% block content %}
 <div class="approval-zone">
   <div class="glitch-container">
-    
+
     <!-- Fun Header -->
     <header class="zone-header">
       <div class="terminal-window">
@@ -23,7 +23,7 @@
         </div>
         <div class="terminal-content">
           <div class="typing-text">
-            <span class="prompt">quentin@audiobook-hq:~$</span> 
+            <span class="prompt">quentin@audiobook-hq:~$</span>
             <span class="command">审批模式已激活 // APPROVAL MODE ACTIVATED</span>
           </div>
         </div>
@@ -39,7 +39,7 @@
     <main class="content-viewport">
       <div class="book-scanner">
         <div class="scanner-line"></div>
-        
+
         <!-- Book Info Panel -->
         <section class="book-panel">
           <div class="panel-header">
@@ -57,7 +57,7 @@
             {% if cover_url or image %}
             <div class="cover-mini">
               <div class="cover-frame-mini">
-                <img src="{{ cover_url or image }}" 
+                <img src="{{ cover_url or image }}"
                      alt="Cover: {{ title or name or 'Unknown Title' }}"
                      class="cover-img"
                      onerror="this.parentElement.innerHTML='<div class=&quot;cover-fallback&quot;>�</div>'">
@@ -172,7 +172,7 @@
             <h3>⚡ DECISION MATRIX</h3>
             <div class="warning-text">⚠️ IRREVERSIBLE_OPERATION ⚠️</div>
           </div>
-          
+
           <div class="button-array">
             <form method="post" action="/approve/{{ token }}" class="approve-form" style="display:inline-block;">
               {% include 'csrf_input.html' %}

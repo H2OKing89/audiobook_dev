@@ -2,7 +2,8 @@
 
 A modern, secure, and delightfully over-engineered FastAPI microservice for automated audiobook approval workflows. Built by Quentin with maximum automation and minimum manual intervention in mind.
 
-## 🛡️ Security Status: ✅ VERIFIED  
+## 🛡️ Security Status: ✅ VERIFIED
+
 **Last Audit**: June 16, 2025 | **Status**: 13/13 Security Tests Passing | **UI**: Cyberpunk Theme Secured
 
 ---
@@ -29,6 +30,7 @@ A modern, secure, and delightfully over-engineered FastAPI microservice for auto
 Complete documentation is available in the [`docs/`](docs/) directory:
 
 ### 🎯 For Users
+
 - **[📖 Getting Started](docs/user-guide/getting-started.md)** - Installation and setup guide
 - **[⚙️ Configuration](docs/user-guide/configuration.md)** - Configuration options and examples
 - **[🌐 Web Interface](docs/user-guide/web-interface.md)** - Using the web UI
@@ -36,6 +38,7 @@ Complete documentation is available in the [`docs/`](docs/) directory:
 - **[🔧 Troubleshooting](docs/user-guide/troubleshooting.md)** - Common issues and solutions
 
 ### 🛠️ For Developers
+
 - **[🏗️ Architecture](docs/development/architecture.md)** - System design and component overview
 - **[🔐 Security](docs/development/SECURITY.md)** - Security implementation details
 - **[🎨 Interactive Fixes](docs/development/INTERACTIVE_FIXES.md)** - UI/UX improvements
@@ -43,6 +46,7 @@ Complete documentation is available in the [`docs/`](docs/) directory:
 - **[🧪 Testing](docs/development/testing.md)** - Testing strategies and guidelines
 
 ### 🔌 API Reference
+
 - **[🌐 REST API](docs/api/rest-api.md)** - Complete API documentation
 - **[🔗 Webhooks](docs/api/webhooks.md)** - Webhook configuration and payloads
 - **[💾 Database](docs/api/database.md)** - Database schema and queries
@@ -125,19 +129,25 @@ audiobook_dev/
 ## Setup
 
 1. **Clone the repo**
+
    ```bash
    git clone <repo-url>
    cd audiobook_dev
    ```
+
 2. **Create and activate a virtualenv**
+
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    ```
+
 3. **Install dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
+
 4. **Copy and edit config**
    - Edit `config/config.yaml` for your environment (API URLs, notification settings, etc).
    - Create a `.env` file with your secrets (see `.env.example`).
@@ -178,9 +188,11 @@ Configure each in `config/config.yaml` and `.env`.
 ## Testing
 
 - Run all tests:
+
   ```bash
   pytest -vv
   ```
+
 - Tests cover:
   - Metadata cleaning and validation
   - Notification formatting

@@ -28,10 +28,19 @@ Thumbs.db
 
 # Pytest
 .cache/
+.pytest_cache/
+
+# Mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Build artifacts
+*.egg-info/
 
 # Coverage
 htmlcov/
-.coverage
 
 # Misc
 *.bak
@@ -65,4 +74,8 @@ logs/*real*.json
 # Debug files (temporary HTML dumps, etc.)
 logs/*.html
 logs/*_debug_*.html
-logs/page_source*.html
+
+# Coverage reports (generated, machine-specific paths)
+coverage.xml
+.coverage
+*.coverage

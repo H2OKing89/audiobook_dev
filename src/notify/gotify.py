@@ -1,22 +1,21 @@
-import re
-import httpx
 import logging
-from typing import Any, Dict, Optional, Tuple
+import re
+from typing import Any
+
+import httpx
+
 from src.utils import get_notification_fields
 
-def escape_md(text: Optional[str]) -> str:
+
+def escape_md(text: str | None) -> str:
     if not text:
-        return ''
-    return re.sub(r'([*_`~|>])', r'\\\1', str(text))
+        return ""
+    return re.sub(r"([*_`~|>])", r"\\\1", str(text))
+
 
 def send_gotify(
-    metadata: Dict[str, Any],
-    payload: Dict[str, Any],
-    token: str,
-    base_url: str,
-    gotify_url: str,
-    gotify_token: str
-) -> Tuple[int, dict]:
+    metadata: dict[str, Any], payload: dict[str, Any], token: str, base_url: str, gotify_url: str, gotify_token: str
+) -> tuple[int, dict]:
     """
     Send a Gotify notification with Markdown message and big image for Android notifications.
     """
@@ -25,33 +24,27 @@ def send_gotify(
 
     # Emoji for category and sanitized fields
     fields = get_notification_fields(metadata, payload)
-    emoji_tbl = {
-        'fantasy': '🧙‍♂️',
-        'science fiction': '🚀',
-        'sci-fi': '🚀',
-        'mystery': '🕵️‍♂️',
-        'romance': '💘'
-    }
-    category = (payload.get('category') or '').lower()
-    key = re.sub(r'[^a-z]', '', category.split('/')[-1].split('-')[-1].split('&')[0].strip())
-    emoji = emoji_tbl.get(key, '📚')
+    emoji_tbl = {"fantasy": "🧙‍♂️", "science fiction": "🚀", "sci-fi": "🚀", "mystery": "🕵️‍♂️", "romance": "💘"}
+    category = (payload.get("category") or "").lower()
+    key = re.sub(r"[^a-z]", "", category.split("/")[-1].split("-")[-1].split("&")[0].strip())
+    emoji = emoji_tbl.get(key, "📚")
 
     # Escape markdown
-    title = escape_md(fields['title'])
-    series = escape_md(fields['series'])
-    author = escape_md(fields['author'])
-    publisher = escape_md(fields['publisher'])
-    narrators = escape_md(', '.join(fields['narrators']))
-    release_date = escape_md(fields['release_date'])
-    runtime = escape_md(fields['runtime'])
-    size_fmt = escape_md(fields['size'])
-    description = escape_md(fields['description'])
-    view_url = fields['url'] or f"{base_url}/view/{token}"
-    download_url = fields['download_url'] or f"{base_url}/download/{token}"
+    title = escape_md(fields["title"])
+    series = escape_md(fields["series"])
+    author = escape_md(fields["author"])
+    publisher = escape_md(fields["publisher"])
+    narrators = escape_md(", ".join(fields["narrators"]))
+    release_date = escape_md(fields["release_date"])
+    runtime = escape_md(fields["runtime"])
+    size_fmt = escape_md(fields["size"])
+    description = escape_md(fields["description"])
+    view_url = fields["url"] or f"{base_url}/view/{token}"
+    download_url = fields["download_url"] or f"{base_url}/download/{token}"
     approve_url = f"{base_url}/approve/{token}/action"
     reject_url = f"{base_url}/reject/{token}"
 
-    cover_url = metadata.get('cover_url') or metadata.get('image')
+    cover_url = metadata.get("cover_url") or metadata.get("image")
 
     # Message body: Markdown, cover image included if present
     body_lines = [
@@ -69,19 +62,17 @@ def send_gotify(
         f"![cover]({cover_url})" if cover_url else None,  # Markdown image line
         f"[🌐 View]({view_url})",
         f"[📥 Download]({download_url})",
-        '',
-        f"# [✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})"
+        "",
+        f"# [✅ APPROVE]({approve_url}) | [❌ Reject]({reject_url})",
     ]
-    body = '\n\n'.join([line for line in body_lines if line])
+    body = "\n\n".join([line for line in body_lines if line])
 
     # Prepare payload for Gotify
     payload_data = {
         "message": body,
         "title": f"{emoji} {title}",
         "priority": 5,
-        "extras": {
-            "client::display": {"contentType": "text/markdown"}
-        }
+        "extras": {"client::display": {"contentType": "text/markdown"}},
     }
 
     # Add bigImageUrl for Android client if cover exists
@@ -91,14 +82,10 @@ def send_gotify(
         # Ensure "extras" is a dict and not accidentally overwritten elsewhere
         if not isinstance(payload_data["extras"], dict):
             payload_data["extras"] = {}
-        payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}
+        payload_data["extras"]["client::notification"] = {"bigImageUrl": cover_url}  # type: ignore[index]
 
     try:
-        response = httpx.post(
-            f"{gotify_url}/message?token={gotify_token}", 
-            json=payload_data, 
-            timeout=15
-        )
+        response = httpx.post(f"{gotify_url}/message?token={gotify_token}", json=payload_data, timeout=15)
         response.raise_for_status()
         logging.info(f"Gotify notification sent successfully: status={response.status_code}")
         return response.status_code, response.json()

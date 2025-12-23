@@ -1,0 +1,137 @@
+audnex:
+  api_url: "https://api.audnex.us/books"
+payload:
+  # Regex to extract ASIN from torrent name or payload fields
+  asin_regex: "B[0-9A-Z]{9}"
+  required_keys:
+    - name
+    - url
+    - download_url
+
+#########################################################
+# Configuration for Audiobook metadata and sources
+# This section defines how to fetch and handle audiobook metadata
+# This includes API endpoints, rate limits, and other settings
+#########################################################
+metadata:
+  rate_limit_seconds: 10  # seconds between API calls
+  mam:
+    base_url: "https://www.myanonamouse.net"
+  audnex:
+    base_url: "https://api.audnex.us"
+    rate_limit_seconds: 0.15  # 150ms between requests
+    # Try multiple regions if one fails - ordered by priority/success rate
+    regions: ["us", "uk", "es", "ca", "au", "de", "fr", "it", "jp", "in"]
+    try_all_regions_on_error: true  # If a region returns error, try others
+    max_regions_to_try: 9  # Maximum number of regions to try (prevents excessive API calls)
+  audible:
+    base_url: "https://api.audible.com"
+    search_endpoint: "/1.0/catalog/products"
+
+
+notifications:
+  pushover:
+    enabled: true
+    sound: roxy_waterball
+    html: 1
+    priority: 0
+  ntfy:
+    enabled: false          # Enable ntfy notifications
+    topic: "audiobook-requests"  # Set your ntfy.sh topic here
+    url: "https://ntfy.sh"    # Base ntfy URL (or use your own ntfy server)
+    icon_url: "https://ptpimg.me/4larvz.jpg"  # Icon for ntfy notifications
+  discord:
+    icon_url: "https://ptpimg.me/44pi19.png"
+    author_url: "https://example.com/audiobookshelf/"  # Replace with your Audiobookshelf URL
+    footer_icon_url: "https://ptpimg.me/44pi19.png"
+    footer_text: "Powered by Autobrr"
+
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  base_url: "https://your-domain.com"  # Replace with your domain
+  autobrr_webhook_endpoint: "/webhook/audiobook-requests" # autobrr webook token location .env "AUTOBRR_TOKEN"
+  reply_token_ttl: 3600 # 1 hour in seconds
+  # approve_success_autoclose: 10 # seconds to auto-close success page
+  # reject_autoclose: 10 # seconds to auto-close rejection page
+  # token_expired_autoclose: 10 # seconds to auto-close token expired page
+
+logging:
+  level: "DEBUG" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/audiobook_requests.log"
+  max_size: 10 # MB
+  max_files: 5 # Number of log files to keep (used with size-based rotation)
+  backup_count: 5 # Number of backup log files to keep (alternative to max_files)
+  rotation: "midnight" # Rotate logs at midnight (time-based rotation)
+  compression: "zip" # Compress rotated logs
+  retention: "7 days" # How long to keep rotated logs (time-based cleanup)
+
+
+qbittorrent:
+  enabled: true # disable for testing or if not using qBittorrent
+  host: "http://localhost:8080"  # Replace with your qBittorrent host
+  qbittorrent_ui: "https://your-qbittorrent-url.com/"   # Link to UI for notifications
+  use_auto_torrent_management: true        # Use qBittorrent's auto management
+  content_layout: "Subfolder"              # Subfolder or Original
+  category: "audiobooks"                   # Default category if not specified in webhook
+  tags: ["myanonamouse"]                   # Default tags
+  paused: true
+
+security:
+  # HTTPS enforcement
+  force_https: false  # Set to true in production to redirect HTTP to HTTPS
+
+  # Rate limiting
+  rate_limit_window: 3600  # Time window in seconds (1 hour)
+  max_tokens_per_window: 10  # Maximum tokens per IP per window
+  max_failed_logins: 5  # Max failed logins before temporary lockout
+  lockout_time: 300  # Seconds (5 minutes)
+
+  # API security
+  api_key_enabled: true  # Enable API key requirement for admin endpoints
+  api_key: "your-strong-api-key-here"  # CHANGE THIS! Strong API key for admin endpoints
+  # WARNING: Runtime validation will reject default placeholder values. Generate a strong random key before deployment.
+
+  # Endpoint protection
+  endpoint_protection_enabled: true  # Enable endpoint authorization checks
+  require_auth_for_unknown_endpoints: false  # Require auth for endpoints not explicitly listed
+  protected_endpoints:  # Additional endpoints that require authentication
+    - "/admin"
+    - "/api/admin"
+    - "/config"
+    - "/logs"
+    - "/stats"
+    - "/health/detailed"
+    - "/debug"
+  public_endpoints:  # Additional endpoints that are publicly accessible
+    - "/"
+    - "/static"
+    - "/approve"
+    - "/reject"
+    - "/health"
+    - "/favicon.ico"
+
+  # CSRF protection
+  csrf_protection: true  # Enable CSRF protection for forms
+
+  # JavaScript security
+  use_external_js: true  # Use external JS files for stricter CSP (recommended)
+
+  # Note: For production environments, consider tightening brute-force settings:
+  # - Lower max_failed_logins to 3
+  # - Increase lockout_time to 900 (15 minutes)
+
+  # Input validation
+  max_payload_size: 1048576  # 1MB max payload size
+  sanitize_inputs: true  # Sanitize inputs to prevent XSS
+
+  # Content Security
+  allowed_image_domains:
+    - "your-image-host.com"  # Replace with your image hosting domain
+    - "ptpimg.me"
+    - "i.imgur.com"
+    - "audnex.us"
+    - "m.media-amazon.com"

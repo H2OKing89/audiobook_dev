@@ -24,7 +24,7 @@ function initializePagesComponents() {
         celebrationActive: false,
         confettiActive: false,
         achievementUnlocked: false,
-        
+
         // Dynamic content
         successQuotes: [
             "🎉 Mission accomplished! Your audiobook is queued for download!",
@@ -35,7 +35,7 @@ function initializePagesComponents() {
             "🏆 Achievement unlocked: Master of Audiobook Approval!"
         ],
         currentQuote: '',
-        
+
         // Stats
         systemStats: {
             successRate: 0,
@@ -43,13 +43,13 @@ function initializePagesComponents() {
             confettiDeployed: 0,
             nextRequest: 'READY'
         },
-        
+
         init() {
             this.currentQuote = this.successQuotes[Math.floor(Math.random() * this.successQuotes.length)];
             this.animateStats();
             this.triggerInitialCelebration();
         },
-        
+
         // Track running intervals for cleanup
         _rateInterval: null,
         _happinessInterval: null,
@@ -107,32 +107,32 @@ function initializePagesComponents() {
             }
         },
 
-        
+
         triggerInitialCelebration() {
             setTimeout(() => {
                 this.celebrationActive = true;
                 this.deployConfetti();
             }, 500);
         },
-        
+
         triggerCelebration() {
             this.celebrationActive = true;
             this.deployConfetti();
             this.$notify('🎊 Extra celebration activated!', 'success');
         },
-        
+
         deployConfetti() {
             this.confettiActive = true;
             // Create confetti particles
             for (let i = 0; i < 50; i++) {
                 this.createConfettiParticle();
             }
-            
+
             setTimeout(() => {
                 this.confettiActive = false;
             }, 3000);
         },
-        
+
         createConfettiParticle() {
             const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b'];
             const confetti = document.createElement('div');
@@ -147,28 +147,28 @@ function initializePagesComponents() {
                 animation: confetti-fall ${Math.random() * 2 + 2}s linear forwards;
             `;
             document.body.appendChild(confetti);
-            
+
             setTimeout(() => {
                 confetti.remove();
             }, 4000);
         },
-        
+
         showStatusUpdate() {
             this.$notify('📊 Status: Your audiobook is #1 in the priority queue!', 'info');
         },
-        
+
         showEasterEgg() {
             this.achievementUnlocked = true;
             this.$notify('🥚 Easter egg found! You are now a certified audiobook ninja!', 'success');
         }
     }));
-    
+
     // Rejection Page Component
     Alpine.data('rejectionPage', () => ({
         // State
         isRetryMessageVisible: false,
         easterEggFound: false,
-        
+
         // Dynamic content
         dadJokes: [
             "Why don't scientists trust atoms? Because they make up everything!",
@@ -179,36 +179,36 @@ function initializePagesComponents() {
             "I'm reading a book about anti-gravity. It's impossible to put down!"
         ],
         currentJoke: '',
-        
+
         // System state
         rejectionCount: 1,
         userTears: 0,
         appealSuccessRate: 42,
-        
+
         init() {
             this.loadDadJoke();
         },
-        
+
         loadDadJoke() {
             this.currentJoke = this.dadJokes[Math.floor(Math.random() * this.dadJokes.length)];
         },
-        
+
         showRetryMessage() {
             this.isRetryMessageVisible = true;
             this.$notify('💡 Pro tip: Try adjusting your request and resubmitting!', 'info');
         },
-        
+
         triggerEasterEgg() {
             this.easterEggFound = true;
             this.$notify('🎉 Secret achievement unlocked: Rejection Survivor!', 'success');
         },
-        
+
         generateNewJoke() {
             this.loadDadJoke();
             this.$notify('🎭 Fresh dad joke deployed!', 'info');
         }
     }));
-    
+
     // Token Expired Page Component
     Alpine.data('tokenExpiredPage', () => ({
         // Time-related state
@@ -216,7 +216,7 @@ function initializePagesComponents() {
         timeFactInterval: null,
         isTimeHelpVisible: false,
         showTokenInfo: false,
-        
+
         // Time facts
         timeFacts: [
             "⏰ A token's lifespan is shorter than a mayfly's attention span!",
@@ -227,17 +227,17 @@ function initializePagesComponents() {
             "🕐 Time waits for no one, especially not expired tokens!"
         ],
         currentTimeFact: '',
-        
+
         // System stats
         timeSync: 'FAILED',
         paradoxLevel: 'MODERATE',
         timelineIntegrity: 87,
-        
+
         init() {
             this.currentTimeFact = this.timeFacts[0];
             this.startTimeFactRotation();
         },
-        
+
         startTimeFactRotation() {
             // Clear existing interval if present
             if (this.timeFactInterval) {
@@ -262,17 +262,17 @@ function initializePagesComponents() {
             // Cleanup when component is torn down
             this.stopTimeFactRotation();
         },
-        
+
         showTimeHelp() {
             this.isTimeHelpVisible = true;
             this.$notify('🕰️ Time help activated! Check the overlay.', 'info');
         },
-        
+
         explainTokens() {
             this.showTokenInfo = true;
             this.$notify('💡 Token info displayed!', 'info');
         },
-        
+
         timeTravel() {
             this.$notify('⏰ Time travel failed - tokens are immutable!', 'error');
             // Trigger a fun glitch effect
@@ -281,22 +281,22 @@ function initializePagesComponents() {
                 document.body.style.animation = '';
             }, 500);
         },
-        
+
         closeTimeHelp() {
             this.isTimeHelpVisible = false;
         },
-        
+
         closeTokenInfo() {
             this.showTokenInfo = false;
         }
     }));
-    
+
     // Error Page Component (for 401, 404, etc.)
     Alpine.data('errorPage', () => ({
         // Error state
         showDetails: false,
         errorReported: false,
-        
+
         // Error info
         errorInfo: {
             code: '401',
@@ -305,7 +305,7 @@ function initializePagesComponents() {
             userAgent: navigator.userAgent,
             path: window.location.pathname
         },
-        
+
         // Error tips
         errorTips: [
             "🔐 Double-check your API key or authentication",
@@ -313,7 +313,7 @@ function initializePagesComponents() {
             "🔄 Try refreshing the page and attempting again",
             "👨‍💻 Contact the administrator if the issue persists"
         ],
-        
+
         init() {
             // Auto-detect error type from page
             if (window.location.pathname.includes('401')) {
@@ -324,11 +324,11 @@ function initializePagesComponents() {
                 this.errorInfo.type = 'Not Found';
             }
         },
-        
+
         toggleDetails() {
             this.showDetails = !this.showDetails;
         },
-        
+
         copyErrorInfo() {
             const errorText = `
 Error ${this.errorInfo.code}: ${this.errorInfo.type}
@@ -336,12 +336,12 @@ Path: ${this.errorInfo.path}
 Timestamp: ${this.errorInfo.timestamp}
 User Agent: ${this.errorInfo.userAgent}
             `.trim();
-            
+
             this.$copy(errorText).then(() => {
                 this.$notify('📋 Error details copied to clipboard!', 'success');
             });
         },
-        
+
         reportError() {
             this.errorReported = true;
             this.$notify('📧 Error report sent! Thanks for helping improve the system.', 'success');

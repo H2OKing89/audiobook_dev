@@ -1,0 +1,275 @@
+Metadata-Version: 2.4
+Name: audiobook-dev
+Version: 2.0.0
+Summary: Automated audiobook request system with MAM integration
+Author-email: H2OKing89 <kingmobileaudio@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/H2OKing89/audiobook_dev
+Project-URL: Repository, https://github.com/H2OKing89/audiobook_dev
+Project-URL: Issues, https://github.com/H2OKing89/audiobook_dev/issues
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: python-dotenv
+Requires-Dist: qbittorrent-api
+Requires-Dist: beautifulsoup4
+Requires-Dist: jinja2
+Requires-Dist: httpx[http2]>=0.28.1
+Requires-Dist: cachetools
+Requires-Dist: lxml
+Requires-Dist: html5lib
+Requires-Dist: slowapi
+Requires-Dist: fastapi-limiter
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-multipart
+Requires-Dist: itsdangerous
+Requires-Dist: idna
+Requires-Dist: cryptography
+Requires-Dist: PyYAML
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=1.3.0; extra == "dev"
+Requires-Dist: pytest-timeout>=2.2.0; extra == "dev"
+Requires-Dist: ruff>=0.8.0; extra == "dev"
+Requires-Dist: mypy>=1.8.0; extra == "dev"
+Requires-Dist: pre-commit>=3.6.0; extra == "dev"
+Requires-Dist: types-PyYAML; extra == "dev"
+Requires-Dist: types-cachetools; extra == "dev"
+Requires-Dist: types-beautifulsoup4; extra == "dev"
+Dynamic: license-file
+
+# 🎧 Audiobook Automation System
+
+A modern, secure, and delightfully over-engineered FastAPI microservice for automated audiobook approval workflows. Built by Quentin with maximum automation and minimum manual intervention in mind.
+
+## 🛡️ Security Status: ✅ VERIFIED
+
+**Last Audit**: June 16, 2025 | **Status**: 13/13 Security Tests Passing | **UI**: Cyberpunk Theme Secured
+
+---
+
+## ✨ Features
+
+- **🔒 Secure Webhook Endpoint** - Token-validated integration with Autobrr/MAM
+- **📖 Metadata Enrichment** - Audnex API and Audible scraping for rich book data
+- **💾 Persistent Storage** - SQLite database with comprehensive audit trails
+- **⏰ Time-Limited Tokens** - Cryptographically secure, single-use approval tokens
+- **📱 Multi-Platform Notifications** - Pushover, Discord, Gotify, and Ntfy support
+- **🎨 Beautiful Web Interface** - Modern, responsive UI with cyberpunk/anime aesthetics
+- **🌐 Social Media Ready** - Dynamic OG/Twitter meta tags for all pages
+- **⚙️ qBittorrent Integration** - Automated torrent handling with MAM cookie support
+- **🚀 Async Performance** - Threadpool handling for optimal responsiveness
+- **📊 Comprehensive Logging** - Centralized, rotating logs with detailed audit trails
+- **♿ Accessibility First** - WCAG 2.1 AA compliance with ARIA labels and keyboard navigation
+- **🧪 Test Coverage** - Comprehensive unit and integration test suite
+
+---
+
+## 📚 Documentation
+
+Complete documentation is available in the [`docs/`](docs/) directory:
+
+### 🎯 For Users
+
+- **[📖 Getting Started](docs/user-guide/getting-started.md)** - Installation and setup guide
+- **[⚙️ Configuration](docs/user-guide/configuration.md)** - Configuration options and examples
+- **[🌐 Web Interface](docs/user-guide/web-interface.md)** - Using the web UI
+- **[📱 Notifications](docs/user-guide/notifications.md)** - Setting up notification services
+- **[🔧 Troubleshooting](docs/user-guide/troubleshooting.md)** - Common issues and solutions
+
+### 🛠️ For Developers
+
+- **[🏗️ Architecture](docs/development/architecture.md)** - System design and component overview
+- **[🔐 Security](docs/development/SECURITY.md)** - Security implementation details
+- **[🎨 Interactive Fixes](docs/development/INTERACTIVE_FIXES.md)** - UI/UX improvements
+- **[📋 Logging](docs/development/LOGGING_IMPROVEMENTS.md)** - Enhanced logging system
+- **[🧪 Testing](docs/development/testing.md)** - Testing strategies and guidelines
+
+### 🔌 API Reference
+
+- **[🌐 REST API](docs/api/rest-api.md)** - Complete API documentation
+- **[🔗 Webhooks](docs/api/webhooks.md)** - Webhook configuration and payloads
+- **[💾 Database](docs/api/database.md)** - Database schema and queries
+- **[📋 Configuration](docs/api/config-reference.md)** - Complete configuration reference
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/kingpaging/audiobook-automation.git
+cd audiobook-automation
+
+# Set up virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure the system
+cp config/config.yaml.example config/config.yaml
+# Edit config/config.yaml with your settings
+
+# Initialize database
+python src/db.py
+
+# Start the application
+python src/main.py
+```
+
+Visit `http://localhost:8000` to access the beautiful web interface!
+
+For detailed setup instructions, see the [Getting Started Guide](docs/user-guide/getting-started.md).
+
+---
+
+## 🏗️ Project Structure
+
+```
+audiobook_dev/
+├── docs/                    # 📚 Comprehensive documentation
+│   ├── user-guide/         # User documentation and guides
+│   ├── development/        # Developer and architecture docs
+│   └── api/                # API reference and webhooks
+├── src/                    # 🐍 Python source code
+│   ├── main.py            # FastAPI application entry point
+│   ├── webui.py           # Web interface and routes
+│   ├── metadata.py        # Audiobook metadata handling
+│   ├── token_gen.py       # Secure token generation/validation
+│   ├── notify/            # 📱 Notification service modules
+│   │   ├── pushover.py    # Pushover notifications
+│   │   ├── gotify.py      # Gotify notifications
+│   │   ├── discord.py     # Discord notifications
+│   │   └── ntfy.py        # Ntfy notifications
+│   ├── qbittorrent.py     # qBittorrent integration
+│   ├── db.py              # SQLite database operations
+│   ├── config.py          # Configuration management
+│   ├── html.py            # Jinja2 template utilities
+│   └── utils.py           # Shared utility functions
+├── templates/              # 🎨 Jinja2 HTML templates
+│   ├── base.html          # Base template with common elements
+│   ├── index.html         # Enhanced home page
+│   ├── approval.html      # Approval workflow page
+│   ├── rejection.html     # Witty rejection page
+│   └── *.html             # Additional UI templates
+├── static/                 # 🌐 Static web assets
+│   ├── css/style.css      # Enhanced cyberpunk styling
+│   └── js/app.js          # Interactive JavaScript features
+├── tests/                  # 🧪 Comprehensive test suite
+├── config/                 # ⚙️ Configuration files
+│   └── config.yaml        # Main application configuration
+├── logs/                   # 📋 Application logs
+└── db.sqlite              # 💾 SQLite database
+```
+
+---
+
+## Setup
+
+1. **Clone the repo**
+
+   ```bash
+   git clone <repo-url>
+   cd audiobook_dev
+   ```
+
+2. **Create and activate a virtualenv**
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Copy and edit config**
+   - Edit `config/config.yaml` for your environment (API URLs, notification settings, etc).
+   - Create a `.env` file with your secrets (see `.env.example`).
+
+---
+
+## Running
+
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+- The webhook endpoint is set in `config.yaml` (default: `/webhook/audiobook-requests`).
+- The web UI is available at `/`.
+
+---
+
+## Notifications
+
+- **Pushover**: Rich HTML, cover image, approval link.
+- **Discord**: Embed with cover, links, and markdown.
+- **Gotify**: Markdown, cover image, action links.
+- **ntfy**: Markdown, cover image, action links.
+
+Configure each in `config/config.yaml` and `.env`.
+
+---
+
+## Metadata
+
+- Uses Audnex API for fast, reliable metadata.
+- Falls back to Audible scraping if needed.
+- Cleans and normalizes author, narrator, series, and description fields.
+- Caches lookups with LRU cache for efficiency.
+
+---
+
+## Testing
+
+- Run all tests:
+
+  ```bash
+  pytest -vv
+  ```
+
+- Tests cover:
+  - Metadata cleaning and validation
+  - Notification formatting
+  - Web UI endpoints
+  - Error cases
+- Fixtures in `tests/conftest.py` for isolation.
+
+---
+
+## Development
+
+- Code style: Black, isort, flake8 recommended.
+- Logging is configurable in `config.yaml`.
+- All user input is sanitized before rendering or sending to notification services.
+- For async/production, consider running with Gunicorn/Uvicorn workers.
+
+---
+
+## Security
+
+- Webhook endpoints require a token (set in `.env`).
+- Never commit `.env` or real secrets.
+- All user input is sanitized.
+
+---
+
+## License
+
+MIT License. See `LICENSE` for details.

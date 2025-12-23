@@ -10,7 +10,7 @@ document.addEventListener('alpine:init', () => {
         scannerActive: true,
         showTechSpecs: false,
         showDescription: false,
-        
+
         // Book data (will be populated from template)
         bookData: {
             title: '',
@@ -20,17 +20,17 @@ document.addEventListener('alpine:init', () => {
             size: '',
             description: ''
         },
-        
+
         // Decision state
         decisionMade: false,
         selectedAction: null,
-        
+
         // Visual effects
         glitchActive: false,
         terminalLines: [],
         terminalInterval: null,
         _scannerInterval: null,
-        
+
         init() {
             this.initializeTerminal();
             this.startScanner();
@@ -38,7 +38,7 @@ document.addEventListener('alpine:init', () => {
                 this.isLoading = false;
             }, 1000);
         },
-        
+
         initializeTerminal() {
             const fullLines = [
                 '> Initializing approval protocol...',
@@ -46,9 +46,9 @@ document.addEventListener('alpine:init', () => {
                 '> Activating decision matrix...',
                 '> Standing by for human input...'
             ];
-            
+
             this.terminalLines = [];
-            
+
             // Simulate typing effect
             let index = 0;
             this.terminalInterval = setInterval(() => {
@@ -61,7 +61,7 @@ document.addEventListener('alpine:init', () => {
                 }
             }, 800);
         },
-        
+
         destroy() {
             // Clean up intervals on component teardown
             if (this.terminalInterval) {
@@ -73,7 +73,7 @@ document.addEventListener('alpine:init', () => {
                 this._scannerInterval = null;
             }
         },
-        
+
         startScanner() {
             // Simulate the scanning line animation
             // Clear existing interval if present to avoid duplicates
@@ -85,28 +85,28 @@ document.addEventListener('alpine:init', () => {
                 this.scannerActive = !this.scannerActive;
             }, 2000);
         },
-        
+
         toggleTechSpecs() {
             this.showTechSpecs = !this.showTechSpecs;
         },
-        
+
         toggleDescription() {
             this.showDescription = !this.showDescription;
         },
-        
+
         triggerGlitch() {
             this.glitchActive = true;
             setTimeout(() => {
                 this.glitchActive = false;
             }, 500);
         },
-        
+
         // Decision handlers
         approve() {
             this.selectedAction = 'approve';
             this.triggerGlitch();
             this.$notify('🎉 Approval sequence initiated!', 'success');
-            
+
             setTimeout(() => {
                 const link = this.$el.querySelector('.approve-matrix');
                 if (link && link.href) {
@@ -117,12 +117,12 @@ document.addEventListener('alpine:init', () => {
                 }
             }, 1000);
         },
-        
+
         reject() {
             this.selectedAction = 'reject';
             this.triggerGlitch();
             this.$notify('🚫 Rejection protocol activated!', 'error');
-            
+
             setTimeout(() => {
                 const link = this.$el.querySelector('.reject-matrix');
                 if (link && link.href) {
@@ -133,7 +133,7 @@ document.addEventListener('alpine:init', () => {
                 }
             }, 1000);
         },
-        
+
         // Copy functionality
         copyBookInfo() {
             const bookInfo = `
@@ -143,12 +143,12 @@ Narrator: ${this.bookData.narrator}
 Duration: ${this.bookData.duration}
 Size: ${this.bookData.size}
             `.trim();
-            
+
             this.$copy(bookInfo).then(() => {
                 this.$notify('📋 Book info copied to clipboard!', 'success');
             });
         },
-        
+
         // System stats simulation
         getSystemStats() {
             return {

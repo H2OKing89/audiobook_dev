@@ -5,24 +5,28 @@ Thank you for your interest in contributing! This guide will help you get starte
 ## 🌟 Ways to Contribute
 
 ### 🐛 Bug Reports
+
 - Report bugs through GitHub Issues
 - Include detailed reproduction steps
 - Provide system information and logs
 - Check existing issues before creating new ones
 
 ### 💡 Feature Requests
+
 - Suggest new features or improvements
 - Explain the use case and benefit
 - Consider implementation complexity
 - Discuss with maintainers first for major features
 
 ### 📝 Documentation
+
 - Improve existing documentation
 - Add missing documentation
 - Fix typos and formatting
 - Translate documentation
 
 ### 💻 Code Contributions
+
 - Fix bugs and implement features
 - Improve performance and reliability
 - Add tests for new functionality
@@ -31,6 +35,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 ## 🛠️ Development Setup
 
 ### 1. Fork and Clone
+
 ```bash
 # Fork the repository on GitHub first
 git clone https://github.com/YOUR_USERNAME/audiobook-automation.git
@@ -38,6 +43,7 @@ cd audiobook-automation
 ```
 
 ### 2. Set Up Development Environment
+
 ```bash
 # Create virtual environment
 python -m venv .venv
@@ -52,6 +58,7 @@ pre-commit install
 ```
 
 ### 3. Configure for Development
+
 ```bash
 # Copy example configs
 cp config/config.yaml.example config/config.yaml
@@ -64,6 +71,7 @@ cp .env.example .env
 ```
 
 ### 4. Run Tests
+
 ```bash
 # Run the test suite
 python tests/test_metadata_workflow.py
@@ -77,6 +85,7 @@ python test_audnex_direct.py
 ## 📋 Development Guidelines
 
 ### Code Style
+
 - Follow PEP 8 Python style guide
 - Use meaningful variable and function names
 - Add docstrings to functions and classes
@@ -84,6 +93,7 @@ python test_audnex_direct.py
 - Use type hints where helpful
 
 ### Testing
+
 - Write tests for new features
 - Ensure existing tests pass
 - Test with real data when possible
@@ -91,6 +101,7 @@ python test_audnex_direct.py
 - Document test scenarios
 
 ### Security
+
 - Never commit sensitive data (tokens, passwords)
 - Validate all user inputs
 - Use parameterized queries for database operations
@@ -98,6 +109,7 @@ python test_audnex_direct.py
 - Report security issues privately
 
 ### Documentation
+
 - Update documentation for new features
 - Include code examples in docs
 - Keep README up to date
@@ -107,6 +119,7 @@ python test_audnex_direct.py
 ## 🔄 Development Workflow
 
 ### 1. Create Feature Branch
+
 ```bash
 # Create branch from main
 git checkout main
@@ -115,12 +128,14 @@ git checkout -b feature/your-feature-name
 ```
 
 ### 2. Make Changes
+
 - Write clean, focused commits
 - Test your changes thoroughly
 - Update documentation as needed
 - Ensure code follows style guidelines
 
 ### 3. Commit Changes
+
 ```bash
 # Stage changes
 git add .
@@ -135,6 +150,7 @@ git commit -m "feat: add new metadata source integration
 ```
 
 ### 4. Push and Create PR
+
 ```bash
 # Push to your fork
 git push origin feature/your-feature-name
@@ -150,24 +166,28 @@ git push origin feature/your-feature-name
 ### Test Categories
 
 #### Unit Tests
+
 - Test individual functions and classes
 - Mock external dependencies
 - Fast execution
 - High coverage of core logic
 
 #### Integration Tests
+
 - Test component interactions
 - Use real configurations
 - Test with sample data
 - Verify workflows end-to-end
 
 #### System Tests
+
 - Test full system functionality
 - Use real external APIs (carefully)
 - Test with production-like data
 - Verify performance characteristics
 
 ### Test Organization
+
 ```
 tests/
 ├── test_metadata_workflow.py     # Core workflow tests
@@ -179,6 +199,7 @@ tests/
 ```
 
 ### Running Tests
+
 ```bash
 # Run all production tests
 python tests/test_metadata_workflow.py
@@ -195,24 +216,28 @@ pytest tests/
 ## 🏗️ Architecture Guidelines
 
 ### Module Organization
+
 - Keep modules focused and cohesive
 - Use clear interfaces between modules
 - Minimize dependencies between modules
 - Follow separation of concerns
 
 ### Configuration Management
+
 - Use YAML for main configuration
 - Use environment variables for secrets
 - Provide example configurations
 - Validate configuration on startup
 
 ### Error Handling
+
 - Use appropriate exception types
 - Log errors with context
 - Provide helpful error messages
 - Graceful degradation when possible
 
 ### Performance Considerations
+
 - Respect API rate limits
 - Cache expensive operations
 - Use async operations where beneficial
@@ -221,12 +246,14 @@ pytest tests/
 ## 📦 Release Process
 
 ### Version Management
+
 - Use semantic versioning (major.minor.patch)
 - Tag releases in git
 - Maintain CHANGELOG.md
 - Document breaking changes
 
 ### Release Checklist
+
 - [ ] All tests pass
 - [ ] Documentation updated
 - [ ] Configuration examples current
@@ -237,12 +264,14 @@ pytest tests/
 ## 🐛 Debugging Tips
 
 ### Common Issues
+
 - **Import errors**: Check virtual environment activation
 - **Config errors**: Verify file format and required fields
 - **Database issues**: Check file permissions and locks
 - **API timeouts**: Verify network connectivity and rate limits
 
 ### Debugging Tools
+
 ```bash
 # Enable debug logging
 # Set in config.yaml: server.debug: true
@@ -258,6 +287,7 @@ python -c "from src.config import load_config; print(load_config())"
 ```
 
 ### Development Helpers
+
 ```bash
 # Quick restart during development
 pkill -f "python.*main.py" && python src/main.py
@@ -272,18 +302,22 @@ python -c "from src.config import validate_config; validate_config()"
 ## 📞 Getting Help
 
 ### Before Asking for Help
+
 1. Check existing documentation
 2. Search closed issues and PRs
 3. Try debugging steps above
 4. Prepare minimal reproduction case
 
 ### Where to Get Help
+
 - **GitHub Issues** - Bug reports and feature requests
 - **GitHub Discussions** - Questions and community help
 - **Documentation** - Comprehensive guides and references
 
 ### Providing Good Reports
+
 Include:
+
 - Clear description of issue or goal
 - Steps to reproduce problem
 - Expected vs actual behavior
@@ -294,6 +328,7 @@ Include:
 ## 🎯 Contribution Ideas
 
 ### Good First Issues
+
 - Fix typos in documentation
 - Improve error messages
 - Add configuration validation
@@ -301,6 +336,7 @@ Include:
 - Improve logging output
 
 ### Advanced Contributions
+
 - Add new metadata sources
 - Implement new notification channels
 - Improve web interface
