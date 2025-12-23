@@ -1,7 +1,6 @@
 # Ruff configuration
 # Comprehensive Python linting and formatting
 
-[tool.ruff]
 target-version = "py311"
 line-length = 120
 extend-exclude = [
@@ -14,7 +13,7 @@ extend-exclude = [
     "*.pyc",
 ]
 
-[tool.ruff.lint]
+[lint]
 select = [
     "E",      # pycodestyle errors
     "W",      # pycodestyle warnings
@@ -39,7 +38,7 @@ ignore = [
     "SIM108",  # use ternary operator
 ]
 
-[tool.ruff.lint.per-file-ignores]
+[lint.per-file-ignores]
 "tests/**/*.py" = [
     "ARG001",  # unused function argument
     "S101",    # use of assert
@@ -47,7 +46,7 @@ ignore = [
 ]
 "__init__.py" = ["F401"]
 
-[tool.ruff.lint.isort]
+[lint.isort]
 known-first-party = ["src"]
 force-single-line = false
 lines-after-imports = 2
