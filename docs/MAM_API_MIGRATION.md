@@ -1,8 +1,8 @@
 # MAM (MyAnonamouse) API Migration
 
-**Status**: ✅ Ready for Testing  
-**Branch**: `mam-api-migration`  
-**Created**: December 23, 2025  
+**Status**: ✅ Ready for Testing
+**Branch**: `mam-api-migration`
+**Created**: December 23, 2025
 **Last Updated**: December 23, 2025
 
 ## Overview
@@ -85,7 +85,7 @@ Using `?id=1207719` alone can be ignored. The correct form is:
 Several fields are JSON-encoded strings that must be parsed:
 
 - `author_info` → JSON string mapping id→name
-- `narrator_info` → JSON string mapping id→name  
+- `narrator_info` → JSON string mapping id→name
 - `series_info` → JSON string mapping id→[name, numStr, numFloat]
 - `mediainfo` → JSON string with General, Audio1, menu
 - `ownership` → JSON string list [user_id, "username"]
@@ -180,11 +180,11 @@ tid = extract_tid_from_irc(irc_line)
 with MamClient(mam_id=os.getenv("MAM_ID")) as mam:
     raw = mam.get_torrent(tid, media_info=True, isbn=True)
     normalized = raw.to_normalized()
-    
+
     print(normalized.title)
     print(normalized.author)
     print(normalized.asin)
-    
+
     # Download .torrent file
     torrent_bytes = mam.download_torrent_by_tid(tid)
 ```

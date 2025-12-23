@@ -12,6 +12,7 @@
 - **Font Hosting**: Self-host Orbitron WOFF2 (or use system font fallbacks) to avoid external font CDN dependencies
 
 ⚠️ **Security Notes**:
+
 - Avoid using `'unsafe-inline'` and `'unsafe-eval'` in production CSP
 - If static inline snippets are unavoidable, protect them with nonces/hashes
 - Consider self-hosting all assets (fonts, scripts) for maximum security control
@@ -190,7 +191,7 @@
 Your cyberpunk-themed audiobook automation system now has:
 
 - ⚡ Reactive components
-- 🎨 Smooth animations  
+- 🎨 Smooth animations
 - 📱 Better mobile experience
 - 🔧 Easier maintenance
 - 🚀 Modern architecture

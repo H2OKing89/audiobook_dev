@@ -35,8 +35,10 @@ def mock_httpx_globally(request):
     mock_response.content = b"mock content"
     mock_response.text = "mock text"
 
-    with patch("httpx.post", return_value=mock_response) as mock_post, \
-         patch("httpx.get", return_value=mock_response) as mock_get:
+    with (
+        patch("httpx.post", return_value=mock_response) as mock_post,
+        patch("httpx.get", return_value=mock_response) as mock_get,
+    ):
         yield {"post": mock_post, "get": mock_get}
 
 

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def get_csrf_protection_enabled() -> bool:
     """Check if CSRF protection is enabled in config"""
     config = load_config()
-    return config.get("security", {}).get("csrf_protection", True)
+    return bool(config.get("security", {}).get("csrf_protection", True))
 
 
 def sanitize_input(text: str | None) -> str:

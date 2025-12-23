@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Audible.com metadata fallback scraper
 Searches for audiobook metadata using Audible's search API
@@ -41,7 +40,7 @@ class AudibleScraper:
         self.base_url = self.audible_config.get("base_url", "https://api.audible.com")
         self.search_endpoint = self.audible_config.get("search_endpoint", "/1.0/catalog/products")
         self.global_rate_limit = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
-        self.last_global_request_time = 0
+        self.last_global_request_time: float = 0.0
         self.audnex = AudnexMetadata()
 
         # Region mapping for different Audible domains

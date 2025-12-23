@@ -5,43 +5,43 @@ jobs:
     parameters:
       py-version:
         type: string
-        default: "3.11"
+        default: '3.11'
     docker:
-      - image: cimg/python:<< parameters.py-version >>
+    - image: cimg/python:<< parameters.py-version >>
     steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - pip-<< parameters.py-version >>-{{ checksum "pyproject.toml" }}
-            - pip-<< parameters.py-version >>-
-      - run:
-          name: Install dependencies
-          command: pip install -e ".[dev]"
-      - save_cache:
-          key: pip-<< parameters.py-version >>-{{ checksum "pyproject.toml" }}
-          paths:
-            - ~/.cache/pip
-      - run:
-          name: Run linter
-          command: ruff check src/ tests/
-      - run:
-          name: Run type checker
-          command: mypy src/
-      - run:
-          name: Run tests
-          command: |
-            mkdir -p test-results
-            pytest --cov=src --cov-report=xml:coverage.xml --junitxml=test-results/junit.xml
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: coverage.xml
-          destination: coverage
+    - checkout
+    - restore_cache:
+        keys:
+        - pip-<< parameters.py-version >>-{{ checksum "pyproject.toml" }}
+        - pip-<< parameters.py-version >>-
+    - run:
+        name: Install dependencies
+        command: pip install -e ".[dev]"
+    - save_cache:
+        key: pip-<< parameters.py-version >>-{{ checksum "pyproject.toml" }}
+        paths:
+        - ~/.cache/pip
+    - run:
+        name: Run linter
+        command: ruff check src/ tests/
+    - run:
+        name: Run type checker
+        command: mypy src/
+    - run:
+        name: Run tests
+        command: |
+          mkdir -p test-results
+          pytest --cov=src --cov-report=xml:coverage.xml --junitxml=test-results/junit.xml
+    - store_test_results:
+        path: test-results
+    - store_artifacts:
+        path: coverage.xml
+        destination: coverage
 
 workflows:
   main:
     jobs:
-      - test:
-          matrix:
-            parameters:
-              py-version: ["3.11", "3.12", "3.13"]
+    - test:
+        matrix:
+          parameters:
+            py-version: ['3.11', '3.12', '3.13']

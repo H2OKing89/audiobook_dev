@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import IO, Any
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
@@ -57,7 +57,7 @@ def add_torrent_file_with_cookie(
     """
     Download a .torrent file (with optional cookie) and upload to qBittorrent with options.
     """
-    tmp: IO[bytes] | None = None
+    tmp_name: str | None = None
     try:
         # Validate download URL before attempting network call
         parsed = urlparse(download_url or "")
@@ -70,16 +70,14 @@ def add_torrent_file_with_cookie(
         safe_cookie = "set" if cookie else "not set"
         logger.info("Downloading .torrent file from %s with cookie: %s", download_url, safe_cookie)
         base_name = "".join(c if c.isalnum() or c in "-_." else "_" for c in name)
-        tmp = tempfile.NamedTemporaryFile(delete=False, prefix=f"{base_name}.", suffix=".torrent")
-        try:
+        with tempfile.NamedTemporaryFile(delete=False, prefix=f"{base_name}.", suffix=".torrent") as tmp:
             with httpx.stream("GET", download_url, headers=headers, timeout=30.0, follow_redirects=True) as r:
                 logger.debug("HTTP GET %s status=%s", download_url, getattr(r, "status_code", "unknown"))
                 r.raise_for_status()
                 for chunk in r.iter_bytes(1024 * 128):
                     tmp.write(chunk)
-        finally:
-            tmp.close()
-        logger.info("Downloaded torrent to %s", tmp.name)
+            tmp_name = tmp.name
+        logger.info("Downloaded torrent to %s", tmp_name)
         # Upload to qBittorrent
         client = get_client()
         try:
@@ -97,7 +95,7 @@ def add_torrent_file_with_cookie(
             autoTMM,
             contentLayout,
         )
-        with open(tmp.name, "rb") as f:
+        with Path(tmp_name).open("rb") as f:
             resp = client.torrents_add(
                 torrent_files=f,
                 category=category,
@@ -113,9 +111,9 @@ def add_torrent_file_with_cookie(
         logger.exception("Failed to add torrent file")
         return False
     finally:
-        if tmp:
+        if tmp_name:
             try:
-                Path(tmp.name).unlink()
-                logger.debug("Removed temp file: %s", tmp.name)
+                Path(tmp_name).unlink()
+                logger.debug("Removed temp file: %s", tmp_name)
             except Exception:
-                logger.warning("Could not remove temp file: %s", tmp.name)
+                logger.warning("Could not remove temp file: %s", tmp_name)

@@ -108,7 +108,7 @@ class TimeEffects {
         const particle = document.createElement('div');
         const symbols = ['⏰', '🕐', '⏳', '⌛', '🕑', '🕒', '🕓'];
         const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-        
+
         particle.className = 'time-particle';
         particle.textContent = symbol;
         particle.style.cssText = `
@@ -152,32 +152,32 @@ class TimeEffects {
                         opacity: 0;
                     }
                 }
-                
+
                 @keyframes time-distortion {
-                    0%, 100% { 
+                    0%, 100% {
                         transform: scale(1) skew(0deg);
                         filter: hue-rotate(0deg);
                     }
-                    50% { 
+                    50% {
                         transform: scale(1.05) skew(2deg);
                         filter: hue-rotate(30deg);
                     }
                 }
-                
+
                 @keyframes clock-glitch {
-                    0%, 100% { 
+                    0%, 100% {
                         transform: translateX(0);
                         opacity: 1;
                     }
-                    10% { 
+                    10% {
                         transform: translateX(-2px);
                         opacity: 0.8;
                     }
-                    20% { 
+                    20% {
                         transform: translateX(2px);
                         opacity: 1;
                     }
-                    30% { 
+                    30% {
                         transform: translateX(-1px);
                         opacity: 0.9;
                     }
@@ -269,7 +269,7 @@ class TimeFactGenerator {
     async typeWriter(text, element, speed = this.typewriterSpeed) {
         this.isTyping = true;
         element.textContent = '';
-        
+
         for (let i = 0; i < text.length; i++) {
             if (!this.isTyping) break;
             element.textContent += text.charAt(i);
@@ -317,7 +317,7 @@ class TimeFactGenerator {
     addClockEffect() {
         const clocks = ['🕐', '🕑', '🕒', '🕓', '🕔', '🕕'];
         const factContent = this.factElement.querySelector('.fact-content');
-        
+
         for (let i = 0; i < 2; i++) {
             setTimeout(() => {
                 const clock = document.createElement('span');
@@ -332,7 +332,7 @@ class TimeFactGenerator {
                     pointer-events: none;
                     color: #ffd700;
                 `;
-                
+
                 if (!document.getElementById('clock-float-styles')) {
                     const style = document.createElement('style');
                     style.id = 'clock-float-styles';
@@ -350,10 +350,10 @@ class TimeFactGenerator {
                     `;
                     document.head.appendChild(style);
                 }
-                
+
                 factContent.style.position = 'relative';
                 factContent.appendChild(clock);
-                
+
                 setTimeout(() => clock.remove(), 2000);
             }, i * 400);
         }
@@ -361,7 +361,7 @@ class TimeFactGenerator {
 
     async generateNewFact() {
         if (this.isTyping) return;
-        
+
         // Add loading state
         this.factElement.innerHTML = `
             <div class="loading-fact">
@@ -376,7 +376,7 @@ class TimeFactGenerator {
 
         // Wait a bit for effect
         await new Promise(resolve => setTimeout(resolve, 1200));
-        
+
         // Display new fact
         await this.displayFact();
     }
@@ -406,7 +406,7 @@ class TokenExpiredController {
     setupEventListeners() {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-        
+
         // Time effects on mascot click
         const mascot = document.querySelector('.time-image');
         if (mascot) {
@@ -495,12 +495,12 @@ class TokenExpiredController {
     triggerKonamiTimeTravel() {
         // Ultimate time travel mode
         this.showTemporaryMessage("🚀 KONAMI TIME TRAVEL ACTIVATED! 🚀", 4000);
-        
+
         // Add special effects
         this.timeEffects.triggerTimeDistortion();
         this.timeEffects.triggerClockGlitch();
         this.timeEffects.startTimeRain();
-        
+
         // Create multiple time ripples
         for (let i = 0; i < 5; i++) {
             setTimeout(() => {
@@ -521,7 +521,7 @@ class TokenExpiredController {
     autoStartTimeEffects() {
         // Start some subtle time effects
         this.timeEffects.startTimeRain();
-        
+
         // Create initial time ripple
         setTimeout(() => {
             const centerX = window.innerWidth / 2;
@@ -600,7 +600,7 @@ class TokenExpiredController {
         // Add click counter to time elements
         let clickCount = 0;
         const timeElements = document.querySelectorAll('.time-icon, .time-image');
-        
+
         timeElements.forEach(element => {
             element.addEventListener('click', () => {
                 clickCount++;
@@ -627,11 +627,11 @@ function showTimeHelp() {
         "🔄 Solution: Just go home and get a fresh token!",
         "💡 Remember: Time waits for no one, especially not expired tokens!"
     ];
-    
+
     let messageIndex = 0;
     const overlay = document.getElementById('helpOverlay');
     const content = overlay.querySelector('.overlay-content');
-    
+
     content.innerHTML = `
         <h2>🕰️ TEMPORAL ASSISTANCE</h2>
         <div id="help-message" style="font-family: 'Courier New', monospace; font-size: 1.1rem; margin: 20px 0;"></div>
@@ -640,11 +640,11 @@ function showTimeHelp() {
         </div>
         <div class="help-tip">💡 Pro tip: Time machines are still in beta testing!</div>
     `;
-    
+
     overlay.style.display = 'flex';
-    
+
     const helpElement = document.getElementById('help-message');
-    
+
     function showNextMessage() {
         if (messageIndex < helpMessages.length) {
             helpElement.textContent = helpMessages[messageIndex];
@@ -656,14 +656,14 @@ function showTimeHelp() {
             }, 2000);
         }
     }
-    
+
     showNextMessage();
 }
 
 function explainTokens() {
     const overlay = document.getElementById('helpOverlay');
     const content = overlay.querySelector('.overlay-content');
-    
+
     content.innerHTML = `
         <h2>🔑 TOKEN SCIENCE EXPLAINED</h2>
         <div style="text-align: left; margin: 20px 0;">
@@ -680,13 +680,13 @@ function explainTokens() {
             <p>Absolutely! Just go back home and request again!</p>
         </div>
         <div style="margin-top: 20px;">
-            <button onclick="document.getElementById('helpOverlay').style.display='none'" 
+            <button onclick="document.getElementById('helpOverlay').style.display='none'"
                     style="background: linear-gradient(45deg, #ff8c00, #ffb347); color: #1a0d00; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 Got it! [ESC]
             </button>
         </div>
     `;
-    
+
     overlay.style.display = 'flex';
 }
 
@@ -699,11 +699,11 @@ function timeTravel() {
         "🤖 Robot Future (Tokens Are Sentient)",
         "🌌 Parallel Universe (Tokens Never Expire!)"
     ];
-    
+
     const destination = destinations[Math.floor(Math.random() * destinations.length)];
     const overlay = document.getElementById('helpOverlay');
     const content = overlay.querySelector('.overlay-content');
-    
+
     content.innerHTML = `
         <h2>🚀 TIME TRAVEL INITIATED</h2>
         <div style="font-size: 1.2rem; margin: 20px 0;">
@@ -717,15 +717,15 @@ function timeTravel() {
             <p style="font-style: italic;">Disclaimer: Quentin's Time Travel™ is purely fictional. Please use regular transportation methods.</p>
         </div>
         <div style="margin-top: 20px;">
-            <button onclick="document.getElementById('helpOverlay').style.display='none'" 
+            <button onclick="document.getElementById('helpOverlay').style.display='none'"
                     style="background: linear-gradient(45deg, #ff8c00, #ffb347); color: #1a0d00; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 Stay in Present [ESC]
             </button>
         </div>
     `;
-    
+
     overlay.style.display = 'flex';
-    
+
     // Add time travel effects
     if (window.tokenController) {
         window.tokenController.timeEffects.startTimeRain();
@@ -745,14 +745,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the main controller
     tokenController = new TokenExpiredController();
     timeFactGenerator = tokenController.timeFactGenerator;
-    
+
     // Make them globally accessible
     window.tokenController = tokenController;
     window.timeFactGenerator = timeFactGenerator;
-    
+
     // Initialize time fact generator
     timeFactGenerator.initialize();
-    
+
     // Add CSS for progress bar animation
     if (!document.getElementById('progress-styles')) {
         const style = document.createElement('style');
@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 from { width: 0%; }
                 to { width: 100%; }
             }
-            
+
             @keyframes message-appear {
                 from {
                     opacity: 0;
@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.head.appendChild(style);
     }
-    
+
     debugLog('⏰ Token expired page loaded! Time effects ready! ⏰');
     debugLog('💡 Tip: Try pressing T for time facts, clicking the mascot, or the Konami code for time travel! 🚀');
 });

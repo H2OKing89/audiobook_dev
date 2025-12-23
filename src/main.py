@@ -194,8 +194,8 @@ async def queue_status(request: Request):
         ipaddress.ip_network("10.0.0.0/8"),
         ipaddress.ip_network("172.16.0.0/12"),
         ipaddress.ip_network("192.168.0.0/16"),
-        ipaddress.ip_network("127.0.0.0/8"),       # IPv4 loopback
-        ipaddress.ip_network("::1/128"),           # IPv6 loopback
+        ipaddress.ip_network("127.0.0.0/8"),  # IPv4 loopback
+        ipaddress.ip_network("::1/128"),  # IPv6 loopback
     ]
 
     # Get additional allowed IPs from environment (comma-separated)
@@ -606,7 +606,6 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
 
 
 # Commented out legacy handlers; using webui router instead
-
 
 
 # Public health check endpoint (safe for monitoring)

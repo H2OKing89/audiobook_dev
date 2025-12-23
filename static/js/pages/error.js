@@ -88,7 +88,7 @@ const ErrorPages = {
                 "Even expired tokens deserve a good dad joke 🎭",
                 "Brought to you by the Department of Digital Security 🔒"
             ];
-            
+
             let idx = 0;
             setInterval(() => {
                 footerElement.textContent = footerPhrases[idx % footerPhrases.length];
@@ -112,12 +112,12 @@ const ErrorPages = {
                     "The digital bouncer says no! 🚪"
                 ];
                 const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                
+
                 const tempMessage = document.createElement('div');
                 tempMessage.textContent = randomMessage;
                 tempMessage.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ff6b6b; color: white; padding: 1rem; border-radius: 8px; z-index: 1000; font-weight: bold;';
                 document.body.appendChild(tempMessage);
-                
+
                 setTimeout(() => {
                     document.body.removeChild(tempMessage);
                 }, 2000);

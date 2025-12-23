@@ -103,7 +103,7 @@ This document summarizes all code quality, safety, and maintainability improveme
     - Added `from html import unescape`
     - **Critical fix**: Moved unescape() BEFORE tag stripping to prevent XSS
 
-6. **[src/webui.py](../src/webui.py#L1-L15)**: Cleaned redundant imports  
+6. **[src/webui.py](../src/webui.py#L1-L15)**: Cleaned redundant imports
     - Removed duplicate `os` import (kept one instance, it's still needed)
 
 7. **[src/webui.py](../src/webui.py#L408-L412)**: HTML-escaped template values
@@ -204,7 +204,7 @@ All fixes have been validated through:
 
 ---
 
-**Total Fixes**: 35  
-**Tests Passing**: 185/187 (2 skipped)  
-**Coverage**: 54.84% (exceeds 50% threshold)  
+**Total Fixes**: 35
+**Tests Passing**: 185/187 (2 skipped)
+**Coverage**: 54.84% (exceeds 50% threshold)
 **Status**: ✅ All fixes applied successfully

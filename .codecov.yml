@@ -15,22 +15,22 @@ coverage:
         informational: true
 
 comment:
-  layout: "diff, flags, files"
+  layout: diff, flags, files
   behavior: default
   require_changes: false
   require_base: false
   require_head: true
 
 ignore:
-  - "tests/"
-  - "**/__pycache__/"
-  - "**/venv/"
-  - "**/.venv/"
-  - "scripts/"
-  - "**/__init__.py"
+- tests/
+- '**/__pycache__/'
+- '**/venv/'
+- '**/.venv/'
+- scripts/
+- '**/__init__.py'
 
 flags:
   unit:
     paths:
-      - src/
+    - src/
     carryforward: true

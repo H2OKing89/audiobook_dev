@@ -32,19 +32,19 @@ notifications:
     webhook_url: ""
     username: "Audiobook Bot"
     color: 0xFF69B4
-  
+
   gotify:
     enabled: false
     server_url: ""
     app_token: ""
     priority: 5
-  
+
   ntfy:
     enabled: false
     server_url: "https://ntfy.sh"
     topic: ""
     priority: "default"
-  
+
   pushover:
     enabled: false
     user_key: ""
@@ -77,6 +77,7 @@ logging:
 ## 🌐 Server Configuration
 
 ### `server.host`
+
 - **Type:** String
 - **Default:** `"0.0.0.0"`
 - **Description:** Host address to bind the server to
@@ -86,18 +87,21 @@ logging:
   - `"192.168.1.100"` - Specific IP address
 
 ### `server.port`
+
 - **Type:** Integer
 - **Default:** `8000`
 - **Range:** 1-65535
 - **Description:** Port number for the web server
 
 ### `server.debug`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable debug mode with enhanced logging and error details
 - **⚠️ Warning:** Never enable in production
 
 ### `server.workers`
+
 - **Type:** Integer
 - **Default:** `1`
 - **Description:** Number of worker processes (for production deployment)
@@ -107,6 +111,7 @@ logging:
 ## 💾 Database Configuration
 
 ### `database.path`
+
 - **Type:** String
 - **Default:** `"db.sqlite"`
 - **Description:** Path to SQLite database file
@@ -116,11 +121,13 @@ logging:
   - `":memory:"` - In-memory database (testing only)
 
 ### `database.backup_enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable automatic database backups
 
 ### `database.backup_interval_hours`
+
 - **Type:** Integer
 - **Default:** `24`
 - **Description:** Hours between automatic backups
@@ -130,21 +137,25 @@ logging:
 ## 🔐 Security Configuration
 
 ### `security.token_expiry_hours`
+
 - **Type:** Integer
 - **Default:** `24`
 - **Range:** 1-168 (1 week max)
 - **Description:** Hours before approval/rejection tokens expire
 
 ### `security.max_requests_per_hour`
+
 - **Type:** Integer
 - **Default:** `10`
 - **Description:** Maximum requests per IP address per hour
 
 ### `security.allowed_hosts`
+
 - **Type:** Array of Strings
 - **Default:** `[]` (all hosts allowed)
 - **Description:** Restrict access to specific hostnames
 - **Example:**
+
   ```yaml
   allowed_hosts:
     - "audiobooks.example.com"
@@ -152,6 +163,7 @@ logging:
   ```
 
 ### `security.cors_enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable Cross-Origin Resource Sharing
@@ -163,6 +175,7 @@ logging:
 ### Global Notification Settings
 
 #### `notifications.enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable/disable all notifications
@@ -170,22 +183,26 @@ logging:
 ### Discord Notifications
 
 #### `notifications.discord.enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable Discord notifications
 
 #### `notifications.discord.webhook_url`
+
 - **Type:** String
 - **Required:** Yes (if Discord enabled)
 - **Description:** Discord webhook URL
 - **Example:** `"https://discord.com/api/webhooks/123456789/abcdef..."`
 
 #### `notifications.discord.username`
+
 - **Type:** String
 - **Default:** `"Audiobook Bot"`
 - **Description:** Bot username for Discord messages
 
 #### `notifications.discord.color`
+
 - **Type:** Integer (Hex)
 - **Default:** `0xFF69B4`
 - **Description:** Embed color for Discord messages
@@ -197,22 +214,26 @@ logging:
 ### Gotify Notifications
 
 #### `notifications.gotify.enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable Gotify notifications
 
 #### `notifications.gotify.server_url`
+
 - **Type:** String
 - **Required:** Yes (if Gotify enabled)
 - **Description:** Gotify server URL
 - **Example:** `"https://gotify.example.com"`
 
 #### `notifications.gotify.app_token`
+
 - **Type:** String
 - **Required:** Yes (if Gotify enabled)
 - **Description:** Gotify application token
 
 #### `notifications.gotify.priority`
+
 - **Type:** Integer
 - **Default:** `5`
 - **Range:** 0-10
@@ -221,22 +242,26 @@ logging:
 ### Ntfy Notifications
 
 #### `notifications.ntfy.enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable Ntfy notifications
 
 #### `notifications.ntfy.server_url`
+
 - **Type:** String
 - **Default:** `"https://ntfy.sh"`
 - **Description:** Ntfy server URL
 
 #### `notifications.ntfy.topic`
+
 - **Type:** String
 - **Required:** Yes (if Ntfy enabled)
 - **Description:** Ntfy topic name
 - **Example:** `"audiobook_requests"`
 
 #### `notifications.ntfy.priority`
+
 - **Type:** String
 - **Default:** `"default"`
 - **Options:** `"max"`, `"high"`, `"default"`, `"low"`, `"min"`
@@ -245,21 +270,25 @@ logging:
 ### Pushover Notifications
 
 #### `notifications.pushover.enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable Pushover notifications
 
 #### `notifications.pushover.user_key`
+
 - **Type:** String
 - **Required:** Yes (if Pushover enabled)
 - **Description:** Pushover user key
 
 #### `notifications.pushover.api_token`
+
 - **Type:** String
 - **Required:** Yes (if Pushover enabled)
 - **Description:** Pushover API token
 
 #### `notifications.pushover.priority`
+
 - **Type:** Integer
 - **Default:** `0`
 - **Range:** -2 to 2
@@ -270,36 +299,43 @@ logging:
 ## ⚙️ qBittorrent Configuration
 
 ### `qbittorrent.enabled`
+
 - **Type:** Boolean
 - **Default:** `false`
 - **Description:** Enable qBittorrent integration
 
 ### `qbittorrent.host`
+
 - **Type:** String
 - **Default:** `"localhost"`
 - **Description:** qBittorrent server hostname/IP
 
 ### `qbittorrent.port`
+
 - **Type:** Integer
 - **Default:** `8080`
 - **Description:** qBittorrent web UI port
 
 ### `qbittorrent.username`
+
 - **Type:** String
 - **Required:** Yes (if qBittorrent enabled)
 - **Description:** qBittorrent web UI username
 
 ### `qbittorrent.password`
+
 - **Type:** String
 - **Required:** Yes (if qBittorrent enabled)
 - **Description:** qBittorrent web UI password
 
 ### `qbittorrent.download_path`
+
 - **Type:** String
 - **Default:** `"/downloads"`
 - **Description:** Download directory path
 
 ### `qbittorrent.category`
+
 - **Type:** String
 - **Default:** `"audiobooks"`
 - **Description:** Category for audiobook torrents
@@ -309,16 +345,19 @@ logging:
 ## 📖 Metadata Configuration
 
 ### `metadata.audnex_enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable Audnex API for metadata
 
 ### `metadata.audible_enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable Audible scraping for metadata
 
 ### `metadata.cache_expiry_hours`
+
 - **Type:** Integer
 - **Default:** `168` (1 week)
 - **Description:** Hours to cache metadata responses
@@ -328,32 +367,38 @@ logging:
 ## 📋 Logging Configuration
 
 ### `logging.level`
+
 - **Type:** String
 - **Default:** `"INFO"`
 - **Options:** `"DEBUG"`, `"INFO"`, `"WARNING"`, `"ERROR"`, `"CRITICAL"`
 - **Description:** Minimum log level to record
 
 ### `logging.file_enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable logging to file
 
 ### `logging.file_path`
+
 - **Type:** String
 - **Default:** `"logs/audiobook_requests.log"`
 - **Description:** Log file path
 
 ### `logging.max_file_size_mb`
+
 - **Type:** Integer
 - **Default:** `10`
 - **Description:** Maximum log file size before rotation
 
 ### `logging.backup_count`
+
 - **Type:** Integer
 - **Default:** `5`
 - **Description:** Number of backup log files to keep
 
 ### `logging.console_enabled`
+
 - **Type:** Boolean
 - **Default:** `true`
 - **Description:** Enable logging to console/stdout
@@ -395,6 +440,7 @@ Environment variables take precedence over YAML configuration.
 ## 📋 Configuration Examples
 
 ### Minimal Configuration
+
 ```yaml
 server:
   port: 8000
@@ -407,6 +453,7 @@ qbittorrent:
 ```
 
 ### Production Configuration
+
 ```yaml
 server:
   host: "0.0.0.0"
@@ -439,6 +486,7 @@ logging:
 ```
 
 ### Development Configuration
+
 ```yaml
 server:
   host: "localhost"
@@ -469,6 +517,7 @@ The system validates configuration on startup:
 - **Dependency checking** - Ensures required settings for enabled features
 
 ### Validation Errors
+
 Configuration errors are reported clearly:
 
 ```
@@ -484,11 +533,12 @@ Configuration Error: security.token_expiry_hours cannot exceed 168 (1 week)
 Some settings can be updated without restarting:
 
 - **Notification settings** - Webhook URLs, priorities
-- **Logging levels** - Change verbosity on the fly  
+- **Logging levels** - Change verbosity on the fly
 - **Rate limits** - Adjust request limits
 - **Metadata cache** - Clear or update cache settings
 
 Send a `SIGHUP` signal to reload configuration:
+
 ```bash
 kill -HUP $(pgrep -f "python.*main.py")
 ```

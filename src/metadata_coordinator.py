@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Metadata Coordinator
 Orchestrates the metadata fetching workflow:
@@ -44,7 +43,7 @@ class MetadataCoordinator:
         self.audible = AudibleScraper()
 
         # Global rate limiting
-        self.last_api_call = 0
+        self.last_api_call: float = 0.0
         self.rate_limit_seconds = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
         logging.info(f"Metadata coordinator initialized with {self.rate_limit_seconds}s rate limit")
 

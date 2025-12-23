@@ -25,7 +25,7 @@ function initializeHomePageComponents() {
         // Loading state
         isLoading: true,
         loadingProgress: 0,
-        
+
         // Dynamic content
         taglines: [
             "Stop sorting audiobooks like a caveman—let the robots handle it! 🤖",
@@ -45,7 +45,7 @@ function initializeHomePageComponents() {
             "Welcome to the matrix... of audiobook organization! 🕶️",
             "Cyberpunk vibes meet productivity - deal with it! 😎"
         ],
-        
+
         footerPhrases: [
             "Powered by Quentin's Legendary Overkill Engineering™ 🤖",
             "Serving pages with more precision than a Swiss chronometer ⏰",
@@ -62,14 +62,14 @@ function initializeHomePageComponents() {
             "Turning caffeine into code since 2024 ☕➡️💻",
             "More features than a Swiss Army knife, less stabby 🔧✨"
         ],
-        
+
         // Current rotating content
         currentTagline: '',
         currentFooterPhrase: '',
         // Interval IDs for rotations (used for cleanup)
         taglineIntervalId: null,
         footerIntervalId: null,
-        
+
         // Stats
         stats: {
             requests: { value: 0, target: 1337, label: 'Requests Processed' },
@@ -77,35 +77,35 @@ function initializeHomePageComponents() {
             satisfaction: { value: 0, target: 420, label: 'Dad Jokes Deployed' },
             caffeine: { value: 0, target: 9000, label: 'mg Caffeine Consumed' }
         },
-        
+
         // UI state
         showCallPopup: false,
         showAboutDetails: false,
         mascotClicks: 0,
         easterEggActivated: false,
-        
+
         // Particles
         particles: [],
-        
+
         // FAB menu
         fabOpen: false,
-        
+
         init() {
             this.initializeLoading();
             this.initializeContent();
             this.generateParticles();
             this.startRotations();
         },
-        
+
         initializeLoading() {
             // Simulate loading
             const loadingInterval = setInterval(() => {
                 this.loadingProgress += Math.random() * 15;
-                
+
                 if (this.loadingProgress >= 100) {
                     this.loadingProgress = 100;
                     clearInterval(loadingInterval);
-                    
+
                     setTimeout(() => {
                         this.isLoading = false;
                         this.animateStats();
@@ -113,12 +113,12 @@ function initializeHomePageComponents() {
                 }
             }, 100);
         },
-        
+
         initializeContent() {
             this.currentTagline = this.taglines[0];
             this.currentFooterPhrase = this.footerPhrases[0];
         },
-        
+
         generateParticles() {
             for (let i = 0; i < 50; i++) {
                 this.particles.push({
@@ -129,7 +129,7 @@ function initializeHomePageComponents() {
                 });
             }
         },
-        
+
         startRotations() {
             // Clear existing intervals if present to avoid duplicates
             if (this.taglineIntervalId) {
@@ -175,37 +175,37 @@ function initializeHomePageComponents() {
                 const stat = this.stats[key];
                 const duration = 2000;
                 const startTime = Date.now();
-                
+
                 const animate = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / duration, 1);
-                    
+
                     stat.value = Math.floor(stat.target * progress);
-                    
+
                     if (progress < 1) {
                         requestAnimationFrame(animate);
                     }
                 };
-                
+
                 setTimeout(() => requestAnimationFrame(animate), Math.random() * 500);
             });
         },
-        
+
         // Event handlers
         handleMascotClick() {
             this.mascotClicks++;
-            
+
             if (this.mascotClicks >= 5) {
                 this.triggerEasterEgg();
             } else {
                 this.$notify(`🐱 Meow! (${this.mascotClicks}/5 for surprise)`, 'info');
             }
         },
-        
+
         triggerEasterEgg() {
             this.easterEggActivated = true;
             this.$notify('🎉 Easter egg activated! You found the secret!', 'success');
-            
+
             // Add some visual flair
             document.body.style.animation = 'rainbow 2s ease-in-out';
             setTimeout(() => {
@@ -213,23 +213,23 @@ function initializeHomePageComponents() {
                 this.easterEggActivated = false;
             }, 2000);
         },
-        
+
         openCallPopup() {
             this.showCallPopup = true;
         },
-        
+
         closeCallPopup() {
             this.showCallPopup = false;
         },
-        
+
         toggleAboutDetails() {
             this.showAboutDetails = !this.showAboutDetails;
         },
-        
+
         toggleFab() {
             this.fabOpen = !this.fabOpen;
         },
-        
+
         // Quick actions
         quickAction(action) {
             switch (action) {
@@ -248,12 +248,12 @@ function initializeHomePageComponents() {
             }
             this.fabOpen = false;
         },
-        
+
         // Utility methods
         getStatDisplay(stat) {
             return stat.value + (stat.suffix || '');
         },
-        
+
         formatUptime() {
             return this.stats.uptime.value.toFixed(1) + '%';
         }

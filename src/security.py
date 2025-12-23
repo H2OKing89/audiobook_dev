@@ -202,7 +202,7 @@ def is_endpoint_protected(path: str) -> bool:
             return True
 
     # Default behavior for unknown endpoints
-    return auth_settings["require_auth_for_unknown"]
+    return bool(auth_settings["require_auth_for_unknown"])
 
 
 def is_valid_token_request(path: str) -> bool:
@@ -275,6 +275,7 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, force_https: bool = False):
         super().__init__(app)
         self.force_https = force_https
+
     async def dispatch(self, request, call_next):
         if self.force_https and request.url.scheme != "https":
             # Check for forwarded headers (reverse proxy)

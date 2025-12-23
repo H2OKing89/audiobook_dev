@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 MAM Login Test - Test MAM authentication only
 """

@@ -264,7 +264,7 @@ class TestErrorRecovery:
             mock_yaml.side_effect = Exception("Config corrupted")
 
             try:
-                from src.config import load_config  # noqa: PLC0415
+                from src.config import load_config
 
                 config = load_config()
                 # Should either load defaults or handle gracefully

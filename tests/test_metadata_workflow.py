@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Metadata Flow Testing Script
 Tests the complete metadata workflow with rate limiting

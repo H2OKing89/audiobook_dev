@@ -59,7 +59,7 @@ const AudiobookComponents = {
                     const originalText = submitButton.textContent || submitButton.value;
                     submitButton.textContent = 'Processing...';
                     submitButton.value = 'Processing...';
-                    
+
                     // Re-enable after 10 seconds as fallback
                     setTimeout(() => {
                         submitButton.disabled = false;

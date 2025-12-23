@@ -148,7 +148,7 @@ class Audible:
         try:
             response = httpx.get(url, timeout=timeout / 1000)  # Convert ms to seconds
             response.raise_for_status()
-            data = response.json()
+            data: dict[str, Any] = response.json()
             if not data.get("asin"):
                 return None
             return data
@@ -264,7 +264,9 @@ class Audnexus:
                         retry_after = int(retry_after_header)
                     except ValueError:
                         # Try parsing as HTTP-date (not implemented for simplicity, use default)
-                        logging.warning(f"[Audnexus] Non-integer retry-after header: {retry_after_header}, using default 5s")
+                        logging.warning(
+                            f"[Audnexus] Non-integer retry-after header: {retry_after_header}, using default 5s"
+                        )
                         retry_after = 5
                     logging.warning(f"[Audnexus] Rate limit exceeded. Retrying in {retry_after} seconds.")
                     time.sleep(retry_after)
@@ -364,16 +366,16 @@ class Audnexus:
 
 
 # Main fetch metadata function compatible with existing code
-def get_cached_metadata(_asin: str, _region: str = "us", _api_url: str | None = None) -> dict | None:
+def get_cached_metadata(asin: str, region: str = "us", api_url: str | None = None) -> dict | None:  # noqa: ARG001
     """Intentional stub kept for signature compatibility - tests are expected to patch/override this.
 
     This function is a placeholder whose parameters are currently unused in the default implementation.
     The function signature is maintained for backwards compatibility with existing code and tests.
 
     Args:
-        _asin: The Amazon Standard Identification Number (10 alphanumeric characters) to look up
-        _region: The Audible region/marketplace (e.g., 'us', 'uk', 'ca') for regional content
-        _api_url: Optional custom API endpoint URL for metadata lookup (typically None)
+        asin: The Amazon Standard Identification Number (10 alphanumeric characters) to look up
+        region: The Audible region/marketplace (e.g., 'us', 'uk', 'ca') for regional content
+        api_url: Optional custom API endpoint URL for metadata lookup (typically None)
 
     Returns:
         None by default. Tests should patch this function to return mock metadata dict when needed.
@@ -395,7 +397,8 @@ def get_audible_asin(title: str, author: str = "") -> str | None:
     a simple Audible search. If bs4 is not available or parsing fails, return None.
     """
     try:
-        import bs4  # noqa: PLC0415
+        import bs4
+
         BeautifulSoup = bs4.BeautifulSoup
     except ImportError:
         return None
@@ -439,7 +442,7 @@ def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dict:
     """
     Compatibility wrapper: Enhanced fetch using the new modular coordinator
     """
-    from src.metadata_coordinator import MetadataCoordinator  # noqa: PLC0415
+    from src.metadata_coordinator import MetadataCoordinator
 
     # Validate payload early to fail fast for invalid input
     config = load_config()

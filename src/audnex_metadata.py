@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Audnex API metadata fetcher
 Gets audiobook metadata from api.audnex.us using ASIN
@@ -39,7 +38,9 @@ class AudnexMetadata:
         self.last_request_time: float = 0.0
         self.last_global_request_time: float = 0.0
         # Multi-region support
-        self.regions: list[str] = self.audnex_config.get("regions", ["us", "uk", "ca", "au", "de", "fr", "es", "it", "jp", "in"])
+        self.regions: list[str] = self.audnex_config.get(
+            "regions", ["us", "uk", "ca", "au", "de", "fr", "es", "it", "jp", "in"]
+        )
         self.try_all_regions: bool = self.audnex_config.get("try_all_regions_on_error", True)
         self.max_regions: int = self.audnex_config.get("max_regions_to_try", 5)
 
@@ -77,7 +78,7 @@ class AudnexMetadata:
                 response = httpx.get(url, timeout=30)
                 response.raise_for_status()
 
-                data = response.json()
+                data: dict[str, Any] = response.json()
                 logging.debug(f"Response received, status: {response.status_code}")
                 return data
 

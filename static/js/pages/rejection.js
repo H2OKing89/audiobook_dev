@@ -9,7 +9,7 @@ function initRejectionPage() {
     setupKeyboardShortcuts();
     setupEasterEggs();
     startHologramEffects();
-    
+
     debugLog('🚫 Rejection consolation system activated');
 }
 
@@ -30,7 +30,7 @@ const rejectionJokes = [
 function loadDadJoke() {
     const jokeDisplay = document.getElementById('rejection-joke');
     if (!jokeDisplay) return;
-    
+
     // Show loading animation for 2 seconds
     setTimeout(() => {
         const randomJoke = rejectionJokes[Math.floor(Math.random() * rejectionJokes.length)];
@@ -44,7 +44,7 @@ function loadDadJoke() {
                 <span class="rating-value">${Math.floor(Math.random() * 20) + 80}% Groan-worthy</span>
             </div>
         `;
-        
+
         // Add CSS for joke styling
         if (!document.querySelector('#joke-styles')) {
             const style = document.createElement('style');
@@ -87,32 +87,32 @@ function loadDadJoke() {
 // Keyboard Shortcuts
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', function(e) {
-        if (document.activeElement.tagName === 'INPUT' || 
+        if (document.activeElement.tagName === 'INPUT' ||
             document.activeElement.tagName === 'TEXTAREA') {
             return;
         }
-        
+
         switch(e.key.toLowerCase()) {
             case 'h':
                 e.preventDefault();
                 window.location.href = '/';
                 break;
-                
+
             case 'a':
                 e.preventDefault();
                 window.location.href = 'mailto:admin@example.com';
                 break;
-                
+
             case 'r':
                 e.preventDefault();
                 showRetryMessage();
                 break;
-                
+
             case '?':
                 e.preventDefault();
                 triggerEasterEgg();
                 break;
-                
+
             case 'escape':
                 hideEasterEgg();
                 break;
@@ -133,7 +133,7 @@ function triggerEasterEgg() {
     const easterEgg = document.getElementById('easterEgg');
     if (easterEgg) {
         easterEgg.classList.add('show');
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
             hideEasterEgg();
@@ -166,7 +166,7 @@ function showTemporaryMessage(title, message, type = 'info') {
         max-width: 400px;
         animation: messageAppear 0.3s ease-out;
     `;
-    
+
     overlay.innerHTML = `
         <h3 style="color: ${type === 'info' ? 'var(--accent-cyan)' : 'var(--accent-pink)'}; margin: 0 0 1rem 0; text-shadow: 0 0 10px ${type === 'info' ? 'var(--shadow-cyan)' : 'var(--alert-bg)'};">
             ${title}
@@ -175,16 +175,16 @@ function showTemporaryMessage(title, message, type = 'info') {
             ${message}
         </p>
     `;
-    
+
     document.body.appendChild(overlay);
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
         if (overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
         }
     }, 3000);
-    
+
     // Click to dismiss
     overlay.addEventListener('click', () => {
         if (overlay.parentNode) {
@@ -197,7 +197,7 @@ function showTemporaryMessage(title, message, type = 'info') {
 function startHologramEffects() {
     const hologramImage = document.querySelector('.hologram-image');
     if (!hologramImage) return;
-    
+
     // Random glitch effects
     setInterval(() => {
         if (Math.random() < 0.1) { // 10% chance every interval
@@ -207,7 +207,7 @@ function startHologramEffects() {
             }, 100);
         }
     }, 2000);
-    
+
     // Click interaction
     hologramImage.addEventListener('click', () => {
         showTemporaryMessage(
@@ -244,11 +244,11 @@ function activateKonamiEasterEgg() {
         'SECRET ACHIEVEMENT UNLOCKED: "Master of Rejection"\n\nBonus: +30 Confidence Points\nReward: Virtual pat on the back 🫳',
         'info'
     );
-    
+
     // Add some fun visual effects
     const body = document.body;
     body.style.animation = 'rainbow 2s linear';
-    
+
     // Add rainbow animation if not present
     if (!document.querySelector('#rainbow-keyframes')) {
         const style = document.createElement('style');
@@ -264,7 +264,7 @@ function activateKonamiEasterEgg() {
         `;
         document.head.appendChild(style);
     }
-    
+
     setTimeout(() => {
         body.style.animation = '';
     }, 2000);

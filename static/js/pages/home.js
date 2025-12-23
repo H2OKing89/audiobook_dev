@@ -45,7 +45,7 @@ const HomePage = {
     // Processing status messages
     processingMessages: [
         "Processing Requests",
-        "Analyzing Metadata", 
+        "Analyzing Metadata",
         "Optimizing Chaos",
         "Teaching AI Sarcasm",
         "Brewing More Coffee",
@@ -70,18 +70,18 @@ const HomePage = {
     initLoadingScreen: function() {
         const loadingScreen = document.getElementById('loadingScreen');
         const homeContainer = document.getElementById('homeContainer');
-        
+
         if (loadingScreen && homeContainer) {
             // Hide home container initially
             homeContainer.style.opacity = '0';
-            
+
             // Use requestAnimationFrame for smoother transitions
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
                     homeContainer.style.transition = 'opacity 1s ease-in';
                     homeContainer.style.opacity = '1';
-                    
+
                     // Start animations after loading screen disappears
                     requestIdleCallback(() => {
                         this.startDynamicContent();
@@ -99,7 +99,7 @@ const HomePage = {
         const cycleTagline = () => {
             tagElement.style.opacity = '0';
             tagElement.style.transform = 'translateY(10px)';
-            
+
             setTimeout(() => {
                 tagElement.textContent = this.taglines[this.state.taglineIndex % this.taglines.length];
                 this.state.taglineIndex++;
@@ -110,10 +110,10 @@ const HomePage = {
 
         // Add CSS transition
         tagElement.style.transition = 'all 0.3s ease';
-        
+
         // Start cycling
         this.state.intervals.tagline = setInterval(cycleTagline, 4000);
-        
+
         // Initial cycle after delay
         setTimeout(cycleTagline, 2000);
     },
@@ -126,7 +126,7 @@ const HomePage = {
         const cycleFooter = () => {
             footerElement.style.opacity = '0';
             footerElement.style.transform = 'scale(0.95)';
-            
+
             setTimeout(() => {
                 footerElement.textContent = this.footerPhrases[this.state.footerIndex % this.footerPhrases.length];
                 this.state.footerIndex++;
@@ -158,18 +158,18 @@ const HomePage = {
         const catTail = document.getElementById('catTail');
         const mascotImg = document.getElementById('mascotImg');
         const tip = document.getElementById('easterTip');
-        
+
         if (catTail && tip && mascotImg) {
             // Add click handler to mascot
             mascotImg.addEventListener('click', () => {
                 this.showEasterEgg();
             });
-            
+
             // Add click handler for tail
             catTail.addEventListener('click', () => {
                 this.showEasterEgg();
             });
-            
+
             // Close tip handler
             const closeBtn = tip.querySelector('[data-action="close-tip"]');
             if (closeBtn) {
@@ -185,7 +185,7 @@ const HomePage = {
         if (tip) {
             tip.classList.add('show');
             tip.style.display = 'flex';
-            
+
             // Auto-hide after 5 seconds
             setTimeout(() => {
                 this.hideEasterEgg();
@@ -249,10 +249,10 @@ const HomePage = {
         if (popup && !this.state.popupPreloaded) {
             popup.style.display = 'block';
             popup.style.visibility = 'hidden';
-            
+
             // Force browser to render the popup
             popup.offsetHeight;
-            
+
             popup.style.display = 'none';
             popup.style.visibility = '';
             this.state.popupPreloaded = true;
@@ -264,7 +264,7 @@ const HomePage = {
             popup.style.display = 'flex';
             this.state.isPopupOpen = true;
             document.body.style.overflow = 'hidden';
-            
+
             // Use requestAnimationFrame for smoother animation
             requestAnimationFrame(() => {
                 popup.classList.add('show');
@@ -277,7 +277,7 @@ const HomePage = {
             popup.classList.remove('show');
             this.state.isPopupOpen = false;
             document.body.style.overflow = '';
-            
+
             setTimeout(() => {
                 popup.style.display = 'none';
             }, 300);
@@ -287,7 +287,7 @@ const HomePage = {
     // Animated statistics counters
     initStatCounters: function() {
         const counters = document.querySelectorAll('[data-target]');
-        
+
         const observerOptions = {
             threshold: 0.5,
             rootMargin: '0px 0px -100px 0px'
@@ -315,13 +315,13 @@ const HomePage = {
         const animate = (currentTime) => {
             const elapsed = currentTime - start;
             const progress = Math.min(elapsed / duration, 1);
-            
+
             // Easing function for smooth animation
             const easeOutQuart = 1 - Math.pow(1 - progress, 4);
             const current = Math.floor(easeOutQuart * target);
-            
+
             element.textContent = current;
-            
+
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
@@ -356,12 +356,12 @@ const HomePage = {
     initFAB: function() {
         const fabButton = document.getElementById('fabButton');
         const fabMenu = document.getElementById('fabMenu');
-        
+
         if (fabButton && fabMenu) {
             fabButton.addEventListener('click', () => {
                 this.toggleFABMenu();
             });
-            
+
             // Close FAB menu when clicking outside
             document.addEventListener('click', (e) => {
                 if (!fabButton.contains(e.target) && !fabMenu.contains(e.target)) {
@@ -374,7 +374,7 @@ const HomePage = {
     toggleFABMenu: function() {
         const fabMenu = document.getElementById('fabMenu');
         const fabButton = document.getElementById('fabButton');
-        
+
         if (this.state.isFabMenuOpen) {
             this.closeFABMenu();
         } else {
@@ -385,7 +385,7 @@ const HomePage = {
     openFABMenu: function() {
         const fabMenu = document.getElementById('fabMenu');
         const fabButton = document.getElementById('fabButton');
-        
+
         if (fabMenu && fabButton) {
             fabMenu.classList.add('active');
             fabButton.style.transform = 'rotate(45deg)';
@@ -396,7 +396,7 @@ const HomePage = {
     closeFABMenu: function() {
         const fabMenu = document.getElementById('fabMenu');
         const fabButton = document.getElementById('fabButton');
-        
+
         if (fabMenu && fabButton) {
             fabMenu.classList.remove('active');
             fabButton.style.transform = 'rotate(0deg)';
@@ -419,11 +419,11 @@ const HomePage = {
         // Debounced scroll handler
         let scrollTimeout;
         let lastScrollTop = 0;
-        
+
         const handleScroll = () => {
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             const fabContainer = document.querySelector('.fab-container');
-            
+
             if (fabContainer) {
                 if (scrollTop > lastScrollTop && scrollTop > 200) {
                     // Scrolling down
@@ -433,7 +433,7 @@ const HomePage = {
                     fabContainer.style.transform = 'translateY(0)';
                 }
             }
-            
+
             lastScrollTop = scrollTop;
         };
 
@@ -441,7 +441,7 @@ const HomePage = {
             if (scrollTimeout) {
                 window.cancelAnimationFrame(scrollTimeout);
             }
-            
+
             scrollTimeout = window.requestAnimationFrame(() => {
                 handleScroll();
             });
@@ -451,16 +451,16 @@ const HomePage = {
     // Enhanced feature card interactions
     initFeatureCardEffects: function() {
         const featureCards = document.querySelectorAll('.feature-card');
-        
+
         featureCards.forEach((card, index) => {
             // Add staggered hover animations
             card.style.animationDelay = `${index * 0.1}s`;
-            
+
             card.addEventListener('mouseenter', () => {
                 card.style.transform = 'translateY(-10px) scale(1.02)';
                 card.style.zIndex = '10';
             });
-            
+
             card.addEventListener('mouseleave', () => {
                 card.style.transform = 'translateY(0) scale(1)';
                 card.style.zIndex = '1';
@@ -479,12 +479,12 @@ const HomePage = {
     // Button enhancement effects with optimized ripple
     initButtonEffects: function() {
         const buttons = document.querySelectorAll('.quick-link-btn');
-        
+
         buttons.forEach(button => {
             // Prepare button for ripple effect
             button.style.position = 'relative';
             button.style.overflow = 'hidden';
-            
+
             // Add ripple effect with optimization
             button.addEventListener('click', (e) => {
                 requestAnimationFrame(() => {
@@ -508,23 +508,23 @@ const HomePage = {
         const size = Math.max(rect.width, rect.height);
         const x = e.clientX - rect.left - size / 2;
         const y = e.clientY - rect.top - size / 2;
-        
+
         ripple.style.width = ripple.style.height = size + 'px';
         ripple.style.left = x + 'px';
         ripple.style.top = y + 'px';
         ripple.classList.add('ripple-effect');
-        
+
         // Add ripple styles
         ripple.style.position = 'absolute';
         ripple.style.borderRadius = '50%';
         ripple.style.background = 'rgba(255, 255, 255, 0.3)';
         ripple.style.pointerEvents = 'none';
         ripple.style.animation = 'ripple-animation 0.6s ease-out';
-        
+
         button.style.position = 'relative';
         button.style.overflow = 'hidden';
         button.appendChild(ripple);
-        
+
         // Remove ripple after animation
         setTimeout(() => {
             ripple.remove();
@@ -541,21 +541,21 @@ const HomePage = {
 
         const createParticle = () => {
             if (document.hidden) return; // Don't create particles when tab is hidden
-            
+
             const particle = document.createElement('div');
             particle.classList.add('particle');
-            
+
             // Random starting position
             particle.style.left = Math.random() * 100 + '%';
             particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
             particle.style.animationDelay = Math.random() * 2 + 's';
-            
+
             // Random color
             const colors = ['#00f5ff', '#ff006e', '#00ff88', '#ffbd2e'];
             particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            
+
             container.appendChild(particle);
-            
+
             // Remove particle after animation
             setTimeout(() => {
                 particle.remove();
@@ -564,7 +564,7 @@ const HomePage = {
 
         // Create particles periodically
         this.state.intervals.particles = setInterval(createParticle, particleInterval);
-        
+
         // Limit number of particles
         setInterval(() => {
             const particles = container.querySelectorAll('.particle');
@@ -600,10 +600,10 @@ const HomePage = {
         if (this.state.isInitialized) return;
 
         debugLog('🎧 Initializing Enhanced Audiobook HQ Homepage...');
-        
+
         // Add CSS animations keyframes dynamically
         this.addDynamicStyles();
-        
+
         // Initialize core functionality
         this.initLoadingScreen();
         this.initCatTailEasterEgg();
@@ -612,7 +612,7 @@ const HomePage = {
         this.initSmoothScrolling();
         this.initFeatureCardEffects();
         this.initButtonEffects();
-        
+
         this.state.isInitialized = true;
         debugLog('✅ Enhanced Homepage initialization complete!');
     },
@@ -625,19 +625,19 @@ const HomePage = {
                 0% { transform: scale(0); opacity: 1; }
                 100% { transform: scale(2); opacity: 0; }
             }
-            
+
             .tagline-fade { opacity: 0.3; transform: translateY(5px); }
             .footer-fade { opacity: 0.3; transform: scale(0.98); }
-            
-            .fab-container { 
-                transition: transform 0.3s ease; 
+
+            .fab-container {
+                transition: transform 0.3s ease;
                 will-change: transform;
             }
-            .quick-link-btn { 
+            .quick-link-btn {
                 transition: all 0.3s ease;
                 will-change: transform;
             }
-            .feature-card { 
+            .feature-card {
                 transition: all 0.3s ease;
                 will-change: transform;
             }

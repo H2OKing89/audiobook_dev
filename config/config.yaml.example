@@ -45,8 +45,8 @@ notifications:
     author_url: "https://example.com/audiobookshelf/"  # Replace with your Audiobookshelf URL
     footer_icon_url: "https://ptpimg.me/44pi19.png"
     footer_text: "Powered by Autobrr"
-    
-  
+
+
 server:
   host: "0.0.0.0"
   port: 8000
@@ -73,7 +73,7 @@ logging:
 qbittorrent:
   enabled: true # disable for testing or if not using qBittorrent
   host: "http://localhost:8080"  # Replace with your qBittorrent host
-  qbittorrent_ui: "https://your-qbittorrent-url.com/"   # Link to UI for notifications     
+  qbittorrent_ui: "https://your-qbittorrent-url.com/"   # Link to UI for notifications
   use_auto_torrent_management: true        # Use qBittorrent's auto management
   content_layout: "Subfolder"              # Subfolder or Original
   category: "audiobooks"                   # Default category if not specified in webhook
@@ -83,24 +83,24 @@ qbittorrent:
 security:
   # HTTPS enforcement
   force_https: false  # Set to true in production to redirect HTTP to HTTPS
-  
+
   # Rate limiting
   rate_limit_window: 3600  # Time window in seconds (1 hour)
   max_tokens_per_window: 10  # Maximum tokens per IP per window
   max_failed_logins: 5  # Max failed logins before temporary lockout
   lockout_time: 300  # Seconds (5 minutes)
-  
+
   # API security
   api_key_enabled: true  # Enable API key requirement for admin endpoints
   api_key: "your-strong-api-key-here"  # CHANGE THIS! Strong API key for admin endpoints
   # WARNING: Runtime validation will reject default placeholder values. Generate a strong random key before deployment.
-  
+
   # Endpoint protection
   endpoint_protection_enabled: true  # Enable endpoint authorization checks
   require_auth_for_unknown_endpoints: false  # Require auth for endpoints not explicitly listed
   protected_endpoints:  # Additional endpoints that require authentication
     - "/admin"
-    - "/api/admin" 
+    - "/api/admin"
     - "/config"
     - "/logs"
     - "/stats"
@@ -110,24 +110,24 @@ security:
     - "/"
     - "/static"
     - "/approve"
-    - "/reject" 
+    - "/reject"
     - "/health"
     - "/favicon.ico"
-  
+
   # CSRF protection
   csrf_protection: true  # Enable CSRF protection for forms
-  
+
   # JavaScript security
   use_external_js: true  # Use external JS files for stricter CSP (recommended)
-  
+
   # Note: For production environments, consider tightening brute-force settings:
   # - Lower max_failed_logins to 3
   # - Increase lockout_time to 900 (15 minutes)
-  
+
   # Input validation
   max_payload_size: 1048576  # 1MB max payload size
   sanitize_inputs: true  # Sanitize inputs to prevent XSS
-  
+
   # Content Security
   allowed_image_domains:
     - "your-image-host.com"  # Replace with your image hosting domain

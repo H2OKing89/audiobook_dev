@@ -1,4 +1,5 @@
 """Tests for notification formatting - uses global httpx mock from conftest."""
+
 import httpx as httpx_module
 import pytest
 
@@ -48,7 +49,7 @@ def test_pushover_message_formatting(mock_httpx_globally):
         "test_api_key",
         sound="magic",
         html=1,
-        priority=0
+        priority=0,
     )
 
     assert status == 200
@@ -69,7 +70,7 @@ def test_gotify_message_formatting(mock_httpx_globally):
         "test_token",
         "http://localhost:8000",
         "http://test-gotify.localhost",
-        "test_gotify_token"
+        "test_gotify_token",
     )
 
     assert status == 200
@@ -83,11 +84,7 @@ def test_discord_message_formatting(mock_httpx_globally):
     mock_httpx_globally["post"].return_value.json.return_value = {}
 
     status, _resp = discord.send_discord(
-        sample_metadata,
-        sample_payload,
-        "test_token",
-        "http://localhost:8000",
-        "http://test-discord.localhost/webhook"
+        sample_metadata, sample_payload, "test_token", "http://localhost:8000", "http://test-discord.localhost/webhook"
     )
 
     assert status == 204
@@ -105,7 +102,7 @@ def test_ntfy_message_formatting(mock_httpx_globally):
         "test_token",
         "http://localhost:8000",
         "test-topic",
-        "http://test-ntfy.localhost"
+        "http://test-ntfy.localhost",
     )
 
     assert status == 200
@@ -124,8 +121,7 @@ def test_notify_missing_urls(field, mock_httpx_globally):
     mock_httpx_globally["post"].return_value.json.return_value = {"result": "ok"}
 
     status, _resp = ntfy.send_ntfy(
-        meta, payload, "test_token", "http://localhost:8000",
-        "test-topic", "http://test-ntfy.localhost"
+        meta, payload, "test_token", "http://localhost:8000", "test-topic", "http://test-ntfy.localhost"
     )
     assert status == 200
     assert mock_httpx_globally["post"].called
@@ -140,8 +136,7 @@ def test_html_sanitization_in_notifications(mock_httpx_globally):
     mock_httpx_globally["post"].return_value.json.return_value = {"id": 1}
 
     status, _resp = gotify.send_gotify(
-        meta, sample_payload, "test_token", "http://localhost:8000",
-        "http://test-gotify.localhost", "test_gotify_token"
+        meta, sample_payload, "test_token", "http://localhost:8000", "http://test-gotify.localhost", "test_gotify_token"
     )
     assert status == 200
 
@@ -159,8 +154,7 @@ def test_notify_network_error_handling(mock_httpx_globally):
     # The pushover function re-raises httpx.RequestError for network errors
     with pytest.raises(httpx_module.RequestError) as exc_info:
         pushover.send_pushover(
-            sample_metadata, sample_payload, "test_token",
-            "http://localhost:8000", "test_user", "test_api_key"
+            sample_metadata, sample_payload, "test_token", "http://localhost:8000", "test_user", "test_api_key"
         )
 
     assert "Connection refused" in str(exc_info.value)

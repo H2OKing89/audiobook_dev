@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Audnex Direct Test - Test Audnex API with known ASINs
 This simulates what would happen if MAM extraction succeeded

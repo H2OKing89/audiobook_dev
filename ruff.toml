@@ -34,8 +34,11 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "PLR0913", # too many arguments
     "PLR0912", # too many branches
+    "PLR0915", # too many statements (complex functions are intentional)
+    "PLR0911", # too many return statements
     "PLR2004", # magic value comparison
     "SIM108",  # use ternary operator
+    "PLC0415", # late imports (needed for optional dependencies)
 ]
 
 [lint.per-file-ignores]

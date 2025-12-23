@@ -83,7 +83,7 @@ def send_pushover(
         # Download cover image if available and attach
         cover_url = metadata.get("cover_url") or metadata.get("image")
         files = None
-        temp_file = None
+        temp_file_path = None
 
         if cover_url:
             logger.debug("[token=%s] Downloading cover image: %s", token, cover_url)
@@ -92,19 +92,21 @@ def send_pushover(
                 resp.raise_for_status()
                 # Save to temp file
                 suffix = Path(cover_url).suffix or ".jpg"
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                temp_file.write(resp.content)
-                temp_file.close()
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                    temp_file.write(resp.content)
+                    temp_file_path = temp_file.name
                 logger.debug("[token=%s] Cover image downloaded and prepared for upload", token)
             except httpx.RequestError as e:
                 logger.debug("[token=%s] Failed to download cover image: %s", token, e)
 
         try:
-            logger.debug("[token=%s] Sending Pushover notification%s", token, " with attachment" if temp_file else "")
-            if temp_file:
+            logger.debug(
+                "[token=%s] Sending Pushover notification%s", token, " with attachment" if temp_file_path else ""
+            )
+            if temp_file_path:
                 # Use context manager to ensure file handle is closed after request
-                with Path(temp_file.name).open("rb") as f:
-                    files = {"attachment": (Path(temp_file.name).name, f, "image/jpeg")}
+                with Path(temp_file_path).open("rb") as f:
+                    files = {"attachment": (Path(temp_file_path).name, f, "image/jpeg")}
                     response = httpx.post(url, data=payload_data, files=files, timeout=15)
             else:
                 response = httpx.post(url, data=payload_data, timeout=15)
@@ -117,9 +119,9 @@ def send_pushover(
             raise
         finally:
             # Cleanup temporary file
-            if temp_file and Path(temp_file.name).exists():
+            if temp_file_path and Path(temp_file_path).exists():
                 try:
-                    Path(temp_file.name).unlink()
+                    Path(temp_file_path).unlink()
                     logger.debug("[token=%s] Cleaned up temporary cover image file", token)
                 except Exception as e:
                     logger.warning("[token=%s] Failed to cleanup temp file: %s", token, e)

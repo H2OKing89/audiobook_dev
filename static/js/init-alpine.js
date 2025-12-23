@@ -22,7 +22,7 @@ function waitForAlpine() {
     if (initializeAlpine()) {
         return; // Success!
     }
-    
+
     retryCount++;
     if (retryCount < maxRetries) {
         setTimeout(waitForAlpine, 100);

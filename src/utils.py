@@ -162,7 +162,7 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         if series_seq:
             series = f"{series_name} (Vol. {series_seq})"
         else:
-            series = series_name
+            series = str(series_name) if series_name else ""
     elif metadata.get("series"):
         # Handle series as array or string
         series_data = metadata.get("series")

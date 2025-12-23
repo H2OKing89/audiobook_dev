@@ -12,7 +12,7 @@
 {% block content %}
 <div class="rejection-zone">
   <div class="glitch-container">
-    
+
     <!-- Error Terminal Header -->
     <header class="error-terminal">
       <div class="terminal-window">
@@ -23,7 +23,7 @@
         </div>
         <div class="terminal-content">
           <div class="error-output">
-            <span class="prompt">quentin@audiobook-hq:~$</span> 
+            <span class="prompt">quentin@audiobook-hq:~$</span>
             <span class="command">./process_request.sh</span>
           </div>
           <div class="error-line">
@@ -39,7 +39,7 @@
     <!-- Main Rejection Display -->
     <main class="rejection-display">
       <div class="status-screen">
-        
+
         <!-- Big Rejection Alert -->
         <div class="alert-section">
           <div class="alert-icon">🚫</div>
@@ -51,7 +51,7 @@
         <div class="hologram-container">
           <div class="hologram-frame">
             <img src="https://ptpimg.me/l7pkv0.png"
-                 alt="Disappointed Quentin Hologram" 
+                 alt="Disappointed Quentin Hologram"
                  class="hologram-image"
                  draggable="false">
             <div class="hologram-scanlines"></div>
@@ -106,7 +106,7 @@
             <span class="panel-icon">⚡</span>
             <span class="panel-title">RECOVERY_OPTIONS</span>
           </div>
-          
+
           <div class="action-grid">
             <!-- Hidden CSRF form for POST rejection (used by JS or tests) -->
             <form id="hiddenRejectForm" method="post" action="/reject/{{ token }}" style="display:none;">

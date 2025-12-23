@@ -17,6 +17,7 @@ config/
 ## 🔧 Main Configuration (`config.yaml`)
 
 ### Server Settings
+
 ```yaml
 server:
   host: "127.0.0.1"
@@ -25,6 +26,7 @@ server:
 ```
 
 ### Database
+
 ```yaml
 database:
   path: "db.sqlite"
@@ -33,6 +35,7 @@ database:
 ```
 
 ### Security
+
 ```yaml
 security:
   csrf_enabled: true
@@ -44,6 +47,7 @@ security:
 ```
 
 ### Metadata Workflow
+
 ```yaml
 metadata:
   rate_limit_seconds: 120          # Production: 120s, Testing: 30s
@@ -61,12 +65,13 @@ metadata:
 ```
 
 ### Notifications
+
 ```yaml
 notifications:
   discord:
     enabled: false
     webhook_url: ""                # Set in .env as DISCORD_WEBHOOK_URL
-  
+
   pushover:
     enabled: false
     user_key: ""                   # Set in .env as PUSHOVER_USER_KEY
@@ -95,6 +100,7 @@ NTFY_URL=https://ntfy.sh/your-topic
 For full MAM integration with ASIN extraction:
 
 ### 1. Setup MAM Config
+
 ```bash
 # Copy the example
 cp config/mam_config.json.example config/mam_config.json
@@ -104,7 +110,9 @@ python setup_mam_config.py
 ```
 
 ### 2. Configure MAM Credentials
+
 Edit `config/mam_config.json`:
+
 ```json
 {
   "email": "your-mam-email@example.com",
@@ -123,6 +131,7 @@ Edit `config/mam_config.json`:
 ## 🎯 Configuration Examples
 
 ### Development/Testing
+
 ```yaml
 metadata:
   rate_limit_seconds: 30           # Faster testing
@@ -131,6 +140,7 @@ server:
 ```
 
 ### Production
+
 ```yaml
 metadata:
   rate_limit_seconds: 120          # Respectful API usage
@@ -144,6 +154,7 @@ security:
 ## ✅ Configuration Validation
 
 Test your configuration:
+
 ```bash
 # Test main config
 python -c "from src.config import load_config; print('✅ Config valid')"
@@ -160,20 +171,24 @@ python tests/test_metadata_workflow.py
 ### Common Issues
 
 **Config file not found:**
+
 ```bash
 cp config/config.yaml.example config/config.yaml
 ```
 
 **MAM login fails:**
+
 - Verify credentials in `config/mam_config.json`
 - Check if MAM requires 2FA (not currently supported)
 - Test login manually on MAM website
 
 **Rate limiting too slow:**
+
 - Adjust `metadata.rate_limit_seconds` in config.yaml
 - Use 30s for testing, 120s for production
 
 **Webhook authentication fails:**
+
 - Verify `AUTOBRR_TOKEN` in `.env` file
 - Check autobrr webhook configuration
 

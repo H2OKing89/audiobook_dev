@@ -18,8 +18,11 @@ class TestQbittorrentClient:
             mock_client.assert_called_once_with(host="http://localhost:8080", username="admin", password="password")
 
     def test_get_client_missing_env(self):
-        with patch.dict(os.environ, {}, clear=True), pytest.raises(
-            ValueError, match="QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set"
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            pytest.raises(
+                ValueError, match="QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set"
+            ),
         ):
             get_client()
 

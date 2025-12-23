@@ -6,13 +6,14 @@ This document outlines the security measures implemented in the Audiobook Approv
 
 ## Security Audit Status
 
-**Last Audit**: June 16, 2025  
-**Status**: ✅ **ALL SECURITY TESTS PASSING (13/13)**  
+**Last Audit**: June 16, 2025
+**Status**: ✅ **ALL SECURITY TESTS PASSING (13/13)**
 **UI Revamp**: Cyberpunk theme implemented without security regressions
 
 ### Recent Updates
+
 - Completed comprehensive security audit following cyberpunk UI revamp
-- Fixed rate limiting test interference 
+- Fixed rate limiting test interference
 - Confirmed no XSS vulnerabilities in new JavaScript code
 - Verified CSRF protection remains active
 - All input sanitization working correctly
@@ -20,19 +21,23 @@ This document outlines the security measures implemented in the Audiobook Approv
 ## Content Security Policy (CSP)
 
 ### Current Implementation
+
 - **Stricter CSP**: `default-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'; script-src 'self';`
 - External JavaScript files are served from `/static/js/`
 - External CSS files are served from `/static/css/`
 - No inline scripts allowed (except when `use_external_js: false`)
 
 ### Configuration Options
+
 In `config/config.yaml`:
+
 ```yaml
 security:
   use_external_js: true  # Use external JS files for stricter CSP (recommended)
 ```
 
 ### Benefits
+
 - Prevents XSS attacks from inline scripts
 - Reduces attack surface
 - Better code organization
@@ -41,11 +46,13 @@ security:
 ## Rate Limiting
 
 ### Implementation
+
 - Token bucket algorithm for API rate limiting
 - Configurable limits per IP address
 - Separate limits for different endpoints
 
 ### Configuration
+
 ```yaml
 security:
   rate_limit_window: 3600  # Time window in seconds (1 hour)
@@ -55,11 +62,13 @@ security:
 ## CSRF Protection
 
 ### Implementation
+
 - CSRF tokens generated for all forms
 - Token validation on POST requests
 - Configurable protection level
 
 ### Configuration
+
 ```yaml
 security:
   csrf_protection: true  # Enable CSRF protection for forms
@@ -68,6 +77,7 @@ security:
 ## Security Headers
 
 The following security headers are automatically added:
+
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
 - `X-XSS-Protection: 1; mode=block`
@@ -78,12 +88,14 @@ The following security headers are automatically added:
 ## Input Validation
 
 ### Features
+
 - HTML sanitization to prevent XSS
 - Payload size limits
 - Required field validation
 - Type checking for security-critical inputs
 
 ### Configuration
+
 ```yaml
 security:
   max_payload_size: 1048576  # 1MB max payload size
@@ -93,11 +105,13 @@ security:
 ## API Security
 
 ### Features
+
 - Optional API key authentication for admin endpoints
 - Token-based authentication for webhook endpoints
 - IP address logging for security monitoring
 
 ### Configuration
+
 ```yaml
 security:
   api_key_enabled: false  # Enable API key requirement for admin endpoints
@@ -107,6 +121,7 @@ security:
 ## Allowed Domains
 
 ### Image Sources\nImages are allowed from specific trusted domains:\n```yaml\nsecurity:\n  allowed_image_domains:\n    - \"ptpimg.me\"\n    - \"i.imgur.com\"\n    - \"audnex.us\"\n    - \"m.media-amazon.com\"", "oldString": "### Image Sources\nImages are allowed from specific trusted domains:\n```yaml\nsecurity:\n  allowed_image_domains:\n    - \"your-image-host.com\"\n    - \"ptpimg.me\"\n    - \"i.imgur.com\"\n    - \"audnex.us\"\n    - \"m.media-amazon.com\"
+
 ```
 
 ## Best Practices
@@ -169,12 +184,12 @@ Security issues should be reported privately to the system administrator.
 ## Latest Security Audits
 
 ### ✅ Backend Security Audit - June 16, 2025
-**Status**: PASSED - All critical issues resolved  
+**Status**: PASSED - All critical issues resolved
 **Report**: [Backend Security Audit June 2025](../security/BACKEND_SECURITY_AUDIT_JUNE_2025.md)
 
 **Key Findings**:
 - Fixed critical admin endpoint exposure vulnerability
-- Resolved authentication bypass issues  
+- Resolved authentication bypass issues
 - All 13 security tests passing
 - Risk Level: LOW ✅
 

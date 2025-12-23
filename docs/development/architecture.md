@@ -165,11 +165,11 @@ class NotificationService:
 ### Content Security Policy (CSP)
 
 ```http
-Content-Security-Policy: 
-    default-src 'self'; 
-    style-src 'self' fonts.googleapis.com; 
-    font-src 'self' fonts.gstatic.com; 
-    img-src 'self' example.com; 
+Content-Security-Policy:
+    default-src 'self';
+    style-src 'self' fonts.googleapis.com;
+    font-src 'self' fonts.gstatic.com;
+    img-src 'self' example.com;
     script-src 'self'
 ```
 
@@ -216,11 +216,11 @@ graph TD
     C --> D[Token Generation]
     D --> E[Notification Dispatch]
     E --> F[External Services]
-    
+
     G[Approval Click] --> H[Token Validation]
     H --> I[Database Update]
     I --> J[Success Response]
-    
+
     K[Admin Interface] --> L[Request Management]
     L --> M[Bulk Operations]
 ```
