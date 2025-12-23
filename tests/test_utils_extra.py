@@ -73,16 +73,16 @@ def test_db_token_expiry(monkeypatch):
     token = "tok_expire"
     meta = {"foo": "bar"}
     payload = {"baz": 1}
-    
+
     # Use short TTL and time travel
     with patch("src.db._get_ttl", return_value=1):
         save_request(token, meta, payload)
-        
+
         # Simulate expiry by advancing time
         old_time = time.time
         monkeypatch.setattr(time, "time", lambda: old_time() + 3600)
         assert get_request(token) is None
-        
+
     # Clean up
     monkeypatch.setattr(time, "time", old_time)
     delete_request(token)

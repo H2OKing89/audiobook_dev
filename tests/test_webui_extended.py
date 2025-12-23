@@ -174,7 +174,7 @@ class TestWebUIEndpoints:
 
         # Get current time for manipulation
         current_time = time.time()
-        
+
         with patch("src.db._get_ttl", return_value=1):
             monkeypatch.setattr(time, "time", lambda: current_time)
             save_request(token, metadata, payload)
