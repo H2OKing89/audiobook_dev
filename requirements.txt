@@ -3,7 +3,7 @@ uvicorn
 python-dotenv
 qbittorrent-api
 beautifulsoup4
-
+aiofiles
 jinja2
 pytest
 pytest-cov

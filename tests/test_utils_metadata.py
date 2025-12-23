@@ -59,6 +59,7 @@ def test_build_notification_message(sample_item, sample_payload):
     assert "/approve/token123" in msg
 
 
-def test_fetch_metadata_invalid():
-    with pytest.raises(ValueError):
-        fetch_metadata({})
+@pytest.mark.asyncio
+async def test_fetch_metadata_invalid():
+    with pytest.raises(ValueError, match="Payload missing required keys"):
+        await fetch_metadata({})

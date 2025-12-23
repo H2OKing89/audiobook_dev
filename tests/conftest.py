@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +12,7 @@ from src.token_gen import generate_token
 
 # Configure pytest-asyncio mode
 pytest_plugins = ("pytest_asyncio",)
+
 
 # =============================================================================
 # Global httpx mock to prevent ANY real HTTP calls during tests
@@ -49,13 +50,21 @@ def mock_httpx_globally(request):
 
 @pytest.fixture(scope="session")
 def test_client():
-    """Session-scoped FastAPI TestClient to avoid repeated app creation.
+    """Session-scoped FastAPI TestClient for testing.
 
-    Using a single client for the entire session significantly speeds up tests
-    by avoiding the overhead of creating new app instances.
+    Uses manual lifecycle management to handle event loop cleanup issues
+    that occur when pytest-asyncio closes the loop before session teardown.
     """
-    with TestClient(app) as client:
-        yield client
+    client = TestClient(app)
+    client.__enter__()
+    yield client
+    # Suppress only the expected "Event loop is closed" during session teardown
+    # This is expected with session-scoped fixtures and pytest-asyncio
+    try:
+        client.__exit__(None, None, None)
+    except RuntimeError as exc:
+        if "Event loop is closed" not in str(exc):
+            raise
 
 
 @pytest.fixture
@@ -114,7 +123,7 @@ def mock_metadata():
     Returns the mock object so callers can customize the return value:
         mock_metadata.return_value = {"title": "Custom Title"}
     """
-    with patch("src.metadata.fetch_metadata") as mock:
+    with patch("src.metadata.fetch_metadata", new_callable=AsyncMock) as mock:
         mock.return_value = {
             "title": "Test Book",
             "author": "Test Author",
@@ -178,9 +187,12 @@ def mock_external_apis():
     """
     # Patch the metadata coordinator's method which orchestrates all external calls
     # Also patch chapter fetching to prevent network calls
+    # Use AsyncMock since these methods are now async
     with (
-        patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_coord,
-        patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin") as mock_chapters,
+        patch(
+            "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+        ) as mock_coord,
+        patch("src.audnex_metadata.AudnexMetadata.get_chapters_by_asin", new_callable=AsyncMock) as mock_chapters,
     ):
         mock_coord.return_value = {
             "title": "Mocked Book Title",

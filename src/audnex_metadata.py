@@ -1,249 +1,244 @@
 """
 Audnex API metadata fetcher
 Gets audiobook metadata from api.audnex.us using ASIN
+
+This module provides async methods for fetching audiobook metadata from the Audnex API,
+with parallel region fetching for improved performance.
 """
 
 import argparse
+import asyncio
 import logging
 import re
 import sys
-import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
-
-
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import load_config
+from src.http_client import (
+    DEFAULT_REGIONS,
+    AsyncHttpClient,
+    get_default_client,
+    get_regions_priority,
+)
 
+
+logger = logging.getLogger(__name__)
 
 # Ensure logs directory exists before configuring logging
 _log_dir = Path(__file__).parent.parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audnex_metadata.log")],
-)
+# Configure logging (only if not already configured)
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audnex_metadata.log")],
+    )
 
 
 class AudnexMetadata:
-    def __init__(self) -> None:
+    """
+    Async Audnex API metadata client with parallel region fetching.
+
+    Example usage:
+        async with AudnexMetadata() as audnex:
+            metadata = await audnex.get_book_by_asin("B08G9PRS1K")
+            chapters = await audnex.get_chapters_by_asin("B08G9PRS1K")
+    """
+
+    def __init__(self, client: AsyncHttpClient | None = None) -> None:
+        """
+        Initialize the Audnex metadata client.
+
+        Args:
+            client: Optional AsyncHttpClient instance. If not provided, uses the default shared client.
+        """
+        self._client = client
         self.config: dict = load_config()
         self.audnex_config: dict = self.config.get("metadata", {}).get("audnex", {})
         self.base_url: str = self.audnex_config.get("base_url", "https://api.audnex.us")
-        self.rate_limit: float = self.audnex_config.get("rate_limit_seconds", 0.15)
-        self.global_rate_limit: float = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
-        self.last_request_time: float = 0.0
-        self.last_global_request_time: float = 0.0
-        # Multi-region support
-        self.regions: list[str] = self.audnex_config.get(
-            "regions", ["us", "uk", "ca", "au", "de", "fr", "es", "it", "jp", "in"]
-        )
+
+        # Region configuration
+        self.regions: list[str] = self.audnex_config.get("regions", DEFAULT_REGIONS.copy())
         self.try_all_regions: bool = self.audnex_config.get("try_all_regions_on_error", True)
-        self.max_regions: int = self.audnex_config.get("max_regions_to_try", 5)
+        self.max_regions: int = self.audnex_config.get("max_regions_to_try", 10)
 
-    def _throttle_request(self) -> None:
-        """Apply rate limiting between requests."""
-        current_time = time.time()
+    async def _get_client(self) -> AsyncHttpClient:
+        """Get or create the HTTP client."""
+        if self._client is None:
+            self._client = await get_default_client()
+        return self._client
 
-        # Local rate limiting (150ms between requests)
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < self.rate_limit:
-            time.sleep(self.rate_limit - time_since_last)
+    async def __aenter__(self) -> "AudnexMetadata":
+        """Async context manager entry."""
+        await self._get_client()
+        return self
 
-        self.last_request_time = time.time()
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object,
+    ) -> None:
+        """Async context manager exit.
 
-    def _check_global_rate_limit(self):
-        """Check if we need to wait for global rate limit (2 minutes)."""
-        current_time = time.time()
-        time_since_last_global = current_time - self.last_global_request_time
+        Note: Does not close the HTTP client as it's managed by the application lifespan.
+        The shared client is closed during app shutdown.
+        """
 
-        if time_since_last_global < self.global_rate_limit:
-            wait_time = self.global_rate_limit - time_since_last_global
-            logging.info(f"Global rate limit: waiting {wait_time:.1f} seconds...")
-            time.sleep(wait_time)
+    async def get_book_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
+        """
+        Get book metadata by ASIN with parallel region fetching.
 
-        self.last_global_request_time = time.time()
+        Args:
+            asin: Amazon Standard Identification Number (10 characters)
+            region: Preferred region to try first (default: "us")
 
-    def _make_request(self, url: str, max_retries: int = 3) -> dict[str, Any] | None:
-        """Make a request to the Audnex API with rate limiting and retry logic."""
-        self._throttle_request()
-        self._check_global_rate_limit()
-
-        for attempt in range(max_retries):
-            try:
-                logging.debug(f"Making request to: {url}")
-                response = httpx.get(url, timeout=30)
-                response.raise_for_status()
-
-                data: dict[str, Any] = response.json()
-                logging.debug(f"Response received, status: {response.status_code}")
-                return data
-
-            except httpx.HTTPStatusError as e:
-                if e.response is not None and e.response.status_code == 429:  # Rate limited
-                    retry_after_header = e.response.headers.get("retry-after", "5")
-                    try:
-                        retry_after = int(retry_after_header)
-                    except ValueError:
-                        logging.warning(f"Invalid retry-after header: {retry_after_header}, using default 5s")
-                        retry_after = 5
-                    logging.warning(f"Rate limit exceeded. Retrying in {retry_after} seconds.")
-                    time.sleep(retry_after)
-                    continue
-                elif e.response is not None and e.response.status_code == 500:
-                    # For 500 errors, don't retry - likely the data doesn't exist in this region
-                    logging.error(f"HTTP error: {e}")
-                    return None
-                else:
-                    logging.error(f"HTTP error: {e}")
-                    if attempt == max_retries - 1:
-                        return None
-                    time.sleep(2**attempt)  # Exponential backoff
-
-            except httpx.RequestError as e:
-                logging.error(f"Request error: {e}")
-                if attempt == max_retries - 1:
-                    return None
-                time.sleep(2**attempt)  # Exponential backoff
-
-        return None
-
-    def get_book_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
-        """Get book metadata by ASIN with multi-region fallback."""
+        Returns:
+            Cleaned metadata dict or None if not found
+        """
         if not asin or len(asin) != 10:
-            logging.error(f"Invalid ASIN format: {asin}")
+            logger.error("Invalid ASIN format: %s", asin)
             return None
 
         asin = asin.upper()
+        client = await self._get_client()
 
-        # If try_all_regions is enabled and we get an error, try other regions
-        regions_to_try = [region]  # Start with requested region
+        # Build region list with preferred region first
         if self.try_all_regions:
-            # Add additional regions based on max_regions config
-            other_regions = [r for r in self.regions if r != region]
-            regions_to_try.extend(other_regions[: self.max_regions - 1])
+            regions = get_regions_priority(region, max_regions=self.max_regions)
+        else:
+            regions = [region]
 
-        for try_region in regions_to_try:
-            params = {"region": try_region} if try_region else {}
-            url = f"{self.base_url}/books/{asin}"
+        logger.info("Fetching book metadata for ASIN: %s (trying %d regions)", asin, len(regions))
 
-            if params:
-                url += f"?{urlencode(params)}"
+        # Parallel fetch with ASIN validation
+        result, found_region = await client.fetch_first_success(
+            regions=regions,
+            url_factory=lambda r: f"{self.base_url}/books/{asin}?region={r}",
+            validator=lambda d: bool(d.get("asin")),
+        )
 
-            logging.info(f"Fetching book metadata for ASIN: {asin} (region: {try_region})")
+        if result:
+            logger.info("Book found for ASIN %s in region %s", asin, found_region)
+            metadata = self._clean_book_metadata(result)
+            metadata["audnex_region"] = found_region
+            return metadata
 
-            # Use single retry when trying multiple regions to avoid excessive delays
-            max_retries = 1 if len(regions_to_try) > 1 else 3
-            result = self._make_request(url, max_retries=max_retries)
-
-            if result and result.get("asin"):
-                logging.info(f"✅ Book metadata found for ASIN: {asin} in region: {try_region}")
-                metadata = self._clean_book_metadata(result)
-                metadata["audnex_region"] = try_region  # Track which region worked
-                return metadata
-            elif result is None and try_region != regions_to_try[-1]:
-                # Only log as warning if we're trying another region
-                logging.warning(f"⚠️  No metadata for ASIN {asin} in region {try_region}, trying next region...")
-            else:
-                logging.warning(f"❌ No metadata found for ASIN: {asin} in region: {try_region}")
-
-        logging.error(f"❌ No metadata found for ASIN {asin} in any region")
+        logger.error("No metadata found for ASIN %s in any region", asin)
         return None
 
-    def get_chapters_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
-        """Get chapter information by ASIN with multi-region fallback."""
+    async def get_chapters_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
+        """
+        Get chapter information by ASIN with parallel region fetching.
+
+        Args:
+            asin: Amazon Standard Identification Number (10 characters)
+            region: Preferred region to try first (default: "us")
+
+        Returns:
+            Chapters dict or None if not found
+        """
         if not asin or len(asin) != 10:
-            logging.error(f"Invalid ASIN format: {asin}")
+            logger.error("Invalid ASIN format: %s", asin)
             return None
 
         asin = asin.upper()
+        client = await self._get_client()
 
-        # If try_all_regions is enabled and we get an error, try other regions
-        regions_to_try = [region]  # Start with requested region
+        # Build region list with preferred region first
         if self.try_all_regions:
-            # Add additional regions based on max_regions config
-            other_regions = [r for r in self.regions if r != region]
-            regions_to_try.extend(other_regions[: self.max_regions - 1])
+            regions = get_regions_priority(region, max_regions=self.max_regions)
+        else:
+            regions = [region]
 
-        for try_region in regions_to_try:
-            params = {"region": try_region} if try_region else {}
-            url = f"{self.base_url}/books/{asin}/chapters"
+        logger.info("Fetching chapters for ASIN: %s (trying %d regions)", asin, len(regions))
 
-            if params:
-                url += f"?{urlencode(params)}"
+        # Parallel fetch - chapters just need to be non-empty
+        result, found_region = await client.fetch_first_success(
+            regions=regions,
+            url_factory=lambda r: f"{self.base_url}/books/{asin}/chapters?region={r}",
+            validator=bool,
+        )
 
-            logging.info(f"Fetching chapters for ASIN: {asin} (region: {try_region})")
+        if result:
+            logger.info("Chapters found for ASIN %s in region %s", asin, found_region)
+            if isinstance(result, dict):
+                result["audnex_region"] = found_region
+            return result
 
-            # Use single retry when trying multiple regions to avoid excessive delays
-            max_retries = 1 if len(regions_to_try) > 1 else 3
-            result = self._make_request(url, max_retries=max_retries)
-
-            if result:
-                logging.info(f"✅ Chapters found for ASIN: {asin} in region: {try_region}")
-                if isinstance(result, dict):
-                    result["audnex_region"] = try_region  # Track which region worked
-                return result
-            elif result is None and try_region != regions_to_try[-1]:
-                logging.warning(f"⚠️  No chapters for ASIN {asin} in region {try_region}, trying next region...")
-            else:
-                logging.warning(f"❌ No chapters found for ASIN: {asin} in region: {try_region}")
-
-        logging.error(f"❌ No chapters found for ASIN {asin} in any region")
+        logger.error("No chapters found for ASIN %s in any region", asin)
         return None
 
-    def search_author_by_name(self, name: str, region: str = "us") -> list[dict[str, Any]]:
-        """Search for authors by name."""
+    async def search_author_by_name(self, name: str, region: str = "us") -> list[dict[str, Any]]:
+        """
+        Search for authors by name.
+
+        Args:
+            name: Author name to search for
+            region: Audible region (default: "us")
+
+        Returns:
+            List of author results
+        """
+        client = await self._get_client()
+
         params = {"name": name}
         if region:
             params["region"] = region
 
         url = f"{self.base_url}/authors?{urlencode(params)}"
+        logger.info("Searching for author: %s (region: %s)", name, region)
 
-        logging.info(f"Searching for author: {name} (region: {region})")
-
-        result = self._make_request(url)
+        result = await client.get_json(url)
 
         if result:
             if isinstance(result, list):
-                logging.info(f"✅ Found {len(result)} author results for: {name}")
+                logger.info("Found %d author results for: %s", len(result), name)
                 return result
             else:
-                logging.info(f"✅ Found 1 author result for: {name}")
+                logger.info("Found 1 author result for: %s", name)
                 return [result]
-        else:
-            logging.warning(f"❌ No authors found for: {name}")
-            return []
 
-    def get_author_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
-        """Get author information by ASIN."""
+        logger.warning("No authors found for: %s", name)
+        return []
+
+    async def get_author_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
+        """
+        Get author information by ASIN.
+
+        Args:
+            asin: Author ASIN (10 characters)
+            region: Audible region (default: "us")
+
+        Returns:
+            Author info dict or None if not found
+        """
         if not asin or len(asin) != 10:
-            logging.error(f"Invalid ASIN format: {asin}")
+            logger.error("Invalid ASIN format: %s", asin)
             return None
 
         asin = asin.upper()
+        client = await self._get_client()
+
         params = {"region": region} if region else {}
         url = f"{self.base_url}/authors/{asin}"
-
         if params:
             url += f"?{urlencode(params)}"
 
-        logging.info(f"Fetching author for ASIN: {asin} (region: {region})")
+        logger.info("Fetching author for ASIN: %s (region: %s)", asin, region)
 
-        result = self._make_request(url)
+        result = await client.get_json(url)
 
         if result and result.get("asin"):
-            logging.info(f"✅ Author found for ASIN: {asin}")
+            logger.info("Author found for ASIN: %s", asin)
             return result
-        else:
-            logging.warning(f"❌ No author found for ASIN: {asin}")
-            return None
+
+        logger.warning("No author found for ASIN: %s", asin)
+        return None
 
     def _clean_book_metadata(self, item: dict[str, Any]) -> dict[str, Any]:
         """Clean and format book metadata from Audnex response."""
@@ -376,42 +371,46 @@ class AudnexMetadata:
         updated_sequence = match.group(0) if match else sequence
 
         if sequence != updated_sequence:
-            logging.debug(f'Series "{series_name}" sequence cleaned from "{sequence}" to "{updated_sequence}"')
+            logger.debug('Series "%s" sequence cleaned from "%s" to "%s"', series_name, sequence, updated_sequence)
 
         return updated_sequence
 
 
-def main():
-    """Main function for command line usage."""
+async def async_main():
+    """Async main function for command line usage."""
     parser = argparse.ArgumentParser(description="Audnex Metadata Fetcher")
     parser.add_argument("asin", help="ASIN to fetch metadata for")
     parser.add_argument("--region", default="us", help="Audible region (default: us)")
     parser.add_argument("--chapters", action="store_true", help="Also fetch chapter information")
     args = parser.parse_args()
 
-    fetcher = AudnexMetadata()
+    async with AudnexMetadata() as fetcher:
+        # Get book metadata
+        metadata = await fetcher.get_book_by_asin(args.asin, region=args.region)
 
-    # Get book metadata
-    metadata = fetcher.get_book_by_asin(args.asin, region=args.region)
+        if metadata:
+            print("Book metadata found:")
+            print(f"  Title: {metadata.get('title')}")
+            print(f"  Author: {metadata.get('author')}")
+            print(f"  ASIN: {metadata.get('asin')}")
+            print(f"  Publisher: {metadata.get('publisher')}")
+            print(f"  Duration: {metadata.get('duration')} minutes")
+            if metadata.get("series"):
+                for series in metadata["series"]:
+                    print(f"  Series: {series['series']} #{series['sequence']}")
 
-    if metadata:
-        print("✅ Book metadata found:")
-        print(f"  Title: {metadata.get('title')}")
-        print(f"  Author: {metadata.get('author')}")
-        print(f"  ASIN: {metadata.get('asin')}")
-        print(f"  Publisher: {metadata.get('publisher')}")
-        print(f"  Duration: {metadata.get('duration')} minutes")
-        if metadata.get("series"):
-            for series in metadata["series"]:
-                print(f"  Series: {series['series']} #{series['sequence']}")
+            # Get chapters if requested
+            if args.chapters:
+                chapters = await fetcher.get_chapters_by_asin(args.asin, region=args.region)
+                if chapters:
+                    print(f"\nFound {len(chapters.get('chapters', []))} chapters")
+        else:
+            print(f"No metadata found for ASIN: {args.asin}")
 
-        # Get chapters if requested
-        if args.chapters:
-            chapters = fetcher.get_chapters_by_asin(args.asin, region=args.region)
-            if chapters:
-                print(f"\n✅ Found {len(chapters.get('chapters', []))} chapters")
-    else:
-        print(f"❌ No metadata found for ASIN: {args.asin}")
+
+def main():
+    """Main entry point for command line usage."""
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

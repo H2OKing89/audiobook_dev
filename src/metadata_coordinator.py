@@ -42,22 +42,7 @@ class MetadataCoordinator:
         self.audnex = AudnexMetadata()
         self.audible = AudibleScraper()
 
-        # Global rate limiting
-        self.last_api_call: float = 0.0
-        self.rate_limit_seconds = self.config.get("metadata", {}).get("rate_limit_seconds", 120)
-        logging.info(f"Metadata coordinator initialized with {self.rate_limit_seconds}s rate limit")
-
-    async def _enforce_rate_limit(self):
-        """Enforce global rate limiting between API calls"""
-        current_time = time.time()
-        time_since_last = current_time - self.last_api_call
-
-        if time_since_last < self.rate_limit_seconds:
-            wait_time = self.rate_limit_seconds - time_since_last
-            logging.info(f"Rate limiting: waiting {wait_time:.1f}s before next API call")
-            await asyncio.sleep(wait_time)
-
-        self.last_api_call = time.time()
+        logger.info("Metadata coordinator initialized")
 
     async def get_metadata_from_webhook(self, webhook_payload: dict[str, Any]) -> dict[str, Any] | None:
         """
@@ -72,33 +57,35 @@ class MetadataCoordinator:
         url = webhook_payload.get("url")
         name = webhook_payload.get("name", "")
 
-        logging.info(f"Starting metadata workflow for: {name}")
-        logging.info(f"Source URL: {url}")
+        logger.info("Starting metadata workflow for: %s", name)
+        logger.info("Source URL: %s", url)
 
         # Step 1: Try to extract ASIN from MAM URL if it's a MAM URL
         asin = None
         if url and "myanonamouse.net" in url:
-            logging.info("Step 1: Attempting to extract ASIN from MAM URL...")
+            logger.info("Step 1: Attempting to extract ASIN from MAM URL...")
             try:
-                await self._enforce_rate_limit()
                 asin = await self.mam_scraper.scrape_asin_from_url(url)
                 if asin:
-                    logging.info(f"✅ ASIN extracted from MAM: {asin}")
+                    logger.info("✅ ASIN extracted from MAM: %s", asin)
                 else:
-                    logging.warning("❌ No ASIN found on MAM page")
-            except Exception as e:
-                logging.error(f"Error scraping MAM: {e}")
+                    logger.warning("❌ No ASIN found on MAM page")
+            except httpx.RequestError:
+                logger.exception("Network error scraping MAM")
+            except ValueError:
+                logger.exception("Malformed response scraping MAM")
+            except Exception:
+                logger.exception("Unexpected error scraping MAM")
         else:
-            logging.info("Step 1: Skipped (not a MAM URL)")
+            logger.info("Step 1: Skipped (not a MAM URL)")
 
         # Step 2: If we have an ASIN, get metadata from Audnex
         if asin:
-            logging.info(f"Step 2: Getting metadata from Audnex for ASIN: {asin}")
+            logger.info("Step 2: Getting metadata from Audnex for ASIN: %s", asin)
             try:
-                await self._enforce_rate_limit()
-                metadata = self.audnex.get_book_by_asin(asin)
+                metadata = await self.audnex.get_book_by_asin(asin)
                 if metadata:
-                    logging.info("✅ Metadata found via Audnex")
+                    logger.info("✅ Metadata found via Audnex")
                     # Add source and workflow information
                     metadata["source"] = "audnex"
                     metadata["asin_source"] = "mam"
@@ -109,18 +96,21 @@ class MetadataCoordinator:
 
                     return metadata
                 else:
-                    logging.warning("❌ No metadata found in Audnex for extracted ASIN")
-            except Exception as e:
-                logging.error(f"Error fetching from Audnex: {e}")
+                    logger.warning("❌ No metadata found in Audnex for extracted ASIN")
+            except httpx.RequestError:
+                logger.exception("Network error fetching from Audnex")
+            except ValueError:
+                logger.exception("Malformed response from Audnex")
+            except Exception:
+                logger.exception("Unexpected error fetching from Audnex")
 
         # Step 3: Fallback to Audible search using title/author from name
-        logging.info("Step 3: Falling back to Audible search...")
+        logger.info("Step 3: Falling back to Audible search...")
         try:
-            await self._enforce_rate_limit()
-            results = self.audible.search_from_webhook_name(name)
+            results = await self.audible.search_from_webhook_name(name)
             if results:
                 metadata = results[0]  # Take the first (best) result
-                logging.info("✅ Metadata found via Audible search")
+                logger.info("✅ Metadata found via Audible search")
                 # Add source and workflow information
                 metadata["source"] = "audible"
                 metadata["asin_source"] = "search"
@@ -131,7 +121,7 @@ class MetadataCoordinator:
 
                 return metadata
             else:
-                logging.warning("❌ No metadata found via Audible search")
+                logger.warning("❌ No metadata found via Audible search")
         except httpx.RequestError as e:
             logger.exception("Network error searching Audible")
             # Surface network errors to callers/tests as a controlled ValueError
@@ -145,45 +135,53 @@ class MetadataCoordinator:
         except Exception:
             logger.exception("Error searching Audible")
 
-        logging.error("❌ All metadata sources exhausted - no metadata found")
+        logger.error("❌ All metadata sources exhausted - no metadata found")
         return None
 
-    def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
+    async def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """Get metadata directly by ASIN."""
-        logging.info(f"Getting metadata for ASIN: {asin} (region: {region})")
+        logger.info("Getting metadata for ASIN: %s (region: %s)", asin, region)
 
         try:
-            metadata = self.audnex.get_book_by_asin(asin, region=region)
+            metadata = await self.audnex.get_book_by_asin(asin, region=region)
             if metadata:
-                logging.info("✅ Metadata found via Audnex")
+                logger.info("✅ Metadata found via Audnex")
                 metadata["source"] = "audnex"
                 metadata["asin_source"] = "direct"
                 return metadata
-        except Exception as e:
-            logging.error(f"Error fetching from Audnex: {e}")
+        except httpx.RequestError:
+            logger.exception("Network error fetching from Audnex")
+        except ValueError:
+            logger.exception("Malformed response from Audnex")
+        except Exception:
+            logger.exception("Unexpected error fetching from Audnex")
 
-        logging.error("❌ No metadata found for ASIN")
+        logger.error("❌ No metadata found for ASIN")
         return None
 
-    def search_metadata(self, title: str, author: str = "", region: str = "us") -> dict[str, Any] | None:
+    async def search_metadata(self, title: str, author: str = "", region: str = "us") -> dict[str, Any] | None:
         """Search for metadata by title and author."""
-        logging.info(f"Searching metadata: title='{title}', author='{author}', region={region}")
+        logger.info("Searching metadata: title='%s', author='%s', region=%s", title, author, region)
 
         try:
-            results = self.audible.search(title=title, author=author, region=region)
+            results = await self.audible.search(title=title, author=author, region=region)
             if results:
                 metadata = results[0]  # Take the first (best) result
-                logging.info("✅ Metadata found via search")
+                logger.info("✅ Metadata found via search")
                 metadata["source"] = "audible"
                 metadata["asin_source"] = "search"
                 return metadata
-        except Exception as e:
-            logging.error(f"Error searching: {e}")
+        except httpx.RequestError:
+            logger.exception("Network error searching")
+        except ValueError:
+            logger.exception("Malformed response from search")
+        except Exception:
+            logger.exception("Unexpected error searching")
 
-        logging.error("❌ No metadata found via search")
+        logger.error("❌ No metadata found via search")
         return None
 
-    def get_enhanced_metadata(self, basic_metadata: dict[str, Any]) -> dict[str, Any]:
+    async def get_enhanced_metadata(self, basic_metadata: dict[str, Any]) -> dict[str, Any]:
         """Enhance basic metadata with additional information."""
         enhanced = basic_metadata.copy()
 
@@ -193,13 +191,20 @@ class MetadataCoordinator:
             try:
                 # Use the same region that worked for book metadata to avoid redundant API calls
                 region = enhanced.get("audnex_region", "us")
-                chapters = self.audnex.get_chapters_by_asin(asin, region=region)
+                chapters = await self.audnex.get_chapters_by_asin(asin, region=region)
                 if chapters:
                     enhanced["chapters"] = chapters
                     enhanced["chapter_count"] = len(chapters.get("chapters", []))
-                    logging.info(f"Added {enhanced.get('chapter_count', 0)} chapters to metadata")
-            except Exception as e:
-                logging.error(f"Error fetching chapters: {e}")
+                    logger.info("Added %s chapters to metadata", enhanced.get("chapter_count", 0))
+            except asyncio.CancelledError:
+                # Re-raise cancellation to properly propagate task cancellation
+                raise
+            except httpx.RequestError:
+                logger.exception("Network error fetching chapters")
+            except ValueError:
+                logger.exception("Malformed response fetching chapters")
+            except Exception:
+                logger.exception("Unexpected error fetching chapters")
 
         # Add workflow information
         enhanced["metadata_workflow"] = {
@@ -277,11 +282,11 @@ def main():
 
         elif args.asin:
             # Direct ASIN lookup
-            metadata = coordinator.get_metadata_by_asin(args.asin, region=args.region)
+            metadata = await coordinator.get_metadata_by_asin(args.asin, region=args.region)
 
         elif args.title:
             # Title/author search
-            metadata = coordinator.search_metadata(args.title, author=args.author, region=args.region)
+            metadata = await coordinator.search_metadata(args.title, author=args.author, region=args.region)
 
         else:
             print("Error: Must provide --url/--name, --asin, or --title")
@@ -290,7 +295,7 @@ def main():
         # Display results
         if metadata:
             if args.enhanced:
-                metadata = coordinator.get_enhanced_metadata(metadata)
+                metadata = await coordinator.get_enhanced_metadata(metadata)
 
             print("✅ Metadata found:")
             print(f"  Title: {metadata.get('title')}")

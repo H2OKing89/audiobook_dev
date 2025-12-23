@@ -7,6 +7,8 @@ import os
 import re
 import time
 import uuid
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.config import load_config  # add import for config
 from src.db import save_request  # switch to persistent DB store
+from src.http_client import AsyncHttpClient, close_default_client
 from src.metadata import fetch_metadata
 from src.metadata_coordinator import MetadataCoordinator
 from src.notify.discord import send_discord
@@ -106,17 +109,56 @@ logging.getLogger("httpcore.http2").setLevel(logging.WARNING)
 logging.getLogger("httpcore.connection").setLevel(logging.WARNING)
 logging.getLogger("hpack").setLevel(logging.WARNING)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler for startup/shutdown.
+
+    Creates shared resources on startup and cleans them up on shutdown.
+    This replaces the deprecated @app.on_event("startup") pattern.
+    """
+    # Startup: Initialize shared HTTP client and metadata coordinator
+    app.state.http_client = AsyncHttpClient()
+    app.state.metadata_coordinator = MetadataCoordinator()
+    logging.info("Shared HTTP client and metadata coordinator initialized")
+
+    # Start the metadata worker
+    app.state.metadata_worker_task = asyncio.create_task(_metadata_worker_loop(app))
+    app.state.metadata_worker_running = True
+    logging.info("🚀 Audiobook service started with queue-based processing")
+
+    yield  # App runs here
+
+    # Shutdown: Clean up resources
+    logging.info("Shutting down audiobook service...")
+
+    # Cancel metadata worker
+    app.state.metadata_worker_running = False
+    if hasattr(app.state, "metadata_worker_task"):
+        app.state.metadata_worker_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await app.state.metadata_worker_task
+
+    # Close the shared HTTP client (releases connection pool)
+    if hasattr(app.state, "http_client") and app.state.http_client:
+        await app.state.http_client.aclose()
+        logging.info("HTTP client closed")
+
+    # Also close any default client that may have been created
+    await close_default_client()
+    logging.info("Service shutdown complete")
+
+
 app = FastAPI(
     title="Audiobook Approval Service",
     description="A secure audiobook approval workflow with notifications",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Global metadata processing queue
 # Increase queue size to avoid transient test flakiness under heavy test load
 metadata_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=1000)  # Allow up to 1000 pending requests
-metadata_worker_running = False
-metadata_coordinator = None  # Single shared coordinator instance
 
 # Add HTTPS enforcement middleware (must be first)
 security_config = config.get("security", {})
@@ -174,14 +216,6 @@ app.include_router(webui_router)  # mount web UI routes
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# Add startup event to initialize worker
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the metadata worker on app startup"""
-    await init_metadata_worker()
-    logging.info("🚀 Audiobook service started with queue-based processing")
-
-
 # Queue status endpoint for monitoring (internal use only)
 @app.get("/queue/status")
 async def queue_status(request: Request):
@@ -222,12 +256,15 @@ async def queue_status(request: Request):
         logging.warning(f"Unauthorized queue status access attempt from {client_ip}")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - internal endpoint")
 
+    worker_running = getattr(request.app.state, "metadata_worker_running", False)
+    coordinator = getattr(request.app.state, "metadata_coordinator", None)
+
     return {
         "queue_size": metadata_queue.qsize(),
         "queue_maxsize": metadata_queue.maxsize,
         "queue_full": metadata_queue.full(),
-        "worker_running": metadata_worker_running,
-        "coordinator_initialized": metadata_coordinator is not None,
+        "worker_running": worker_running,
+        "coordinator_initialized": coordinator is not None,
         "timestamp": time.time(),
     }
 
@@ -339,23 +376,18 @@ async def webhook(request: Request):
     logging.info(log_prefix + f"Received webhook payload: {payload}")
 
     try:
-        # Process request inline (synchronously) to provide immediate feedback in tests
-        # Ensure coordinator exists
-        global metadata_coordinator  # noqa: PLW0603
-        if metadata_coordinator is None:
-            metadata_coordinator = MetadataCoordinator()
-            logging.info(log_prefix + "Initialized metadata coordinator for inline processing")
+        # Get coordinator from app state (initialized by lifespan handler)
+        coordinator = request.app.state.metadata_coordinator
 
         metadata = None
         last_error: Exception | None = None
 
         # Try 1: Compatibility wrapper (tests often patch fetch_metadata)
         try:
-            loop = asyncio.get_running_loop()
-            metadata = await loop.run_in_executor(None, fetch_metadata, payload)
+            metadata = await fetch_metadata(payload)
             if metadata:
                 logging.info(log_prefix + "Metadata obtained from fetch_metadata() wrapper")
-                metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                metadata = await coordinator.get_enhanced_metadata(metadata)
         except ValueError as e:
             # Expected when fetch_metadata returns None or finds no metadata
             logging.info(log_prefix + f"fetch_metadata did not provide metadata: {e}")
@@ -368,9 +400,9 @@ async def webhook(request: Request):
         # Try 2: Coordinator async workflow
         if not metadata:
             try:
-                metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
+                metadata = await coordinator.get_metadata_from_webhook(payload)
                 if metadata:
-                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                    metadata = await coordinator.get_enhanced_metadata(metadata)
                     logging.info(log_prefix + "Metadata obtained from coordinator workflow")
             except ValueError as e:
                 # Expected when coordinator finds no metadata
@@ -420,30 +452,21 @@ async def webhook(request: Request):
         ) from err
 
 
-async def init_metadata_worker():
-    """Initialize the shared metadata coordinator and start worker if needed"""
-    global metadata_coordinator, metadata_worker_running  # noqa: PLW0603
+async def _metadata_worker_loop(app: FastAPI) -> None:
+    """Background worker loop to process metadata requests sequentially.
 
-    if metadata_coordinator is None:
-        metadata_coordinator = MetadataCoordinator()
-        logging.info("Shared metadata coordinator initialized")
-
-    if not metadata_worker_running:
-        task = asyncio.create_task(metadata_worker())  # noqa: RUF006, F841
-        metadata_worker_running = True
-        logging.info("Metadata worker started")
-
-
-async def metadata_worker():
-    """Background worker to process metadata requests sequentially"""
-    global metadata_coordinator  # noqa: PLW0603
-
+    This worker is started by the lifespan handler and uses app.state
+    for the coordinator and running flag.
+    """
     logging.info("Metadata worker started - processing requests sequentially")
 
-    while True:
+    while getattr(app.state, "metadata_worker_running", False):
         try:
-            # Get next request from queue
-            request_data = await metadata_queue.get()
+            # Get next request from queue with timeout to check running flag
+            try:
+                request_data = await asyncio.wait_for(metadata_queue.get(), timeout=1.0)
+            except TimeoutError:
+                continue  # Check running flag again
 
             token = request_data["token"]
             payload = request_data["payload"]
@@ -454,17 +477,15 @@ async def metadata_worker():
 
             logging.info(log_prefix + f"Processing metadata request (waited {wait_time:.1f}s in queue)")
 
-            # Ensure coordinator exists
-            if metadata_coordinator is None:
-                metadata_coordinator = MetadataCoordinator()
-                logging.info("Created metadata coordinator in worker")
+            # Get coordinator from app state
+            coordinator = app.state.metadata_coordinator
 
             # Process metadata using shared coordinator
             try:
-                metadata = await metadata_coordinator.get_metadata_from_webhook(payload)
+                metadata = await coordinator.get_metadata_from_webhook(payload)
                 if metadata:
                     # Enhance metadata with additional information
-                    metadata = metadata_coordinator.get_enhanced_metadata(metadata)
+                    metadata = await coordinator.get_enhanced_metadata(metadata)
                     logging.info(log_prefix + "✅ Metadata processed successfully")
                 else:
                     raise ValueError("No metadata found from any source")
@@ -480,6 +501,9 @@ async def metadata_worker():
             # Mark task as done
             metadata_queue.task_done()
 
+        except asyncio.CancelledError:
+            logging.info("Metadata worker cancelled")
+            break
         except Exception as e:
             logging.error(f"Error in metadata worker: {e}")
             # Mark task as done even on error to prevent queue blocking
