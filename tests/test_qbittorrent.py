@@ -14,15 +14,14 @@ class TestQbittorrentClient:
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
 
         with patch("src.qbittorrent.Client") as mock_client:
-            client = get_client()
+            get_client()
             mock_client.assert_called_once_with(host="http://localhost:8080", username="admin", password="password")
 
     def test_get_client_missing_env(self):
-        with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(
-                ValueError, match="QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set"
-            ):
-                get_client()
+        with patch.dict(os.environ, {}, clear=True), pytest.raises(
+            ValueError, match="QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set"
+        ):
+            get_client()
 
     def test_add_torrent_success(self, monkeypatch):
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
