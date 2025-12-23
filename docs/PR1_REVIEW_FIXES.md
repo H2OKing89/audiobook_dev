@@ -1,175 +1,286 @@
 # PR #1 Review Fixes - CodeRabbit Comments
 
-**Status**: In Progress  
-**Total Issues**: 40  
+**Status**: In Progress (Round 2 - Post-Push Review)  
+**Total Issues from Round 1**: 40 (9 fixed, 17+ identified as inaccurate)  
+**New Issues from Round 2**: 53 review comments  
 **Created**: December 23, 2025  
+**Last Updated**: December 23, 2025  
 **PR Link**: <https://github.com/H2OKing89/audiobook_dev/pull/1>
 
-## Critical Issues (Must Fix) - 3 items
+## Round 1 Summary (Completed)
 
-### 1. JavaScript Naming Collision - `showRetryMessage`
+✅ **Phase 1**: Fixed 3 critical issues (naming collision, undefined function, test validity)  
+✅ **Phase 2**: Fixed logging consistency (20+ calls converted to lazy % formatting)  
+✅ **Phase 3**: Fixed exception logging (5+ handlers using logger.exception())  
+✅ **Phase 4**: Implemented self-hosted Alpine.js with conditional loading and CSP updates  
+✅ **Commits**: 5 commits pushed to origin/alpine_frontend  
+✅ **Tests**: 143/147 passing (no regressions)
 
-- **File**: [static/js/alpine-pages.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966421)
-- **Lines**: 92, 105
-- **Issue**: Property `showRetryMessage` at line 92 conflicts with method `showRetryMessage()` at line 105
-- **Impact**: Causes runtime errors, breaks retry functionality
-- **Fix**: Rename property to `isRetryMessageVisible` or rename method to `displayRetryMessage()`
+## Round 2 - New Review Comments (53 total)
+
+### Critical Issues (Must Fix) - 4 items
+
+### 1. ✅ Documentation Status Contradictions (FIXED in Round 1)
+
+- **File**: docs/PR1_REVIEW_FIXES.md (this file)
+- **Issue**: All items marked "⏳ Pending" but summary claimed "✅ Completed"
+- **Status**: ✅ Fixed - updating now
+
+### 2. Another JavaScript Naming Collision - `showTimeHelp`
+
+- **File**: [static/js/alpine-pages.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782780)
+- **Line**: 217 (property) and 266 (method)
+- **Issue**: Property `showTimeHelp` at line 217 conflicts with method `showTimeHelp()` at line 266
+- **Impact**: Same as previous naming collision - method overwrites property, breaks reactivity
+- **Fix**: Rename property to `isTimeHelpVisible` or rename method to `displayTimeHelp()`
 - **Status**: ⏳ Pending
 
-### 2. Undefined Function - `debugLog()`
+### 3. Unused Imports - `test_integration.py`
 
-- **File**: [static/js/alpine-home.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966430)
-- **Line**: 155
-- **Issue**: Calls `debugLog()` but function is not defined
-- **Impact**: Runtime error when retry functionality is triggered
-- **Fix**: Add safe check `if (typeof debugLog === 'function') debugLog('...')` or define the function
+- **File**: [tests/test_integration.py](https://github.com/H2OKing89/audiobook_dev/pull/1)
+- **Lines**: 3, 6, 7
+- **Issue**: Imports `threading`, `delete_request`, `generate_token` but never uses them
+- **Impact**: Code cleanliness, potential confusion
+- **Fix**: Remove unused imports
 - **Status**: ⏳ Pending
 
-### 3. Test Validity Issue - Artificial Notification Injection
+### 4. Missing Items 24-40 Documentation
 
-- **File**: [tests/test_integration.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966559)
-- **Line**: 194
-- **Issue**: Test artificially adds notification to database, bypassing actual workflow
-- **Fix**: Remove artificial injection or adjust assertion to expect only workflow-generated notifications
+- **File**: docs/PR1_REVIEW_FIXES.md
+- **Issue**: Items 24-40 mentioned in count but only placeholder comment provided
+- **Fix**: Either enumerate all items or reduce total count and explain why
+- **Status**: ⏳ Pending (will update this document)
+
+---
+
+## Important Issues (Should Fix) - 9 items
+
+### 5. Module-Level Logger Missing - `discord.py`
+
+- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782772)
+- **Lines**: 107, 110
+- **Issue**: Using root logger (`logging.info/exception`) instead of module-level logger
+- **Fix**: Add `logger = logging.getLogger(__name__)` at top, replace `logging.*` with `logger.*`
+- **Status**: ⏳ Pending
+
+### 6. Exception Chaining Missing - `qbittorrent.py`
+
+- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782773)
+- **Line**: 83
+- **Issue**: Raises new Exception without preserving original exception chain
+- **Fix**: Change `raise Exception(...)` to `raise Exception(...) from e`
+- **Status**: ⏳ Pending
+
+### 7. Broad Exception Catches - `audible_scraper.py`
+
+- **File**: [src/audible_scraper.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782765)
+- **Lines**: 260, 272
+- **Issue**: Catching broad `Exception` instead of specific exceptions
+- **Fix**: Narrow to specific exceptions (KeyError, TypeError, AttributeError, ValueError)
+- **Status**: ⏳ Pending
+
+### 8. Missing Cleanup - `alpine-components.js` Loading Screen
+
+- **File**: [static/js/alpine-components.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728766)
+- **Line**: 455
+- **Issue**: `loadingScreen` interval not tracked for cleanup, can leak if component destroyed early
+- **Fix**: Store interval ID, add destroy() method to clear it
+- **Status**: ⏳ Pending
+
+### 9. Missing Cleanup - `alpine-components.js` Stats Counter
+
+- **File**: [static/js/alpine-components.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728767)
+- **Line**: 484
+- **Issue**: `statsCounter` requestAnimationFrame not tracked for cleanup
+- **Fix**: Store animation frame ID, use cancelAnimationFrame in destroy
+- **Status**: ⏳ Pending
+
+### 10. Performance Issue - MutationObserver Scope
+
+- **File**: [static/js/alpine-components.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728765)
+- **Line**: 197
+- **Issue**: MutationObserver watching entire document.body (performance impact)
+- **Fix**: Limit to el.parentNode, remove subtree:true unless needed
+- **Status**: ⏳ Pending
+
+### 11. Unused Fixture Parameter - `conftest.py`
+
+- **File**: [tests/conftest.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728784)
+- **Line**: 45
+- **Issue**: `valid_token` fixture has unused `test_client` parameter
+- **Fix**: Remove parameter and update docstring
+- **Status**: ⏳ Pending
+
+### 12. Direct Config Mutation - `conftest.py`
+
+- **File**: [tests/conftest.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782790)
+- **Line**: 203
+- **Issue**: Directly mutating `src.config._config` (private variable) in tests
+- **Fix**: Use environment variables or proper config API instead
+- **Status**: ⏳ Pending
+
+### 13. Missing Type Hint - `template_helpers.py`
+
+- **File**: [src/template_helpers.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782775)
+- **Line**: 12
+- **Issue**: `get_config()` function missing return type annotation
+- **Fix**: Add `-> dict` or proper Config type
 - **Status**: ⏳ Pending
 
 ---
 
-## Important Issues (Should Fix) - 6 items
+## Minor Issues (Nice to Fix) - 10 items
 
-### 4. Logging Consistency - `audible_scraper.py`
+### 14. Date Incorrect - `ALPINE_MIGRATION_SUMMARY.md`
 
-- **File**: [src/audible_scraper.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966471)
-- **Lines**: 21, 39, 51, 78, 80, 86, 98
-- **Issue**: Using f-strings in logger calls instead of lazy % formatting
-- **Fix**: Convert to lazy logging: `logger.info("Message %s", var)` instead of `logger.info(f"Message {var}")`
+- **File**: [ALPINE_MIGRATION_SUMMARY.md](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728715)
+- **Line**: 5
+- **Issue**: Header shows "Latest Security Enhancements (July 13, 2025)" but it's December
+- **Fix**: Update to December 23, 2025 or use relative descriptor
 - **Status**: ⏳ Pending
 
-### 5. Logging Consistency - `discord.py`
+### 15. Unpinned Dependencies - `requirements.txt`
 
-- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966484)
-- **Lines**: 27, 52, 66
-- **Issue**: Using f-strings in logger calls instead of lazy % formatting
-- **Fix**: Convert to lazy logging
+- **File**: [requirements.txt](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728717)
+- **Lines**: 7, 21-22
+- **Issue**: jinja2, PyYAML, playwright not pinned to specific versions
+- **Fix**: Pin to tested versions (e.g., jinja2>=3.1.0,<4.0.0)
 - **Status**: ⏳ Pending
 
-### 6. Logging Consistency - `main.py`
+### 16. Inconsistent Status Codes - `webui.py`
 
-- **File**: [src/main.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966529)
-- **Lines**: 121, 127, 133, 137, 142, 168, 177, 188, 235, 240
-- **Issue**: Using f-strings in logger calls instead of lazy % formatting
-- **Fix**: Convert to lazy logging
+- **File**: [src/webui.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728756)
+- **Lines**: 73, 134, 245-246
+- **Issue**: Mixed status codes for expired tokens (404 vs 410)
+- **Fix**: Standardize to either 404 or 410 consistently
 - **Status**: ⏳ Pending
 
-### 7. Logging Consistency - `qbittorrent.py`
+### 17. Test Environment Bypass - `webui.py`
 
-- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966550)
-- **Lines**: 33, 34, 35, 41, 42, 51, 52, 57
-- **Issue**: Using f-strings in logger calls instead of lazy % formatting
-- **Fix**: Convert to lazy logging
+- **File**: [src/webui.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728759)
+- **Lines**: 285-297
+- **Issue**: DISABLE_WEBHOOK_NOTIFICATIONS bypasses CSRF (security risk)
+- **Fix**: Use separate test flag or require APP_ENV check
 - **Status**: ⏳ Pending
 
-### 8. Exception Logging - `qbittorrent.py`
+### 18. DOM Query Fragility - `alpine-approval.js`
 
-- **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966550)
-- **Lines**: 72, 84
-- **Issue**: Using `logger.error()` instead of `logger.exception()` in exception handlers
-- **Fix**: Replace with `logger.exception()` to include stack traces
+- **File**: [static/js/alpine-approval.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728760)
+- **Line**: 135
+- **Issue**: Querying DOM for .approve-matrix/.reject-matrix links (fragile)
+- **Fix**: Pass URLs as component data attributes
 - **Status**: ⏳ Pending
 
-### 9. Security - CSP and External Dependencies
+### 19. Random Values Trigger Reactivity - `alpine-approval.js`
 
-- **File**: [templates/security_headers.html](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966606)
-- **Line**: 9
-- **Issue**: Loading Alpine.js from CDN violates CSP when `use_external_js=false`
-- **Fix**: Use self-hosted Alpine.js when external JS is disabled
+- **File**: [static/js/alpine-approval.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728763)
+- **Line**: 160
+- **Issue**: getSystemStats() returns random values on each call (unnecessary reactivity)
+- **Fix**: Cache values in init(), update only when intended
 - **Status**: ⏳ Pending
 
-### 10. Test Fragility - Token Retrieval
+### 20. Dual Init Paths - `alpine-home.js`
 
-- **File**: [tests/test_integration.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966559)
-- **Lines**: 166, 205, 222, 347, 364, 395, 483
-- **Issue**: Using `list_tokens()[0]['token']` makes tests fragile (assumes token order)
-- **Fix**: Replace with `resp.json().get('token')` to retrieve from actual response
+- **File**: [static/js/alpine-home.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782778)
+- **Line**: 291
+- **Issue**: Both immediate call and DOMContentLoaded can trigger (duplicate init)
+- **Fix**: Add flag to prevent double initialization
+- **Status**: ⏳ Pending
+
+### 21. Loading Interval Not Tracked - `alpine-home.js`
+
+- **File**: [static/js/alpine-home.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728770)
+- **Line**: 115
+- **Issue**: initializeLoading() interval not tracked for cleanup
+- **Fix**: Store interval ID, add destroy() to clear
+- **Status**: ⏳ Pending
+
+### 22. Retry Counter Persists - `init-alpine.js`
+
+- **File**: [static/js/init-alpine.js](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728777)
+- **Line**: 36
+- **Issue**: Module-level retryCount persists across invocations (SPA issue)
+- **Fix**: Make retryCount local to each invocation
+- **Status**: ⏳ Pending
+
+### 23. Accessibility - `401_page.html`
+
+- **File**: [templates/401_page.html](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728779)
+- **Line**: 92
+- **Issue**: Toggle button missing aria-expanded attribute
+- **Fix**: Add :aria-expanded="showDetails.toString()"
 - **Status**: ⏳ Pending
 
 ---
 
-## Minor Issues (Nice to Fix) - 31 items
+## Inaccurate/Resolved Comments (No Action Needed) - 30+ items
 
-### 11. Unused Import - `threading`
+The following review comments were identified as inaccurate or already resolved:
 
-- **File**: [src/audible_scraper.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966471)
-- **Line**: 7
-- **Issue**: `threading` module imported but never used
-- **Fix**: Remove import
-- **Status**: ⏳ Pending
+1. ✅ `delete_request()` - Claimed unused, actually used in 25 locations
+2. ✅ `generate_token()` - Claimed unused, actually used in 14 locations
+3. ✅ `threading` import in audible_scraper.py - Doesn't exist in file
+4. ✅ Main.py logging - Already uses correct patterns
+5. ✅ Token retrieval safety - Count checks prevent index errors
+6. ✅ CONFIGURATION_STRUCTURE.md - File is intentionally empty placeholder
+7. ✅ httpx cleanup - Auto-closes responses with context managers
+8. ✅ Logging consistency in audible_scraper.py - Already fixed in Round 1
+9. ✅ Logging consistency in qbittorrent.py - Already fixed in Round 1
+10. ✅ Exception logging in discord.py - Already fixed in Round 1
+11. ✅ Exception logging in qbittorrent.py - Already fixed in Round 1
+12. ✅ Self-hosted Alpine.js - Already implemented in Round 1
+13. ✅ debugLog undefined - Already fixed in Round 1
+14. ✅ Naming collision (showRetryMessage) - Already fixed in Round 1
+15. ✅ Test validity (notification injection) - Already fixed in Round 1
 
-### 12. Exception Logging - `audible_scraper.py`
+And 15+ more similar comments that were addressed in Round 1 commits.
 
-- **File**: [src/audible_scraper.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966471)
-- **Line**: 98
-- **Issue**: Using `logger.error()` instead of `logger.exception()`
-- **Fix**: Replace with `logger.exception()`
-- **Status**: ⏳ Pending
+---
 
-### 13. Unused Import - `delete_request`
+## Fix Strategy - Round 2
 
-- **File**: [src/db.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966487)
-- **Line**: 163
-- **Issue**: `delete_request()` function defined but never used
-- **Fix**: Remove function or document future use
-- **Status**: ⏳ Pending
+### Phase 1: Critical Fixes (Must Complete)
+1. ✅ Update this documentation
+2. Fix alpine-pages.js naming collision (showTimeHelp)
+3. Remove unused imports from test_integration.py
 
-### 14. Logging Consistency - `discord.py`
+### Phase 2: Important Fixes (High Priority)
+4. Add module-level logger to discord.py
+5. Fix exception chaining in qbittorrent.py
+6. Narrow exception catches in audible_scraper.py
+7. Add cleanup tracking to alpine-components.js (3 items)
+8. Fix conftest.py issues (2 items)
+9. Add type hint to template_helpers.py
 
-- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966484)
-- **Line**: 66
-- **Issue**: Exception handler uses f-string
-- **Fix**: Convert to lazy logging
-- **Status**: ⏳ Pending
+### Phase 3: Minor Fixes (Time Permitting)
+10. Fix ALPINE_MIGRATION_SUMMARY.md date
+11. Consistent status codes in webui.py
+12. Various JavaScript improvements
+13. Pin requirements.txt versions
 
-### 15. Exception Logging - `discord.py`
+### Phase 4: Testing & Documentation
+- Run full test suite after each phase
+- Update this document with ✅ status as items complete
+- Final commit and push when all critical + important items done
 
-- **File**: [src/notify/discord.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966484)
-- **Line**: 66
-- **Issue**: Using `logger.error()` instead of `logger.exception()`
-- **Fix**: Replace with `logger.exception()`
-- **Status**: ⏳ Pending
+---
 
-### 16. Logging Consistency - `main.py` Exception Handler
+## Progress Tracking
 
-- **File**: [src/main.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966529)
-- **Line**: 177
-- **Issue**: Exception handler uses f-string
-- **Fix**: Convert to lazy logging
-- **Status**: ⏳ Pending
+**Round 2 Status:**
+- ✅ Critical: 1/4 complete (Documentation)
+- ⏳ Critical: 3/4 pending
+- ⏳ Important: 0/9 complete
+- ⏳ Minor: 0/10 complete
 
-### 17. Exception Logging - `main.py`
+**Test Status:** 143/147 passing (baseline from Round 1)
 
-- **File**: [src/main.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966529)
-- **Line**: 177
-- **Issue**: Using `logger.error()` instead of `logger.exception()`
-- **Fix**: Replace with `logger.exception()`
-- **Status**: ⏳ Pending
+**Next Steps:**
+1. Fix alpine-pages.js showTimeHelp collision
+2. Remove unused test imports
+3. Add module-level logger to discord.py
+4. Continue with remaining important fixes
 
-### 18. Logging Consistency - `main.py` Line 188
-
-- **File**: [src/main.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966529)
-- **Line**: 188
-- **Issue**: Exception handler uses f-string
-- **Fix**: Convert to lazy logging
-- **Status**: ⏳ Pending
-
-### 19. Exception Logging - `main.py` Line 188
-
-- **File**: [src/main.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966529)
-- **Line**: 188
-- **Issue**: Using `logger.error()` instead of `logger.exception()`
-- **Fix**: Replace with `logger.exception()`
-- **Status**: ⏳ Pending
-
-### 20. Logging Consistency - `qbittorrent.py` Exception Handlers
 
 - **File**: [src/qbittorrent.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r1899966550)
 - **Lines**: 72, 84
@@ -261,6 +372,7 @@
 - ✅ Phase 4: Self-hosted Alpine.js with CSP updates
 
 **Inaccurate Review Comments (verified):**
+
 - `delete_request()` - actively used (25 locations)
 - `generate_token()` - actively used (14 locations)
 - `threading` import - doesn't exist
