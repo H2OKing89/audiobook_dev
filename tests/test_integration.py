@@ -433,7 +433,7 @@ class TestEndToEndIntegration:
 
         # Use very short TTL for testing
         with (
-            patch("src.db.TTL", 1),
+            patch("src.db._get_ttl", return_value=1),
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata.fetch_metadata", return_value={"title": "Expiration Book"}),
         ):

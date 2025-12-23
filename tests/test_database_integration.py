@@ -74,7 +74,7 @@ class TestDatabaseIntegration:
         current_time = time.time()
 
         # Mock TTL to be very short
-        with patch("src.db.TTL", 1):  # 1 second TTL
+        with patch("src.db._get_ttl", return_value=1):  # 1 second TTL
             # Save with current time
             monkeypatch.setattr(time, "time", lambda: current_time)
             save_request(token, metadata, payload)
@@ -160,7 +160,7 @@ class TestDatabaseIntegration:
             tokens.append(token)
 
         # Mock some tokens as expired by moving time forward
-        with patch("src.db.TTL", 1):
+        with patch("src.db._get_ttl", return_value=1):
             monkeypatch.setattr(time, "time", lambda: current_time + 5)
 
             # Run cleanup

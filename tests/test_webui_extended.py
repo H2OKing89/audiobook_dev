@@ -158,6 +158,7 @@ class TestWebUIEndpoints:
 
     def test_token_expiry_handling(self, test_client, monkeypatch):
         # Test expired token handling
+        from unittest.mock import patch
 
         token = "test_expire_token"
         metadata = {"title": "Expire Test"}
@@ -165,16 +166,17 @@ class TestWebUIEndpoints:
 
         # Get current time for manipulation
         current_time = time.time()
-        monkeypatch.setattr(time, "time", lambda: current_time)
-        save_request(token, metadata, payload)
+        
+        with patch("src.db._get_ttl", return_value=1):
+            monkeypatch.setattr(time, "time", lambda: current_time)
+            save_request(token, metadata, payload)
 
-        # Mock TTL and simulate expiry by moving time forward
-        dbmod.TTL = 1
-        monkeypatch.setattr(time, "time", lambda: current_time + 3600)
+            # Simulate expiry by moving time forward
+            monkeypatch.setattr(time, "time", lambda: current_time + 3600)
 
-        try:
-            resp = test_client.get(f"/approve/{token}")
-            assert resp.status_code in (401, 410, 404)
-            assert "expired" in resp.text.lower() or "not found" in resp.text.lower()
-        finally:
-            delete_request(token)
+            try:
+                resp = test_client.get(f"/approve/{token}")
+                assert resp.status_code in (401, 410, 404)
+                assert "expired" in resp.text.lower() or "not found" in resp.text.lower()
+            finally:
+                delete_request(token)

@@ -71,6 +71,7 @@ class TestQbittorrentClient:
             # Mock temp file
             mock_temp_file = MagicMock()
             mock_temp_file.name = "/tmp/test.torrent"
+            mock_temp_file.__enter__.return_value = mock_temp_file
             mock_temp.return_value = mock_temp_file
 
             # Mock qBittorrent client
