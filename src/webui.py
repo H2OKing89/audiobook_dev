@@ -142,8 +142,6 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             response.status_code = 410
             return response
 
-        import os
-
         from src.config import load_config
         from src.db import delete_request
         from src.qbittorrent import add_torrent_file_with_cookie
