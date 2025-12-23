@@ -48,7 +48,6 @@ def extract_tid_from_irc(line: str) -> Optional[int]:
 
 class MamApiError(RuntimeError):
     """Error from MAM API operations."""
-    pass
 
 
 class MamClient:

@@ -303,6 +303,7 @@ class MamTorrentRaw(BaseModel):
         """Get sorted list of narrator names."""
         return [name for _, name in sorted(self.narrator_info.items(), key=lambda kv: kv[0])]
 
+    @property
     def series_display(self) -> str:
         """
         Build "Series Name #5" style display from series entries.
@@ -341,7 +342,7 @@ class MamTorrentRaw(BaseModel):
             asin=self.asin,
             author=", ".join(self.author_names),
             narrator=", ".join(self.narrator_names),
-            series=self.series_display() or None,
+            series=self.series_display or None,
             duration=(mi.General.Duration if mi and mi.General else None),
             bitrate=(mi.Audio1.BitRate if mi and mi.Audio1 else None),
             codec=(mi.Audio1.Format if mi and mi.Audio1 else None),

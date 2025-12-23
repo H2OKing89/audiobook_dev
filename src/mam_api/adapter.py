@@ -13,12 +13,16 @@ Usage:
     asin = await adapter.scrape_asin_from_url(url)
 """
 
+import asyncio
 import logging
 import os
 import re
 import time
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse, parse_qs
+
+import httpx
+from pydantic import ValidationError
 
 from .client import MamAsyncClient, MamApiError
 from .models import MamTorrentRaw
@@ -41,7 +45,7 @@ class MAMApiAdapter:
     _last_api_call_time = 0
     _rate_limit_seconds = 2.0  # Default 2 seconds between calls
     
-    def __init__(self, mam_id: Optional[str] = None, rate_limit_seconds: float = 2.0):
+    def __init__(self, mam_id: Optional[str] = None, rate_limit_seconds: float = 2.0) -> None:
         """
         Initialize the adapter.
         
@@ -66,13 +70,13 @@ class MAMApiAdapter:
             self._client = MamAsyncClient(mam_id=self.mam_id)
         return self._client
         
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         if self._client:
             await self._client.close()
             self._client = None
             
-    def _check_rate_limit(self):
+    async def _check_rate_limit(self) -> None:
         """Enforce rate limiting between API calls."""
         current_time = time.time()
         time_since_last = current_time - MAMApiAdapter._last_api_call_time
@@ -80,7 +84,7 @@ class MAMApiAdapter:
         if time_since_last < MAMApiAdapter._rate_limit_seconds:
             wait_time = MAMApiAdapter._rate_limit_seconds - time_since_last
             logger.debug(f"Rate limiting: waiting {wait_time:.2f}s")
-            time.sleep(wait_time)
+            await asyncio.sleep(wait_time)
             
         MAMApiAdapter._last_api_call_time = time.time()
         
@@ -144,7 +148,7 @@ class MAMApiAdapter:
         logger.info(f"Fetching torrent data for tid={tid}")
         
         try:
-            self._check_rate_limit()
+            await self._check_rate_limit()
             client = await self._get_client()
             torrent = await client.get_torrent(tid)
             
@@ -156,10 +160,13 @@ class MAMApiAdapter:
                 return None
                 
         except MamApiError as e:
-            logger.error(f"MAM API error: {e}")
+            logger.exception(f"MAM API error for tid={tid}: {e}")
             return None
-        except Exception as e:
-            logger.error(f"Unexpected error fetching torrent: {e}")
+        except httpx.HTTPError as e:
+            logger.exception(f"HTTP error fetching torrent tid={tid}: {e}")
+            return None
+        except ValidationError as e:
+            logger.exception(f"Validation error parsing torrent tid={tid}: {e}")
             return None
             
     async def scrape_asin_from_url(self, url: str, force_login: bool = False) -> Optional[str]:

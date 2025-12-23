@@ -111,21 +111,22 @@ Several fields are JSON-encoded strings that must be parsed:
 - [x] Create `src/mam_api/adapter.py` - backward-compatible adapter
 - [x] Add `MAMApiAdapter` with same interface as `MAMScraper`
 - [x] Export `MAMScraper` alias for drop-in replacement
-- [ ] Update `metadata_coordinator.py` import to use new adapter
+- [x] Update `metadata_coordinator.py` import to use new adapter
 - [ ] Test with real MAM data
 
 ### Phase 4: Cleanup
 
 - [ ] Remove `config/mam_config.json` (contains sensitive data!)
-- [ ] Remove `mam_login_only.py` (no longer needed)
-- [ ] Archive old `mam_scraper.py` (keep for reference)
-- [ ] Update documentation
+- [ ] Remove `src/mam_login_only.py` (no longer needed)
+- [ ] Archive old `src/mam_scraper.py` (keep for reference)
+- [ ] Update remaining documentation
 
-### Phase 5: Testing
+### Phase 5: Testing ✅
 
-- [ ] Add unit tests for Pydantic models
-- [ ] Add integration tests for API client
-- [ ] Verify torrent download functionality
+- [x] Add unit tests for Pydantic models
+- [x] Add integration tests for API client
+- [x] Add adapter tests (40 tests total, all passing)
+- [ ] Verify torrent download functionality (requires real MAM_ID)
 
 ---
 
