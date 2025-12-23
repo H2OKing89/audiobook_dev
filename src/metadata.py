@@ -11,6 +11,8 @@ import re
 from typing import Any
 from urllib.parse import urlencode
 
+import httpx
+
 from src.config import load_config
 from src.http_client import (
     REGION_MAP,
@@ -174,7 +176,7 @@ class Audible:
 
     async def asin_search(self, asin: str, region: str = "us", timeout: int | None = None) -> dict[str, Any] | None:
         """Search for a book by ASIN
-        
+
         Args:
             asin: The ASIN to search for
             region: The region code (default: us)
@@ -198,7 +200,7 @@ class Audible:
         self, title: str, author: str = "", asin: str = "", region: str = "us", timeout: int | None = None
     ) -> list[dict[str, Any]]:
         """Search for books using title, author, and/or ASIN
-        
+
         Args:
             title: Book title to search for
             author: Author name (optional)
