@@ -18,6 +18,7 @@ import re
 import html
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Helper function to generate CSRF token and validate for forms
 def get_csrf_protection_enabled() -> bool:
@@ -151,8 +152,8 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             download_url = payload.get('download_url') or ''
             mam_id = os.environ.get('MAM_ID')
             if not mam_id:
-                logging.warning(f"[token={token}] MAM_ID not set; proceeding without MAM cookie for torrent download")
-            # Format as cookie header value for torrent download
+                logger.warning("[token=%s] MAM_ID not set; proceeding without MAM cookie for torrent download", token)
+            # Format as cookie header value for torrent download (None is safe - qbittorrent accepts Optional[str])
             cookie = f"mam_id={mam_id}" if mam_id else None
             category = qb_cfg.get('category')
             tags = qb_cfg.get('tags', [])

@@ -159,13 +159,13 @@ class MAMApiAdapter:
                 logger.warning(f"No torrent found for tid={tid}")
                 return None
                 
-        except MamApiError as e:
+        except MamApiError:
             logger.exception("MAM API error for tid=%s", tid)
             return None
-        except httpx.HTTPError as e:
+        except httpx.HTTPError:
             logger.exception("HTTP error fetching torrent tid=%s", tid)
             return None
-        except ValidationError as e:
+        except ValidationError:
             logger.exception("Validation error parsing torrent tid=%s", tid)
             return None
             

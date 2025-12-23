@@ -22,6 +22,12 @@ def send_ntfy(
     Uses NTFY_TOKEN from environment as Bearer token if set.
     """
     logging.info(f"Preparing ntfy notification for topic={ntfy_topic} at {ntfy_url}")
+    
+    # Load icon URL from config with fallback
+    from src.config import load_config
+    config = load_config()
+    icon_url = config.get('notifications', {}).get('ntfy', {}).get('icon_url', 'https://ptpimg.me/4larvz.jpg')
+    
     # Build message body (Markdown)
     fields = get_notification_fields(metadata, payload)
     title = fields['title']
@@ -66,7 +72,7 @@ def send_ntfy(
     headers = {
         "Title": f"{title}",
         "Markdown": "true",
-        "Icon": "https://ptpimg.me/4larvz.jpg",
+        "Icon": icon_url,
     }
     # Add Bearer token if present
     ntfy_token = os.getenv("NTFY_TOKEN")

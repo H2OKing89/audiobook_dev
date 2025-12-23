@@ -174,10 +174,10 @@ def get_csp_header() -> str:
     
     if use_external_js:
         # CSP with Alpine.js CDN support
-        return "default-src 'self'; img-src 'self' https://example.com https: data:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self'; script-src 'self' https://unpkg.com https://*.unpkg.com 'unsafe-eval'; connect-src 'self';"
+        return "default-src 'self'; img-src 'self' https://ptpimg.me https: data:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self'; script-src 'self' https://unpkg.com https://*.unpkg.com 'unsafe-eval'; connect-src 'self';"
     else:
         # Stricter CSP for self-hosted JS (no external CDNs)
-        return "default-src 'self'; img-src 'self' https://example.com https: data:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self';"
+        return "default-src 'self'; img-src 'self' https://ptpimg.me https: data:; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; font-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self';"
 
 # Custom rate limit handler
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
