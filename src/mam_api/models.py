@@ -281,7 +281,7 @@ class MamTorrentRaw(BaseModel):
         if isinstance(data, MamMediaInfo):
             return data
         if isinstance(data, dict):
-                return MamMediaInfo.model_validate(data)  # type: ignore[no-any-return]
+            return MamMediaInfo.model_validate(data)  # type: ignore[no-any-return]
         return None
 
     @field_validator("ownership", mode="before")
