@@ -318,7 +318,7 @@ class QBittorrentManager:
         .torrent files!
 
         Args:
-            url: Torrent URL (magnet:, http://, https://, bc://bt/)
+            url: Torrent URL (magnet:, http://, https://, bc:)
             options: Torrent configuration options
             cookie: Cookie string for authenticated downloads (e.g., "session=abc123")
 
