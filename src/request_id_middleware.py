@@ -118,7 +118,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
                 duration_ms=round(duration_ms, 2),
             )
 
-        return response
+        return response  # type: ignore[no-any-return]
 
     def _get_client_ip(self, request: Request) -> str:
         """Extract client IP from request, handling proxies."""
@@ -146,4 +146,4 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration_ms = (time.perf_counter() - start_time) * 1000
         response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
-        return response
+        return response  # type: ignore[no-any-return]

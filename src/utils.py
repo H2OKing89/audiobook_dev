@@ -83,7 +83,6 @@ def clean_light_novel(text: str | None) -> str | None:
     if cleaned != text:
         log.debug("clean_light_novel", original=text, cleaned=cleaned)
     return cleaned
-    return cleaned
 
 
 def strip_html_tags(text: str | None) -> str:

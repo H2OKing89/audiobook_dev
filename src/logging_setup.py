@@ -65,7 +65,7 @@ def _should_redact(key: str) -> bool:
 
 
 def _redact_sensitive_data(
-    _logger: logging.Logger,
+    _logger: Any,
     _method_name: str,
     event_dict: dict[str, Any],
 ) -> dict[str, Any]:
@@ -83,17 +83,18 @@ def _redact_sensitive_data(
                     event_dict[key] = f"***{value[-4:]}"
                 else:
                     event_dict[key] = "***REDACTED***"
-    return event_dict
+    return event_dict  # type: ignore[return-value]
 
 
 def _add_service_context(
-    _logger: logging.Logger,
+    _logger: Any,
     _method_name: str,
     event_dict: dict[str, Any],
 ) -> dict[str, Any]:
     """Add service-level context to all log events."""
     event_dict.setdefault("service", "audiobook_dev")
-    return event_dict
+    return event_dict  # type: ignore[return-value]
+    return event_dict  # type: ignore[return-value]
 
 
 def _is_dev_environment() -> bool:
@@ -203,8 +204,8 @@ def configure_logging(
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
-        _add_service_context,
-        _redact_sensitive_data,
+        _add_service_context,  # type: ignore[list-item]
+        _redact_sensitive_data,  # type: ignore[list-item]
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
@@ -328,7 +329,7 @@ def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """
     if not _configured:
         configure_logging()
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[no-any-return]
 
 
 def bind_contextvars(**kwargs: Any) -> None:
