@@ -11,7 +11,6 @@ Key improvements over previous implementation:
 - Backward compatible with existing function signatures
 """
 
-import logging
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -30,8 +29,10 @@ from qbittorrentapi.exceptions import (
     UnsupportedMediaType415Error,
 )
 
+from src.logging_setup import get_logger
 
-logger = logging.getLogger(__name__)
+
+log = get_logger(__name__)
 
 
 # =============================================================================
@@ -233,10 +234,10 @@ class QBittorrentManager:
 
             assert self._config is not None
 
-            logger.debug(
-                "Initializing qBittorrent client: host=%s, user=%s",
-                self._config.host,
-                self._config.username,
+            log.debug(
+                "qbittorrent.client.init",
+                host=self._config.host,
+                username=self._config.username,
             )
 
             try:
@@ -250,20 +251,20 @@ class QBittorrentManager:
                 )
                 # Verify connection works by fetching version
                 version = self._client.app_version()
-                logger.info("Connected to qBittorrent v%s", version)
+                log.info("qbittorrent.connected", version=version)
 
             except LoginFailed as e:
-                logger.exception("qBittorrent authentication failed")
+                log.exception("qbittorrent.auth.failed")
                 self._client = None
                 raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
             except APIConnectionError as e:
-                logger.exception("Failed to connect to qBittorrent")
+                log.exception("qbittorrent.connection.failed")
                 self._client = None
                 raise QBittorrentConnectionError(f"Connection failed: {e}") from e
 
             except Exception as e:
-                logger.exception("Unexpected error connecting to qBittorrent")
+                log.exception("qbittorrent.connection.unexpected_error")
                 self._client = None
                 raise QBittorrentConnectionError(f"Unexpected error: {e}") from e
 
@@ -280,9 +281,9 @@ class QBittorrentManager:
         if self._client is not None:
             try:
                 self._client.auth_log_out()
-                logger.debug("Logged out from qBittorrent")
+                log.debug("qbittorrent.logout.success")
             except Exception as e:
-                logger.debug("Failed to logout from qBittorrent: %s", e, exc_info=True)
+                log.debug("qbittorrent.logout.failed", error=str(e), exc_info=True)
             finally:
                 self._client = None
 
@@ -327,19 +328,19 @@ class QBittorrentManager:
         """
         # Validate URL format
         if not url:
-            logger.error("Empty torrent URL provided")
+            log.error("qbittorrent.torrent.add.empty_url")
             raise TorrentAddError("URL cannot be empty")
 
         parsed = urlparse(url)
         valid_schemes = ("http", "https", "magnet", "bc")
         is_valid = parsed.scheme in valid_schemes and (parsed.scheme == "magnet" or parsed.netloc)
         if not is_valid:
-            logger.error("Invalid torrent URL: %s", url[:100])
+            log.error("qbittorrent.torrent.add.invalid_url", url=url[:100])
             raise TorrentAddError(f"Invalid URL scheme. Expected one of: {valid_schemes}")
 
         opts = options or TorrentAddOptions()
         safe_cookie = "set" if cookie else "not set"
-        logger.info("Adding torrent by URL: %s (cookie: %s)", url[:100], safe_cookie)
+        log.info("qbittorrent.torrent.add_by_url", url=url[:100], cookie=safe_cookie)
 
         try:
             result = self.client.torrents_add(
@@ -365,37 +366,37 @@ class QBittorrentManager:
             # Handle both old (string) and new (TorrentsAddedMetadata) responses
             if isinstance(result, str):
                 if result == "Ok.":
-                    logger.info("Torrent added successfully")
+                    log.info("qbittorrent.torrent.add.success")
                     return True
                 elif result == "Fails.":
-                    logger.warning("qBittorrent returned 'Fails.' for URL: %s", url[:100])
+                    log.warning("qbittorrent.torrent.add.rejected", url=url[:100])
                     return False
                 else:
                     # Unknown string response, log it
-                    logger.debug("qBittorrent response: %s", result)
+                    log.debug("qbittorrent.torrent.add.response", response=result)
                     return True
             else:
                 # TorrentsAddedMetadata response (newer API versions)
                 torrent_hash = getattr(result, "hash", None)
                 if torrent_hash:
-                    logger.info("Torrent added successfully: hash=%s", torrent_hash)
+                    log.info("qbittorrent.torrent.add.success", hash=torrent_hash)
                 return True
 
         except Conflict409Error:
-            logger.info("Torrent already exists in qBittorrent")
+            log.info("qbittorrent.torrent.already_exists")
             return True  # Not an error - torrent already exists
 
         except UnsupportedMediaType415Error as e:
-            logger.error("Invalid torrent URL/file: %s", e)
+            log.error("qbittorrent.torrent.add.invalid_file", error=str(e))
             raise TorrentAddError(f"Invalid torrent URL or file: {e}") from e
 
         except LoginFailed as e:
-            logger.error("qBittorrent authentication failed: %s", e)
+            log.error("qbittorrent.auth.failed", error=str(e))
             self._client = None  # Reset client to force reconnection
             raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
         except APIConnectionError as e:
-            logger.error("qBittorrent connection error: %s", e)
+            log.error("qbittorrent.connection.error", error=str(e))
             raise QBittorrentConnectionError(f"Connection error: {e}") from e
 
     def add_torrent_file(
@@ -421,14 +422,14 @@ class QBittorrentManager:
         opts = options or TorrentAddOptions()
 
         if not path.exists():
-            logger.error("Torrent file not found: %s", path)
+            log.error("qbittorrent.torrent.file.not_found", path=str(path))
             raise TorrentAddError(f"Torrent file not found: {path}")
 
         if not path.is_file():
-            logger.error("Path is not a file: %s", path)
+            log.error("qbittorrent.torrent.file.not_a_file", path=str(path))
             raise TorrentAddError(f"Path is not a file: {path}")
 
-        logger.info("Adding torrent from file: %s", path.name)
+        log.info("qbittorrent.torrent.add_by_file", filename=path.name)
 
         try:
             # The library can accept a file path string directly
@@ -458,25 +459,29 @@ class QBittorrentManager:
                 success = bool(getattr(result, "hash", None))
 
             if success:
-                logger.info("Torrent file added successfully: %s", path.name)
+                log.info("qbittorrent.torrent.file.add.success", filename=path.name)
             else:
-                logger.warning("Failed to add torrent file: %s (response: %s)", path.name, result)
+                log.warning(
+                    "qbittorrent.torrent.file.add.failed",
+                    filename=path.name,
+                    response=str(result),
+                )
 
         except Conflict409Error:
-            logger.info("Torrent already exists: %s", path.name)
+            log.info("qbittorrent.torrent.already_exists", filename=path.name)
             return True
 
         except UnsupportedMediaType415Error as e:
-            logger.error("Invalid torrent file: %s - %s", path.name, e)
+            log.error("qbittorrent.torrent.file.invalid", filename=path.name, error=str(e))
             raise TorrentAddError(f"Invalid torrent file: {e}") from e
 
         except LoginFailed as e:
-            logger.error("qBittorrent authentication failed: %s", e)
+            log.error("qbittorrent.auth.failed", error=str(e))
             self._client = None
             raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
         except APIConnectionError as e:
-            logger.error("qBittorrent connection error: %s", e)
+            log.error("qbittorrent.connection.error", error=str(e))
             raise QBittorrentConnectionError(f"Connection error: {e}") from e
 
         else:
@@ -500,7 +505,7 @@ class QBittorrentManager:
         except NotFound404Error:
             return None
         except Exception as e:
-            logger.warning("Error fetching torrent info for %s: %s", torrent_hash, e)
+            log.warning("qbittorrent.torrent.info.error", hash=torrent_hash, error=str(e))
             return None
 
     def is_connected(self) -> bool:
@@ -603,16 +608,16 @@ def add_torrent(torrent_data: dict[str, Any]) -> bool:
     """
     url = torrent_data.get("url")
     if not url:
-        logger.error("No URL provided in torrent_data")
+        log.error("qbittorrent.torrent.add.no_url")
         return False
 
     try:
         return get_manager().add_torrent_by_url(url)
     except QBittorrentError:
-        logger.exception("Error adding torrent")
+        log.exception("qbittorrent.torrent.add.error")
         return False
     except Exception:
-        logger.exception("Unexpected error adding torrent")
+        log.exception("qbittorrent.torrent.add.unexpected_error")
         return False
 
 
@@ -662,9 +667,10 @@ def add_torrent_file_with_cookie(
         "NoSubfolder": "NoSubfolder",
     }
     if contentLayout not in layout_map:
-        logger.warning(
-            "Unrecognized contentLayout value '%s', defaulting to 'Subfolder'",
-            contentLayout,
+        log.warning(
+            "qbittorrent.torrent.invalid_content_layout",
+            value=contentLayout,
+            default="Subfolder",
         )
     layout: Literal["Original", "Subfolder", "NoSubfolder"] = layout_map.get(contentLayout, "Subfolder")  # type: ignore[assignment]
 
@@ -677,7 +683,7 @@ def add_torrent_file_with_cookie(
         rename=name if name else None,
     )
 
-    logger.info("Adding torrent '%s' from URL with cookie authentication", name)
+    log.info("qbittorrent.torrent.add_with_cookie", name=name)
 
     try:
         return get_manager().add_torrent_by_url(
@@ -686,8 +692,8 @@ def add_torrent_file_with_cookie(
             cookie=cookie,
         )
     except QBittorrentError:
-        logger.exception("Failed to add torrent '%s'", name)
+        log.exception("qbittorrent.torrent.add.failed", name=name)
         return False
     except Exception:
-        logger.exception("Unexpected error adding torrent '%s'", name)
+        log.exception("qbittorrent.torrent.add.unexpected_error", name=name)
         return False
