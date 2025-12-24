@@ -5,6 +5,14 @@ from typing import Any
 import yaml
 
 
+# Use stdlib logging here since config loads before structlog is configured
+_logger = logging.getLogger(__name__)
+
+
+class ConfigurationError(Exception):
+    """Exception raised when configuration loading or parsing fails."""
+
+
 _config: dict[str, Any] | None = None
 
 
@@ -17,12 +25,12 @@ def load_config() -> dict[str, Any]:
             with config_path.open() as f:
                 _config = yaml.safe_load(f)
         except FileNotFoundError as e:
-            logging.error("Config file not found: %s. %s", config_path, e)
-            raise RuntimeError(f"Configuration file missing: {config_path}") from e
+            _logger.exception("Config file not found: %s", config_path)
+            raise ConfigurationError(f"Configuration file missing: {config_path}") from e
         except yaml.YAMLError as e:
-            logging.error("Failed to parse config file %s: %s", config_path, e)
-            raise RuntimeError(f"Invalid YAML in configuration file: {e}") from e
+            _logger.exception("Failed to parse config file %s", config_path)
+            raise ConfigurationError(f"Invalid YAML in configuration file: {e}") from e
         except Exception as e:
-            logging.error("Unexpected error loading config: %s", e)
-            raise RuntimeError(f"Failed to load configuration: {e}") from e
+            _logger.exception("Unexpected error loading config")
+            raise ConfigurationError("Failed to load configuration") from e
     return _config

@@ -1,3 +1,4 @@
+# Runtime dependencies
 fastapi
 uvicorn
 python-dotenv
@@ -5,9 +6,6 @@ qbittorrent-api
 beautifulsoup4
 aiofiles
 jinja2
-pytest
-pytest-cov
-pytest-asyncio==1.3.0
 httpx[http2]==0.28.1
 cachetools
 lxml
@@ -21,3 +19,7 @@ idna
 cryptography
 PyYAML
 playwright
+
+# Structured logging
+structlog>=24.4.0
+orjson>=3.10.0

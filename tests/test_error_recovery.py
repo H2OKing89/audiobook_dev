@@ -237,7 +237,7 @@ class TestErrorRecovery:
     def test_graceful_shutdown_handling(self):
         """Test graceful handling of shutdown scenarios"""
         # Test that ongoing operations can be interrupted gracefully
-        with patch("src.main.logging"), patch("signal.signal"):
+        with patch("src.main.log"), patch("signal.signal"):
             # This is more of a structure test - ensuring we have signal handlers
             # If the module loads without error, basic structure is OK
             assert hasattr(src.main, "app")

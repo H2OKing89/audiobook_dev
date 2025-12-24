@@ -8,7 +8,6 @@ consolidating connection pooling, retry logic, rate limiting, and multi-region s
 from __future__ import annotations
 
 import asyncio
-import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -21,9 +20,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 from src.config import load_config
+from src.logging_setup import get_logger
 
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 # Consolidated region mapping (previously duplicated in metadata.py and audible_scraper.py)
@@ -212,13 +212,13 @@ class AsyncHttpClient:
                         retry_after = int(retry_after_str)
                     except ValueError:
                         retry_after = 5
-                    logger.warning("Rate limited. Retrying in %ds", retry_after)
+                    log.warning("http.request.rate_limited", url=url, retry_after=retry_after)
                     await asyncio.sleep(retry_after)
                     continue
 
                 elif status_code in non_retryable_status_codes:
                     # Client errors - don't retry, the request is invalid
-                    logger.debug("HTTP %d (non-retryable) for %s", status_code, url)
+                    log.debug("http.request.client_error", url=url, status=status_code)
                     raise
 
                 elif status_code in retryable_status_codes:
@@ -226,20 +226,20 @@ class AsyncHttpClient:
                     last_error = e
                     if attempt < self._config.max_retries - 1:
                         backoff = self._config.retry_backoff_base**attempt
-                        logger.warning("HTTP %d (transient), retrying in %.1fs: %s", status_code, backoff, url)
+                        log.warning("http.request.retry", url=url, status_code=status_code, backoff_s=backoff)
                         await asyncio.sleep(backoff)
                     continue
 
                 else:
                     # Unknown status code - don't retry
-                    logger.debug("HTTP %d for %s", status_code, url)
+                    log.debug("http.request.unknown_status", url=url, status=status_code)
                     raise
 
             except httpx.RequestError as e:
                 last_error = e
                 if attempt < self._config.max_retries - 1:
                     backoff = self._config.retry_backoff_base**attempt
-                    logger.debug("Request error, retrying in %.1fs: %s", backoff, e)
+                    log.debug("http.request.network_error", url=url, error=str(e), backoff=backoff)
                     await asyncio.sleep(backoff)
 
         if last_error:
@@ -278,13 +278,13 @@ class AsyncHttpClient:
             response = await self.get(url, params=params, headers=headers, timeout=timeout)
             return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
-            logger.debug("HTTP error fetching %s: %s", url, e)
+            log.debug("http.get_json.http_error", url=url, error=str(e))
             return None
         except httpx.RequestError as e:
-            logger.debug("Request error fetching %s: %s", url, e)
+            log.debug("http.get_json.request_error", url=url, error=str(e))
             return None
         except Exception as e:
-            logger.debug("Unexpected error fetching %s: %s", url, e)
+            log.debug("http.get_json.unexpected_error", url=url, error=str(e))
             return None
 
     async def post_json(
@@ -311,10 +311,10 @@ class AsyncHttpClient:
             response = await self._request_with_retry("POST", url, **kwargs)
             return response.json()  # type: ignore[no-any-return]
         except httpx.HTTPStatusError as e:
-            logger.debug("HTTP error posting to %s: %s", url, e)
+            log.debug("http.post_json.http_error", url=url, error=str(e))
             return None
         except httpx.RequestError as e:
-            logger.debug("Request error posting to %s: %s", url, e)
+            log.debug("http.post_json.request_error", url=url, error=str(e))
             return None
 
     async def fetch_first_success(
@@ -360,7 +360,7 @@ class AsyncHttpClient:
                 return data, region
             except Exception as e:
                 errors[region] = e
-                logger.debug("Region %s failed: %s", region, e)
+                log.debug("http.fetch_region.failed", region=region, error=str(e))
                 return None, region
 
         # Create tasks for all regions
@@ -377,10 +377,10 @@ class AsyncHttpClient:
                     if data and validator(data):
                         result = data
                         winning_region = region
-                        logger.debug("Region %s succeeded first", region)
+                        log.debug("http.fetch_region.success", region=region)
                         break  # Found a winner, stop waiting
                 except Exception as e:
-                    logger.debug("Task failed with: %s", e)
+                    log.debug("http.fetch_region.task_failed", error=str(e))
                     continue
         finally:
             # Cancel remaining tasks that haven't completed
@@ -391,11 +391,9 @@ class AsyncHttpClient:
             await asyncio.gather(*tasks, return_exceptions=True)
 
         if result:
-            logger.info("Parallel fetch succeeded via region %s", winning_region)
+            log.info("http.parallel_fetch.success", region=winning_region)
         else:
-            logger.debug(
-                "All %d regions failed: %s", len(regions_to_try), {region: str(err) for region, err in errors.items()}
-            )
+            log.debug("http.parallel_fetch.all_failed", regions_tried=len(regions_to_try))
 
         return result, winning_region
 

@@ -1,12 +1,14 @@
 import json
-import logging
 import sqlite3
 import threading
 import time
 from pathlib import Path
 
-from src.config import load_config
+from src.config import ConfigurationError, load_config
+from src.logging_setup import get_logger
 
+
+log = get_logger(__name__)
 
 # Initialize SQLite database for token storage
 db_path = Path(__file__).parent.parent / "db.sqlite"
@@ -37,7 +39,7 @@ def _get_ttl() -> int:
         try:
             config = load_config()
             _ttl = config.get("server", {}).get("reply_token_ttl", 3600)
-        except (RuntimeError, FileNotFoundError):
+        except ConfigurationError:
             # Config not available (e.g., in tests), use default
             _ttl = 3600
     return _ttl
@@ -52,29 +54,29 @@ def save_request(token: str, metadata: dict, payload: dict) -> None:
             (token, json.dumps(metadata), json.dumps(payload), ts),
         )
         _conn.commit()
-    logging.debug(f"DB: Saved token {token} at {ts}")
+    log.debug("db.token.saved", token=token, timestamp=ts)
 
 
 def get_request(token: str) -> dict | None:
     """Retrieve stored metadata/payload for a token if not expired, else return None."""
-    logging.debug(f"DB: Getting token {token}")
+    log.debug("db.token.get", token=token)
     ttl = _get_ttl()
     with _lock:
         cursor = _conn.execute("SELECT metadata, payload, timestamp FROM tokens WHERE token = ?", (token,))
         row = cursor.fetchone()
         if not row:
-            logging.debug(f"DB: Token {token} not found")
+            log.debug("db.token.not_found", token=token)
             return None  # token not found
         metadata_json, payload_json, ts = row
-        logging.debug(f"DB: Found token {token} with timestamp {ts}")
+        log.debug("db.token.found", token=token, timestamp=ts)
         if int(time.time()) - ts > ttl:
             # expired, delete
             _conn.execute("DELETE FROM tokens WHERE token = ?", (token,))
             _conn.commit()
-            logging.debug(f"DB: Token {token} expired and removed")
+            log.debug("db.token.expired", token=token)
             return None  # token expired
         data = {"metadata": json.loads(metadata_json), "payload": json.loads(payload_json)}
-        logging.debug(f"DB: Returning data for token {token}")
+        log.debug("db.token.retrieved", token=token)
         return data
 
 
@@ -83,7 +85,7 @@ def delete_request(token: str) -> None:
     with _lock:
         _conn.execute("DELETE FROM tokens WHERE token = ?", (token,))
         _conn.commit()
-    logging.debug(f"DB: Deleted token {token}")
+    log.debug("db.token.deleted", token=token)
 
 
 def cleanup():

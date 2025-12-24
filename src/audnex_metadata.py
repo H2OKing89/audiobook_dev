@@ -8,10 +8,7 @@ with parallel region fetching for improved performance.
 
 import argparse
 import asyncio
-import logging
 import re
-import sys
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
@@ -22,21 +19,10 @@ from src.http_client import (
     get_default_client,
     get_regions_priority,
 )
+from src.logging_setup import get_logger
 
 
-logger = logging.getLogger(__name__)
-
-# Ensure logs directory exists before configuring logging
-_log_dir = Path(__file__).parent.parent / "logs"
-_log_dir.mkdir(parents=True, exist_ok=True)
-
-# Configure logging (only if not already configured)
-if not logging.getLogger().handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audnex_metadata.log")],
-    )
+log = get_logger(__name__)
 
 
 class AudnexMetadata:
@@ -101,7 +87,7 @@ class AudnexMetadata:
             Cleaned metadata dict or None if not found
         """
         if not asin or len(asin) != 10:
-            logger.error("Invalid ASIN format: %s", asin)
+            log.error("audnex.book.invalid_asin", asin=asin)
             return None
 
         asin = asin.upper()
@@ -113,7 +99,7 @@ class AudnexMetadata:
         else:
             regions = [region]
 
-        logger.info("Fetching book metadata for ASIN: %s (trying %d regions)", asin, len(regions))
+        log.info("audnex.book.fetch", asin=asin, region_count=len(regions))
 
         # Parallel fetch with ASIN validation
         result, found_region = await client.fetch_first_success(
@@ -123,12 +109,12 @@ class AudnexMetadata:
         )
 
         if result:
-            logger.info("Book found for ASIN %s in region %s", asin, found_region)
+            log.info("audnex.book.found", asin=asin, region=found_region)
             metadata = self._clean_book_metadata(result)
             metadata["audnex_region"] = found_region
             return metadata
 
-        logger.error("No metadata found for ASIN %s in any region", asin)
+        log.error("audnex.book.not_found", asin=asin)
         return None
 
     async def get_chapters_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
@@ -143,7 +129,7 @@ class AudnexMetadata:
             Chapters dict or None if not found
         """
         if not asin or len(asin) != 10:
-            logger.error("Invalid ASIN format: %s", asin)
+            log.error("audnex.chapters.invalid_asin", asin=asin)
             return None
 
         asin = asin.upper()
@@ -155,7 +141,7 @@ class AudnexMetadata:
         else:
             regions = [region]
 
-        logger.info("Fetching chapters for ASIN: %s (trying %d regions)", asin, len(regions))
+        log.info("audnex.chapters.fetch", asin=asin, region_count=len(regions))
 
         # Parallel fetch - chapters just need to be non-empty
         result, found_region = await client.fetch_first_success(
@@ -165,12 +151,12 @@ class AudnexMetadata:
         )
 
         if result:
-            logger.info("Chapters found for ASIN %s in region %s", asin, found_region)
+            log.info("audnex.chapters.found", asin=asin, region=found_region)
             if isinstance(result, dict):
                 result["audnex_region"] = found_region
             return result
 
-        logger.error("No chapters found for ASIN %s in any region", asin)
+        log.error("audnex.chapters.not_found", asin=asin)
         return None
 
     async def search_author_by_name(self, name: str, region: str = "us") -> list[dict[str, Any]]:
@@ -191,19 +177,19 @@ class AudnexMetadata:
             params["region"] = region
 
         url = f"{self.base_url}/authors?{urlencode(params)}"
-        logger.info("Searching for author: %s (region: %s)", name, region)
+        log.info("audnex.author_search.start", name=name, region=region)
 
         result = await client.get_json(url)
 
         if result:
             if isinstance(result, list):
-                logger.info("Found %d author results for: %s", len(result), name)
+                log.info("audnex.author_search.found", name=name, count=len(result))
                 return result
             else:
-                logger.info("Found 1 author result for: %s", name)
+                log.info("audnex.author_search.found", name=name, count=1)
                 return [result]
 
-        logger.warning("No authors found for: %s", name)
+        log.warning("audnex.author_search.not_found", name=name)
         return []
 
     async def get_author_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
@@ -218,7 +204,7 @@ class AudnexMetadata:
             Author info dict or None if not found
         """
         if not asin or len(asin) != 10:
-            logger.error("Invalid ASIN format: %s", asin)
+            log.error("audnex.author.invalid_asin", asin=asin)
             return None
 
         asin = asin.upper()
@@ -229,15 +215,15 @@ class AudnexMetadata:
         if params:
             url += f"?{urlencode(params)}"
 
-        logger.info("Fetching author for ASIN: %s (region: %s)", asin, region)
+        log.info("audnex.author.fetch", asin=asin, region=region)
 
         result = await client.get_json(url)
 
         if result and result.get("asin"):
-            logger.info("Author found for ASIN: %s", asin)
+            log.info("audnex.author.found", asin=asin)
             return result
 
-        logger.warning("No author found for ASIN: %s", asin)
+        log.warning("audnex.author.not_found", asin=asin)
         return None
 
     def _clean_book_metadata(self, item: dict[str, Any]) -> dict[str, Any]:
@@ -371,7 +357,7 @@ class AudnexMetadata:
         updated_sequence = match.group(0) if match else sequence
 
         if sequence != updated_sequence:
-            logger.debug('Series "%s" sequence cleaned from "%s" to "%s"', series_name, sequence, updated_sequence)
+            log.debug("audnex.series_sequence.cleaned", series=series_name, original=sequence, cleaned=updated_sequence)
 
         return updated_sequence
 

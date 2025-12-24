@@ -1,4 +1,3 @@
-import logging
 import re
 from datetime import UTC, datetime
 from typing import Any
@@ -6,10 +5,11 @@ from typing import Any
 import httpx
 
 from src.config import load_config
+from src.logging_setup import get_logger
 from src.utils import get_notification_fields
 
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def escape_md(text: str | None) -> str:
@@ -93,12 +93,12 @@ def send_discord(
             resp_json = response.json()
         except ValueError:
             resp_json = {"text": response.text}
-        logger.info("Discord notification sent successfully: status=%d", response.status_code)
+        log.info("notify.discord.success", status_code=response.status_code)
     except httpx.HTTPStatusError as e:
-        logger.exception("Discord webhook returned error status: %d", e.response.status_code)
+        log.exception("notify.discord.http_error", status=e.response.status_code)
         return 0, {"error": f"Discord returned status {e.response.status_code}"}
     except httpx.RequestError as e:
-        logger.exception("Failed to send Discord notification")
+        log.exception("notify.discord.request_error")
         return 0, {"error": f"Failed to send Discord notification: {e}"}
     else:
         return response.status_code, resp_json
