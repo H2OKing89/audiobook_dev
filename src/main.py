@@ -495,7 +495,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="pushover", status_code=status_code)
                 notification_errors.append(f"Pushover: HTTP {status_code}")
         except Exception as e:
-            log.exception("notify.error", channel="pushover", error=str(e))
+            log.exception("notify.error", channel="pushover")
             notification_errors.append(f"Pushover: {e}")
     # Send Gotify notification
     if gotify_url and gotify_token:
@@ -508,7 +508,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="gotify", status_code=status_code)
                 notification_errors.append(f"Gotify: HTTP {status_code}")
         except Exception as e:
-            log.exception("notify.error", channel="gotify", error=str(e))
+            log.exception("notify.error", channel="gotify")
             notification_errors.append(f"Gotify: {e}")
 
     # Send Discord notification
@@ -522,7 +522,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="discord", status_code=status_code)
                 notification_errors.append(f"Discord: HTTP {status_code}")
         except Exception as e:
-            log.exception("notify.error", channel="discord", error=str(e))
+            log.exception("notify.error", channel="discord")
             notification_errors.append(f"Discord: {e}")
 
     # Send ntfy notification
@@ -538,7 +538,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="ntfy", status_code=status_code)
                 notification_errors.append(f"ntfy: HTTP {status_code}")
         except Exception as e:
-            log.exception("notify.error", channel="ntfy", error=str(e))
+            log.exception("notify.error", channel="ntfy")
             notification_errors.append(f"ntfy: {e}")
 
     # Log summary
