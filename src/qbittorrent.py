@@ -387,16 +387,16 @@ class QBittorrentManager:
             return True  # Not an error - torrent already exists
 
         except UnsupportedMediaType415Error as e:
-            log.exception("qbittorrent.torrent.add.invalid_file", error=str(e))
+            log.exception("qbittorrent.torrent.add.invalid_file")
             raise TorrentAddError(f"Invalid torrent URL or file: {e}") from e
 
         except LoginFailed as e:
-            log.exception("qbittorrent.auth.failed", error=str(e))
+            log.exception("qbittorrent.auth.failed")
             self._client = None  # Reset client to force reconnection
             raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
         except APIConnectionError as e:
-            log.exception("qbittorrent.connection.error", error=str(e))
+            log.exception("qbittorrent.connection.error")
             raise QBittorrentConnectionError(f"Connection error: {e}") from e
 
     def add_torrent_file(
@@ -472,16 +472,16 @@ class QBittorrentManager:
             return True
 
         except UnsupportedMediaType415Error as e:
-            log.exception("qbittorrent.torrent.file.invalid", filename=path.name, error=str(e))
+            log.exception("qbittorrent.torrent.file.invalid", filename=path.name)
             raise TorrentAddError(f"Invalid torrent file: {e}") from e
 
         except LoginFailed as e:
-            log.exception("qbittorrent.auth.failed", error=str(e))
+            log.exception("qbittorrent.auth.failed")
             self._client = None
             raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
         except APIConnectionError as e:
-            log.exception("qbittorrent.connection.error", error=str(e))
+            log.exception("qbittorrent.connection.error")
             raise QBittorrentConnectionError(f"Connection error: {e}") from e
 
         else:
