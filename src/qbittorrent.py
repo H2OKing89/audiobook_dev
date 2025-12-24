@@ -520,14 +520,8 @@ class QBittorrentManager:
 
 
 # =============================================================================
-# Module-level singleton instance
+# Module-level singleton access
 # =============================================================================
-
-
-class _ManagerHolder:
-    """Holder class for the singleton manager instance to avoid global statement."""
-
-    instance: QBittorrentManager | None = None
 
 
 def get_manager() -> QBittorrentManager:
@@ -537,9 +531,8 @@ def get_manager() -> QBittorrentManager:
     Returns:
         The shared QBittorrentManager instance
     """
-    if _ManagerHolder.instance is None:
-        _ManagerHolder.instance = QBittorrentManager()
-    return _ManagerHolder.instance
+    # QBittorrentManager implements singleton pattern via __new__
+    return QBittorrentManager()
 
 
 @contextmanager
