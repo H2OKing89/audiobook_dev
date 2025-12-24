@@ -322,8 +322,8 @@ class TestAddTorrentFile:
         with patch("src.qbittorrent.Client") as mock_client_class:
             mock_client = MagicMock()
             mock_client.app_version.return_value = "4.5.0"
-            # Return a failed response
-            mock_client.torrents_add.return_value = "Failed"
+            # Return a failed response (matching actual qBittorrent API)
+            mock_client.torrents_add.return_value = "Fails."
             mock_client_class.return_value = mock_client
 
             manager = QBittorrentManager()

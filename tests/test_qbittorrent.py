@@ -6,6 +6,7 @@ import pytest
 from src.qbittorrent import (
     QBittorrentConfig,
     QBittorrentManager,
+    TorrentAddError,
     TorrentAddOptions,
     add_torrent,
     add_torrent_file_with_cookie,
@@ -161,8 +162,6 @@ class TestQBittorrentManager:
 
             manager = QBittorrentManager()
 
-            from src.qbittorrent import TorrentAddError
-
             with pytest.raises(TorrentAddError):
                 manager.add_torrent_by_url("ftp://invalid.com/file.torrent")
 
@@ -177,8 +176,6 @@ class TestQBittorrentManager:
             mock_client_class.return_value = mock_client
 
             manager = QBittorrentManager()
-
-            from src.qbittorrent import TorrentAddError
 
             with pytest.raises(TorrentAddError, match="URL cannot be empty"):
                 manager.add_torrent_by_url("")
