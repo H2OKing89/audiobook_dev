@@ -17,6 +17,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Literal
 from urllib.parse import urlparse
 
@@ -179,7 +180,6 @@ class QBittorrentManager:
     """
 
     _instance: "QBittorrentManager | None" = None
-    _client: Client | None = None
 
     def __new__(cls) -> "QBittorrentManager":
         """Ensure only one instance exists (singleton pattern)."""
@@ -192,6 +192,7 @@ class QBittorrentManager:
         if not hasattr(self, "_initialized"):
             self._initialized = True
             self._config: QBittorrentConfig | None = None
+            self._client: Client | None = None
 
     @classmethod
     def create_scoped(cls) -> "QBittorrentManager":
@@ -301,9 +302,15 @@ class QBittorrentManager:
         """Context manager entry."""
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
         """Context manager exit - ensures cleanup."""
         self.disconnect()
+        return None
 
     def add_torrent_by_url(
         self,
