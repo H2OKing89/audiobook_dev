@@ -105,7 +105,11 @@ def send_ntfy(
             resp2 = httpx.post(fallback_url, content=message.encode("utf-8"), headers=headers, auth=auth, timeout=15)
             resp2.raise_for_status()
             log.info("notify.ntfy.fallback_success", status_code=resp2.status_code)
-            return resp2.status_code, resp2.json()
+            try:
+                return resp2.status_code, resp2.json()
+            except ValueError:
+                # Fallback endpoint may return non-JSON (e.g., plain text confirmation)
+                return resp2.status_code, {"message": resp2.text}
         except (httpx.RequestError, httpx.HTTPStatusError) as e2:
             log.exception("notify.ntfy.fallback_failed", primary_error=str(e), fallback_error=str(e2))
             # Return the original error plus the fallback error

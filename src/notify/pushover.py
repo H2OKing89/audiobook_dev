@@ -12,6 +12,13 @@ from src.utils import get_notification_fields
 log = get_logger(__name__)
 
 
+def _token_fingerprint(token: str | None) -> str | None:
+    """Return last 4 characters of token for safe logging."""
+    if not token:
+        return None
+    return token[-4:] if len(token) > 4 else token
+
+
 def send_pushover(
     metadata: dict[str, Any],
     payload: dict[str, Any],
@@ -28,12 +35,13 @@ def send_pushover(
     Returns (status_code, response_json).
     Raises httpx.RequestError for network errors.
     """
-    log.info("notify.pushover.prepare", token=token)
+    token_fp = _token_fingerprint(token)
+    log.info("notify.pushover.prepare", token_id=token_fp)
 
     try:
         fields = get_notification_fields(metadata, payload)
         title = fields.get("title", "Unknown Title")
-        log.debug("notify.pushover.title", token=token, title=title)
+        log.debug("notify.pushover.title", token_id=token_fp, title=title)
 
         message = (
             '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
@@ -64,13 +72,13 @@ def send_pushover(
         # Add optional settings
         if html is not None:
             payload_data["html"] = str(html)
-            log.debug("notify.pushover.html_enabled", token=token)
+            log.debug("notify.pushover.html_enabled", token_id=token_fp)
         if sound is not None:
             payload_data["sound"] = sound
-            log.debug("notify.pushover.sound", token=token, sound=sound)
+            log.debug("notify.pushover.sound", token_id=token_fp, sound=sound)
         if priority is not None:
             payload_data["priority"] = str(priority)
-            log.debug("notify.pushover.priority", token=token, priority=priority)
+            log.debug("notify.pushover.priority", token_id=token_fp, priority=priority)
 
         # Include the approval page link in the notification
         approve_url = f"{base_url}/approve/{token}"
@@ -86,7 +94,7 @@ def send_pushover(
         temp_file_path = None
 
         if cover_url:
-            log.debug("notify.pushover.download_cover", token=token, cover_url=cover_url)
+            log.debug("notify.pushover.download_cover", token_id=token_fp, cover_url=cover_url)
             try:
                 resp = httpx.get(cover_url, timeout=10)
                 resp.raise_for_status()
@@ -95,12 +103,12 @@ def send_pushover(
                 with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
                     temp_file.write(resp.content)
                     temp_file_path = temp_file.name
-                log.debug("notify.pushover.cover_downloaded", token=token)
+                log.debug("notify.pushover.cover_downloaded", token_id=token_fp)
             except httpx.RequestError as e:
-                log.debug("notify.pushover.cover_failed", token=token, error=str(e))
+                log.debug("notify.pushover.cover_failed", token_id=token_fp, error=str(e))
 
         try:
-            log.debug("notify.pushover.send", token=token, has_attachment=bool(temp_file_path))
+            log.debug("notify.pushover.send", token_id=token_fp, has_attachment=bool(temp_file_path))
             if temp_file_path:
                 # Use context manager to ensure file handle is closed after request
                 with Path(temp_file_path).open("rb") as f:
@@ -113,7 +121,6 @@ def send_pushover(
             log.info("notify.pushover.success", token_id=token_fp, status_code=response.status_code)
             return response.status_code, response.json()
         except httpx.RequestError:
-            log.exception("notify.pushover.send_failed", token=token)
             # Propagate network-level exceptions to callers (tests expect this behavior)
             raise
         finally:
@@ -121,14 +128,14 @@ def send_pushover(
             if temp_file_path and Path(temp_file_path).exists():
                 try:
                     Path(temp_file_path).unlink()
-                    log.debug("notify.pushover.cleanup", token=token)
+                    log.debug("notify.pushover.cleanup", token_id=token_fp)
                 except Exception as e:
-                    log.warning("notify.pushover.cleanup_failed", token=token, error=str(e))
+                    log.warning("notify.pushover.cleanup_failed", token_id=token_fp, error=str(e))
 
     except httpx.RequestError:
         # Re-raise network related exceptions so callers can handle circuit breakers, retries etc.
-        log.exception("notify.pushover.network_error", token=token)
+        log.exception("notify.pushover.network_error", token_id=token_fp)
         raise
     except Exception as e:
-        log.exception("notify.pushover.preparation_failed", token=token)
+        log.exception("notify.pushover.preparation_failed", token_id=token_fp)
         return 0, {"error": str(e)}
