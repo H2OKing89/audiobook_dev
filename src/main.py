@@ -1,15 +1,11 @@
 import asyncio
 import contextlib
-import contextvars
 import ipaddress
-import logging
 import os
 import re
 import time
-import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -21,12 +17,14 @@ from fastapi.staticfiles import StaticFiles
 from src.config import load_config  # add import for config
 from src.db import save_request  # switch to persistent DB store
 from src.http_client import AsyncHttpClient, close_default_client
+from src.logging_setup import clear_contextvars, configure_logging, get_logger
 from src.metadata import fetch_metadata
 from src.metadata_coordinator import MetadataCoordinator
 from src.notify.discord import send_discord
 from src.notify.gotify import send_gotify
 from src.notify.ntfy import send_ntfy
 from src.notify.pushover import send_pushover
+from src.request_id_middleware import RequestIdMiddleware
 from src.security import (
     RateLimitExceeded,
     check_endpoint_authorization,
@@ -39,75 +37,16 @@ from src.token_gen import generate_token
 from src.webui import router as webui_router  # add web UI router import
 
 
+# Configure structured logging FIRST, before anything else
+configure_logging()
+log = get_logger(__name__)
+
 load_dotenv()
 
 # Load configuration
 config = load_config()
 server_cfg = config.get("server", {})
 autobrr_endpoint = server_cfg.get("autobrr_webhook_endpoint", "/webhook")
-
-# Context variable for request ID
-request_id_ctx_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("request_id", default=None)
-
-
-class RequestIdFilter(logging.Filter):
-    """Logging filter to inject request_id into log records."""
-
-    def filter(self, record):
-        record.request_id = request_id_ctx_var.get() or "-"
-        return True
-
-
-# Dynamic logging configuration from config.yaml
-log_cfg = config.get("logging", {})
-level = getattr(logging, log_cfg.get("level", "INFO").upper(), logging.INFO)
-# Create a format that includes request_id without duplicating timestamp
-base_fmt = log_cfg.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# Replace the base format to include request_id in the right place
-fmt = base_fmt.replace("%(asctime)s", "%(asctime)s - %(request_id)s")
-log_path = Path(log_cfg.get("file", "log/audiobook_requests.log"))
-# Ensure log directory exists
-log_path.parent.mkdir(parents=True, exist_ok=True)
-
-# Create logger and set level
-logger = logging.getLogger()
-logger.setLevel(level)
-formatter = logging.Formatter(fmt)
-
-rotation = log_cfg.get("rotation")
-if rotation == "midnight":
-    from logging.handlers import TimedRotatingFileHandler
-
-    file_handler = TimedRotatingFileHandler(
-        filename=log_path, when="midnight", backupCount=log_cfg.get("backup_count", 5)
-    )
-else:
-    from logging.handlers import RotatingFileHandler
-
-    file_handler = RotatingFileHandler(  # type: ignore[assignment]
-        filename=log_path,
-        maxBytes=log_cfg.get("max_size", 10) * 1024 * 1024,
-        backupCount=log_cfg.get("backup_count", 5),
-    )
-file_handler.setFormatter(formatter)
-file_handler.addFilter(RequestIdFilter())
-
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-console_handler.addFilter(RequestIdFilter())
-
-# Apply handlers
-logger.handlers.clear()
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
-# SECURITY: Disable debug logging for httpx/httpcore to prevent cookie/token leakage
-# These libraries log full HTTP headers including sensitive cookies at DEBUG level
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("httpcore.http2").setLevel(logging.WARNING)
-logging.getLogger("httpcore.connection").setLevel(logging.WARNING)
-logging.getLogger("hpack").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
@@ -120,17 +59,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup: Initialize shared HTTP client and metadata coordinator
     app.state.http_client = AsyncHttpClient()
     app.state.metadata_coordinator = MetadataCoordinator()
-    logging.info("Shared HTTP client and metadata coordinator initialized")
+    log.info("app.startup", component="http_client", status="initialized")
+    log.info("app.startup", component="metadata_coordinator", status="initialized")
 
     # Start the metadata worker
     app.state.metadata_worker_task = asyncio.create_task(_metadata_worker_loop(app))
     app.state.metadata_worker_running = True
-    logging.info("🚀 Audiobook service started with queue-based processing")
+    log.info("app.startup.complete", worker="metadata_queue", queue_maxsize=metadata_queue.maxsize)
 
     yield  # App runs here
 
     # Shutdown: Clean up resources
-    logging.info("Shutting down audiobook service...")
+    log.info("app.shutdown.start")
 
     # Cancel metadata worker
     app.state.metadata_worker_running = False
@@ -142,11 +82,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Close the shared HTTP client (releases connection pool)
     if hasattr(app.state, "http_client") and app.state.http_client:
         await app.state.http_client.aclose()
-        logging.info("HTTP client closed")
+        log.info("app.shutdown", component="http_client", status="closed")
 
     # Also close any default client that may have been created
     await close_default_client()
-    logging.info("Service shutdown complete")
+    log.info("app.shutdown.complete")
 
 
 app = FastAPI(
@@ -253,7 +193,7 @@ async def queue_status(request: Request):
     internal_api_key = os.getenv("INTERNAL_API_KEY")  # Set this for additional security
 
     if not is_local and (not internal_api_key or api_key != internal_api_key):
-        logging.warning(f"Unauthorized queue status access attempt from {client_ip}")
+        log.warning("queue.status.unauthorized", client_ip=client_ip)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - internal endpoint")
 
     worker_running = getattr(request.app.state, "metadata_worker_running", False)
@@ -269,12 +209,12 @@ async def queue_status(request: Request):
     }
 
 
-def _create_fallback_metadata(payload: dict[str, Any], log_prefix: str, error: Exception) -> dict[str, Any]:
+def _create_fallback_metadata(payload: dict[str, Any], token: str, error: Exception) -> dict[str, Any]:
     """Create fallback metadata when all metadata sources fail.
 
     Args:
         payload: The webhook payload
-        log_prefix: Log prefix for the request
+        token: Request token for logging context
         error: The original error that triggered fallback
 
     Returns:
@@ -306,34 +246,12 @@ def _create_fallback_metadata(payload: dict[str, Any], log_prefix: str, error: E
         "workflow_path": "fallback",
     }
 
-    logging.warning(log_prefix + f"Using fallback metadata due to error: {error}")
+    log.warning("metadata.fallback", token=token, title=title, error=str(error))
     return metadata
 
 
-# Middleware to set request_id from path token or generate new one
-@app.middleware("http")
-async def add_request_id(request: Request, call_next):
-    # Extract token from path parameters if available
-    token = None
-    try:
-        token = request.path_params.get("token")
-    except Exception:
-        token = None
-    if not token:
-        # Fallback to header or generate new UUID
-        token = request.headers.get("X-Request-ID") or uuid.uuid4().hex
-    # Store in contextvar
-    request_id_ctx_var.set(token)
-    # Get client IP address using centralized function
-    client_ip = get_client_ip(request)
-    # Log the incoming request with IP and token
-    logging.info(f"Incoming request: path={request.url.path} ip={client_ip} token={token}")
-    # Proceed with request
-    response = await call_next(request)
-    # Echo request_id back in response headers
-    response.headers["X-Request-ID"] = token
-    response.headers["X-Client-IP"] = client_ip
-    return response
+# Add request ID middleware for correlation (replaces manual request_id handling)
+app.add_middleware(RequestIdMiddleware, log_requests=True)
 
 
 @app.post(autobrr_endpoint)
@@ -344,7 +262,7 @@ async def webhook(request: Request):
 
     # Rate limit token generation
     if not rate_limit_token_generation(client_ip):
-        logging.warning(f"Rate limit exceeded for token generation: {client_ip}")
+        log.warning("webhook.rate_limit_exceeded", client_ip=client_ip)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests. Please try again later."
         )
@@ -353,8 +271,8 @@ async def webhook(request: Request):
     autobrr_token = os.getenv("AUTOBRR_TOKEN")
     header_token = request.headers.get("X-Autobrr-Token")
     if autobrr_token and header_token != autobrr_token:
-        logging.warning(f"Invalid Autobrr token received from {client_ip}")
-        request_id = request_id_ctx_var.get() or "-"
+        log.warning("webhook.invalid_token", client_ip=client_ip)
+        request_id = getattr(request.state, "request_id", "-")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Autobrr token (Request ID: {request_id})"
         )
@@ -365,15 +283,18 @@ async def webhook(request: Request):
     required_fields = ["name", "url", "download_url"]
     missing_fields = [field for field in required_fields if field not in payload]
     if missing_fields:
-        logging.warning(f"Missing required fields in payload: {missing_fields}")
+        log.warning("webhook.missing_fields", missing_fields=missing_fields)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing required fields: {', '.join(missing_fields)}"
         )
 
     # Generate one-time-use token for this request
     token = generate_token()
-    log_prefix = f"[token={token}] "
-    logging.info(log_prefix + f"Received webhook payload: {payload}")
+
+    # Bind only a fingerprint (last 4 chars) to context - not the full token
+    token_fingerprint = token[-4:] if len(token) > 4 else token
+
+    log.info("webhook.received", name=payload.get("name"), url=payload.get("url"), token_id=token_fingerprint)
 
     try:
         # Get coordinator from app state (initialized by lifespan handler)
@@ -386,15 +307,15 @@ async def webhook(request: Request):
         try:
             metadata = await fetch_metadata(payload)
             if metadata:
-                logging.info(log_prefix + "Metadata obtained from fetch_metadata() wrapper")
+                log.info("metadata.fetch.success", source="fetch_metadata_wrapper")
                 metadata = await coordinator.get_enhanced_metadata(metadata)
         except ValueError as e:
             # Expected when fetch_metadata returns None or finds no metadata
-            logging.info(log_prefix + f"fetch_metadata did not provide metadata: {e}")
+            log.debug("metadata.fetch.no_result", source="fetch_metadata", reason=str(e))
             last_error = e
         except Exception as e:
             # Unexpected exceptions from fetch_metadata - log and continue to next method
-            logging.exception(log_prefix + f"Unexpected error in fetch_metadata: {e}")
+            log.exception("metadata.fetch.error", source="fetch_metadata")
             last_error = e
 
         # Try 2: Coordinator async workflow
@@ -403,20 +324,20 @@ async def webhook(request: Request):
                 metadata = await coordinator.get_metadata_from_webhook(payload)
                 if metadata:
                     metadata = await coordinator.get_enhanced_metadata(metadata)
-                    logging.info(log_prefix + "Metadata obtained from coordinator workflow")
+                    log.info("metadata.fetch.success", source="coordinator")
             except ValueError as e:
                 # Expected when coordinator finds no metadata
-                logging.info(log_prefix + f"Coordinator did not provide metadata: {e}")
+                log.debug("metadata.fetch.no_result", source="coordinator", reason=str(e))
                 last_error = e
             except Exception as e:
                 # Network errors or other issues from coordinator
-                logging.exception(log_prefix + f"Coordinator workflow failed: {e}")
+                log.exception("metadata.fetch.error", source="coordinator")
                 last_error = e
 
         # Try 3: Fallback metadata
         if not metadata:
             metadata = _create_fallback_metadata(
-                payload, log_prefix, last_error or Exception("No metadata sources available")
+                payload, token, last_error or Exception("No metadata sources available")
             )
 
         # Process notifications synchronously and return a summary
@@ -444,12 +365,12 @@ async def webhook(request: Request):
             "notification_errors": notification_errors,
         }
 
-    except asyncio.QueueFull as err:
-        logging.error(log_prefix + "Failed to enqueue request - queue is full")
+    except asyncio.QueueFull:
+        log.error("webhook.queue_full", queue_size=metadata_queue.qsize())
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Server is busy processing other requests. Please try again later.",
-        ) from err
+        ) from None
 
 
 async def _metadata_worker_loop(app: FastAPI) -> None:
@@ -458,7 +379,7 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
     This worker is started by the lifespan handler and uses app.state
     for the coordinator and running flag.
     """
-    logging.info("Metadata worker started - processing requests sequentially")
+    log.info("worker.started", worker="metadata_queue")
 
     while getattr(app.state, "metadata_worker_running", False):
         try:
@@ -472,10 +393,13 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
             payload = request_data["payload"]
             timestamp = request_data["timestamp"]
 
-            log_prefix = f"[token={token}] "
             wait_time = time.time() - timestamp
 
-            logging.info(log_prefix + f"Processing metadata request (waited {wait_time:.1f}s in queue)")
+            # Clear stale context but don't bind token - use fingerprint only where needed
+            clear_contextvars()
+            token_fingerprint = token[-4:] if len(token) > 4 else token
+
+            log.info("worker.processing", wait_time_s=round(wait_time, 1), token_id=token_fingerprint)
 
             # Get coordinator from app state
             coordinator = app.state.metadata_coordinator
@@ -486,14 +410,14 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
                 if metadata:
                     # Enhance metadata with additional information
                     metadata = await coordinator.get_enhanced_metadata(metadata)
-                    logging.info(log_prefix + "✅ Metadata processed successfully")
+                    log.info("worker.metadata.success")
                 else:
                     raise ValueError("No metadata found from any source")
 
             except Exception as e:
-                logging.exception(log_prefix + f"Metadata fetch failed: {e}")
+                log.exception("worker.metadata.failed")
                 # Use helper function to create fallback metadata
-                metadata = _create_fallback_metadata(payload, log_prefix, e)
+                metadata = _create_fallback_metadata(payload, token, e)
 
             # Continue with the rest of the processing (notifications, etc.)
             await process_metadata_and_notify(token, metadata, payload)
@@ -502,10 +426,10 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
             metadata_queue.task_done()
 
         except asyncio.CancelledError:
-            logging.info("Metadata worker cancelled")
+            log.info("worker.cancelled")
             break
         except Exception as e:
-            logging.error(f"Error in metadata worker: {e}")
+            log.error("worker.error", error=str(e))
             # Mark task as done even on error to prevent queue blocking
             with contextlib.suppress(ValueError):
                 metadata_queue.task_done()
@@ -516,11 +440,12 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
 
     Returns a summary dict: {"notifications_sent": int, "notification_errors": list}
     """
-    log_prefix = f"[token={token}] "
+    # Use token fingerprint for logging (never log full token)
+    token_fingerprint = token[-4:] if len(token) > 4 else token
 
     # Persist token, metadata, and original payload
     save_request(token, metadata, payload)
-    logging.info(log_prefix + f"Saved request with token: {token}")
+    log.info("request.saved", title=metadata.get("title"), token_id=token_fingerprint)
 
     # Get notification settings
     base_url = server_cfg.get("base_url")
@@ -541,10 +466,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
 
     # Allow tests or CI to skip external notifications to avoid spamming/ratelimiting
     if os.getenv("DISABLE_WEBHOOK_NOTIFICATIONS") == "1":
-        logging.info(
-            log_prefix
-            + "DISABLE_WEBHOOK_NOTIFICATIONS is set; skipping notification delivery for webhook-driven processing"
-        )
+        log.info("notify.skipped", reason="DISABLE_WEBHOOK_NOTIFICATIONS")
         return {"notifications_sent": 0, "notification_errors": []}
 
     notifications_sent = 0
@@ -567,26 +489,26 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 priority=pushover_cfg.get("priority"),
             )
             if status_code >= 200 and status_code < 300:
-                logging.info(log_prefix + "Pushover notification sent successfully.")
+                log.info("notify.success", channel="pushover", status_code=status_code)
                 notifications_sent += 1
             else:
-                logging.error(log_prefix + f"Pushover notification failed with status {status_code}: {response}")
+                log.error("notify.failed", channel="pushover", status_code=status_code)
                 notification_errors.append(f"Pushover: HTTP {status_code}")
         except Exception as e:
-            logging.error(log_prefix + f"Pushover notification failed: {e}")
+            log.error("notify.error", channel="pushover", error=str(e))
             notification_errors.append(f"Pushover: {e}")
     # Send Gotify notification
     if gotify_url and gotify_token:
         try:
             status_code, response = send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
             if status_code >= 200 and status_code < 300:
-                logging.info(log_prefix + "Gotify notification sent successfully.")
+                log.info("notify.success", channel="gotify", status_code=status_code)
                 notifications_sent += 1
             else:
-                logging.error(log_prefix + f"Gotify notification failed with status {status_code}: {response}")
+                log.error("notify.failed", channel="gotify", status_code=status_code)
                 notification_errors.append(f"Gotify: HTTP {status_code}")
         except Exception as e:
-            logging.error(log_prefix + f"Gotify notification failed: {e}")
+            log.error("notify.error", channel="gotify", error=str(e))
             notification_errors.append(f"Gotify: {e}")
 
     # Send Discord notification
@@ -594,13 +516,13 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
         try:
             status_code, response = send_discord(metadata, payload, token, base_url, discord_webhook)
             if status_code >= 200 and status_code < 300:
-                logging.info(log_prefix + "Discord notification sent successfully.")
+                log.info("notify.success", channel="discord", status_code=status_code)
                 notifications_sent += 1
             else:
-                logging.error(log_prefix + f"Discord notification failed with status {status_code}: {response}")
+                log.error("notify.failed", channel="discord", status_code=status_code)
                 notification_errors.append(f"Discord: HTTP {status_code}")
         except Exception as e:
-            logging.error(log_prefix + f"Discord notification failed: {e}")
+            log.error("notify.error", channel="discord", error=str(e))
             notification_errors.append(f"Discord: {e}")
 
     # Send ntfy notification
@@ -610,20 +532,20 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 metadata, payload, token, base_url, ntfy_topic, ntfy_url, ntfy_user=ntfy_user, ntfy_pass=ntfy_password
             )
             if status_code >= 200 and status_code < 300:
-                logging.info(log_prefix + "ntfy notification sent successfully.")
+                log.info("notify.success", channel="ntfy", status_code=status_code)
                 notifications_sent += 1
             else:
-                logging.error(log_prefix + f"ntfy notification failed with status {status_code}: {response}")
+                log.error("notify.failed", channel="ntfy", status_code=status_code)
                 notification_errors.append(f"ntfy: HTTP {status_code}")
         except Exception as e:
-            logging.error(log_prefix + f"ntfy notification failed: {e}")
+            log.error("notify.error", channel="ntfy", error=str(e))
             notification_errors.append(f"ntfy: {e}")
 
     # Log summary
     if notifications_sent > 0:
-        logging.info(log_prefix + f"Sent {notifications_sent} notifications successfully")
+        log.info("notify.summary", sent=notifications_sent)
     if notification_errors:
-        logging.warning(log_prefix + f"Notification errors: {'; '.join(notification_errors)}")
+        log.warning("notify.summary.errors", errors=notification_errors)
 
     # Return a summary for callers
     return {"notifications_sent": notifications_sent, "notification_errors": notification_errors}
