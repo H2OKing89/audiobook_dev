@@ -461,7 +461,6 @@ class QBittorrentManager:
                 logger.info("Torrent file added successfully: %s", path.name)
             else:
                 logger.warning("Failed to add torrent file: %s (response: %s)", path.name, result)
-            return success
 
         except Conflict409Error:
             logger.info("Torrent already exists: %s", path.name)
@@ -479,6 +478,9 @@ class QBittorrentManager:
         except APIConnectionError as e:
             logger.error("qBittorrent connection error: %s", e)
             raise QBittorrentConnectionError(f"Connection error: {e}") from e
+
+        else:
+            return success
 
     def get_torrent_info(self, torrent_hash: str) -> dict[str, Any] | None:
         """
