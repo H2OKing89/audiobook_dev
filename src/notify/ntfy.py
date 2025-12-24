@@ -1,11 +1,14 @@
-import logging
 import os
 from typing import Any
 
 import httpx
 
 from src.config import load_config
+from src.logging_setup import get_logger
 from src.utils import get_notification_fields
+
+
+log = get_logger(__name__)
 
 
 def send_ntfy(
@@ -24,7 +27,7 @@ def send_ntfy(
     Tries JSON publish first, then falls back to topic endpoint.
     Uses NTFY_TOKEN from environment as Bearer token if set.
     """
-    logging.info(f"Preparing ntfy notification for topic={ntfy_topic} at {ntfy_url}")
+    log.info("notify.ntfy.prepare", topic=ntfy_topic, url=ntfy_url)
 
     config = load_config()
     icon_url = config.get("notifications", {}).get("ntfy", {}).get("icon_url", "https://ptpimg.me/4larvz.jpg")
@@ -87,24 +90,23 @@ def send_ntfy(
     data = {"topic": ntfy_topic, "message": message, "actions": actions}
     # Send as JSON for Markdown and actions
     base = ntfy_url.rstrip("/")
-    logging.info(f"Sending ntfy JSON to {base}")
+    log.info("notify.ntfy.send", url=base)
     try:
         resp = httpx.post(base, json=data, headers=headers, auth=auth)
         resp.raise_for_status()
-        logging.info(f"ntfy JSON publish succeeded: status={resp.status_code}")
+        log.info("notify.ntfy.success", status_code=resp.status_code)
         return resp.status_code, resp.json()
     except httpx.RequestError as e:
-        logging.error(f"ntfy JSON publish failed: {e}")
+        log.error("notify.ntfy.json_failed", error=str(e))
         # Fallback to topic endpoint
         fallback_url = f"{base}/{ntfy_topic}"
-        logging.info(f"Falling back to ntfy topic endpoint: {fallback_url}")
+        log.info("notify.ntfy.fallback", url=fallback_url)
         try:
             resp2 = httpx.post(fallback_url, content=message.encode("utf-8"), headers=headers, auth=auth, timeout=15)
             resp2.raise_for_status()
-            logging.info(f"ntfy fallback publish succeeded: status={resp2.status_code}")
+            log.info("notify.ntfy.fallback_success", status_code=resp2.status_code)
             return resp2.status_code, resp2.json()
         except httpx.RequestError as e2:
-            error_msg = f"ntfy fallback publish also failed: {e2}"
-            logging.error(error_msg)
+            log.error("notify.ntfy.fallback_failed", primary_error=str(e), fallback_error=str(e2))
             # Return the original error plus the fallback error
             return 0, {"error": f"Primary: {e}, Fallback: {e2}"}

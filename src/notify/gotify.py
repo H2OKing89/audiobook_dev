@@ -1,10 +1,13 @@
-import logging
 import re
 from typing import Any
 
 import httpx
 
+from src.logging_setup import get_logger
 from src.utils import get_notification_fields
+
+
+log = get_logger(__name__)
 
 
 def escape_md(text: str | None) -> str:
@@ -87,9 +90,8 @@ def send_gotify(
     try:
         response = httpx.post(f"{gotify_url}/message?token={gotify_token}", json=payload_data, timeout=15)
         response.raise_for_status()
-        logging.info(f"Gotify notification sent successfully: status={response.status_code}")
+        log.info("notify.gotify.success", status_code=response.status_code)
         return response.status_code, response.json()
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
-        error_msg = f"Failed to send Gotify notification: {e}"
-        logging.error(error_msg)
-        return 0, {"error": error_msg}
+        log.error("notify.gotify.failed", error=str(e))
+        return 0, {"error": f"Failed to send Gotify notification: {e}"}
