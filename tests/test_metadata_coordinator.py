@@ -12,10 +12,7 @@ Tests cover:
 """
 
 import asyncio
-import argparse
-import time
-from io import StringIO
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -60,17 +57,17 @@ def coordinator(mock_config):
                     mock_mam_instance = MagicMock()
                     mock_audnex_instance = MagicMock()
                     mock_audible_instance = MagicMock()
-                    
+
                     mock_mam.return_value = mock_mam_instance
                     mock_audnex.return_value = mock_audnex_instance
                     mock_audible.return_value = mock_audible_instance
-                    
+
                     coord = MetadataCoordinator()
                     # Ensure our mock instances are assigned
                     coord.mam_scraper = mock_mam_instance
                     coord.audnex = mock_audnex_instance
                     coord.audible = mock_audible_instance
-                    
+
                     # Yield keeps the context alive for the test
                     yield coord
 
@@ -154,20 +151,20 @@ class TestMetadataCoordinatorInit:
                 with patch("src.metadata_coordinator.AudnexMetadata"):
                     with patch("src.metadata_coordinator.AudibleScraper"):
                         coord = MetadataCoordinator()
-                        
+
                         assert coord.seed_authors is True
                         assert coord.force_update is False
 
     def test_init_missing_config_uses_defaults(self):
         """Test initialization with missing config sections."""
         minimal_config = {}
-        
+
         with patch("src.metadata_coordinator.load_config", return_value=minimal_config):
             with patch("src.metadata_coordinator.MAMApiAdapter"):
                 with patch("src.metadata_coordinator.AudnexMetadata"):
                     with patch("src.metadata_coordinator.AudibleScraper"):
                         coord = MetadataCoordinator()
-                        
+
                         # Should use hardcoded defaults
                         assert coord.seed_authors is False
                         assert coord.force_update is False
@@ -189,9 +186,9 @@ class TestGetMetadataFromWebhook:
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
         # Audnex returns metadata
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["asin"] == "B0TEST1234"
         assert result["source"] == "audnex"
@@ -207,27 +204,25 @@ class TestGetMetadataFromWebhook:
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
         # Audible search returns results
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
         assert result["asin_source"] == "search"
 
     @pytest.mark.asyncio
-    async def test_webhook_no_mam_url_goes_to_audible(
-        self, coordinator, sample_audible_metadata
-    ):
+    async def test_webhook_no_mam_url_goes_to_audible(self, coordinator, sample_audible_metadata):
         """Test non-MAM webhook goes directly to Audible search."""
         payload = {
             "name": "The Hobbit by J.R.R. Tolkien",
             "url": "https://some-other-indexer.com/t/123",
         }
-        
+
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
         # MAM should not be called for non-MAM URLs
@@ -244,9 +239,9 @@ class TestGetMetadataFromWebhook:
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         # Audible search succeeds
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
@@ -255,70 +250,56 @@ class TestGetMetadataFromWebhook:
         """Test when all metadata sources fail."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=None)
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_webhook_mam_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM network error is handled gracefully."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
+        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=httpx.RequestError("Network error"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         # Should fall back to Audible
         assert result is not None
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    async def test_webhook_audnex_network_error(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
-    ):
+    async def test_webhook_audnex_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex network error falls back to Audible."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=httpx.RequestError("Network error"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    async def test_webhook_audnex_value_error(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
-    ):
+    async def test_webhook_audnex_value_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex ValueError (malformed response) falls back."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=ValueError("Malformed response")
-        )
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=ValueError("Malformed response"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    async def test_webhook_audnex_unexpected_error(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
-    ):
+    async def test_webhook_audnex_unexpected_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex unexpected error is handled."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=RuntimeError("Unexpected"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
@@ -326,10 +307,8 @@ class TestGetMetadataFromWebhook:
     async def test_webhook_audible_network_error_raises(self, coordinator, sample_webhook_payload):
         """Test Audible network error raises ValueError."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
-        coordinator.audible.search_from_webhook_name = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
-        
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=httpx.RequestError("Network error"))
+
         with pytest.raises(ValueError, match="Could not fetch metadata"):
             await coordinator.get_metadata_from_webhook(sample_webhook_payload)
 
@@ -337,10 +316,8 @@ class TestGetMetadataFromWebhook:
     async def test_webhook_audible_value_error_raises(self, coordinator, sample_webhook_payload):
         """Test Audible ValueError raises."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
-        coordinator.audible.search_from_webhook_name = AsyncMock(
-            side_effect=ValueError("Malformed response")
-        )
-        
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=ValueError("Malformed response"))
+
         with pytest.raises(ValueError, match="Could not fetch metadata"):
             await coordinator.get_metadata_from_webhook(sample_webhook_payload)
 
@@ -348,12 +325,10 @@ class TestGetMetadataFromWebhook:
     async def test_webhook_audible_unexpected_error_returns_none(self, coordinator, sample_webhook_payload):
         """Test Audible unexpected error returns None."""
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
-        coordinator.audible.search_from_webhook_name = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
-        
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=RuntimeError("Unexpected"))
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is None
 
     @pytest.mark.asyncio
@@ -365,9 +340,9 @@ class TestGetMetadataFromWebhook:
         coordinator.force_update = True
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         coordinator.audnex.get_book_by_asin.assert_called_once_with(
             "B0TEST1234",
             seed_authors=True,
@@ -383,39 +358,31 @@ class TestGetMetadataFromWebhook:
         }
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(payload)
-        
+
         # Even with empty name, should attempt search
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_webhook_mam_value_error(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
-    ):
+    async def test_webhook_mam_value_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM ValueError (malformed response) continues to Audible."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(
-            side_effect=ValueError("Malformed response")
-        )
+        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=ValueError("Malformed response"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    async def test_webhook_mam_unexpected_error(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
-    ):
+    async def test_webhook_mam_unexpected_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM unexpected error continues to Audible."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
+        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=RuntimeError("Unexpected"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert result is not None
         assert result["source"] == "audible"
 
@@ -433,9 +400,9 @@ class TestGetMetadataByAsin:
     async def test_asin_lookup_success(self, coordinator, sample_audnex_metadata):
         """Test successful ASIN lookup."""
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         result = await coordinator.get_metadata_by_asin("B0TEST1234")
-        
+
         assert result is not None
         assert result["asin"] == "B0TEST1234"
         assert result["source"] == "audnex"
@@ -445,9 +412,9 @@ class TestGetMetadataByAsin:
     async def test_asin_lookup_with_region(self, coordinator, sample_audnex_metadata):
         """Test ASIN lookup with custom region."""
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         await coordinator.get_metadata_by_asin("B0TEST1234", region="uk")
-        
+
         coordinator.audnex.get_book_by_asin.assert_called_once()
         call_args = coordinator.audnex.get_book_by_asin.call_args
         assert call_args.kwargs["region"] == "uk"
@@ -457,9 +424,9 @@ class TestGetMetadataByAsin:
         """Test seed_authors parameter override."""
         coordinator.seed_authors = False  # Config default
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         await coordinator.get_metadata_by_asin("B0TEST1234", seed_authors=True)
-        
+
         call_args = coordinator.audnex.get_book_by_asin.call_args
         assert call_args.kwargs["seed_authors"] is True
 
@@ -468,9 +435,9 @@ class TestGetMetadataByAsin:
         """Test update parameter override."""
         coordinator.force_update = False  # Config default
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         await coordinator.get_metadata_by_asin("B0TEST1234", update=True)
-        
+
         call_args = coordinator.audnex.get_book_by_asin.call_args
         assert call_args.kwargs["update"] is True
 
@@ -480,9 +447,9 @@ class TestGetMetadataByAsin:
         coordinator.seed_authors = True
         coordinator.force_update = True
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
-        
+
         await coordinator.get_metadata_by_asin("B0TEST1234")
-        
+
         call_args = coordinator.audnex.get_book_by_asin.call_args
         assert call_args.kwargs["seed_authors"] is True
         assert call_args.kwargs["update"] is True
@@ -491,42 +458,36 @@ class TestGetMetadataByAsin:
     async def test_asin_lookup_not_found(self, coordinator):
         """Test ASIN lookup when not found."""
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
-        
+
         result = await coordinator.get_metadata_by_asin("B0NOTFOUND")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_asin_lookup_network_error(self, coordinator):
         """Test ASIN lookup network error handling."""
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
-        
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=httpx.RequestError("Network error"))
+
         result = await coordinator.get_metadata_by_asin("B0TEST1234")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_asin_lookup_value_error(self, coordinator):
         """Test ASIN lookup with malformed response."""
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=ValueError("Malformed")
-        )
-        
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=ValueError("Malformed"))
+
         result = await coordinator.get_metadata_by_asin("B0TEST1234")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_asin_lookup_unexpected_error(self, coordinator):
         """Test ASIN lookup with unexpected error."""
-        coordinator.audnex.get_book_by_asin = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
-        
+        coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=RuntimeError("Unexpected"))
+
         result = await coordinator.get_metadata_by_asin("B0TEST1234")
-        
+
         assert result is None
 
 
@@ -543,9 +504,9 @@ class TestSearchMetadata:
     async def test_search_success(self, coordinator, sample_audible_metadata):
         """Test successful search."""
         coordinator.audible.search = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         result = await coordinator.search_metadata("The Hobbit", author="Tolkien")
-        
+
         assert result is not None
         assert result["title"] == "The Hobbit"
         assert result["source"] == "audible"
@@ -555,62 +516,54 @@ class TestSearchMetadata:
     async def test_search_with_custom_region(self, coordinator, sample_audible_metadata):
         """Test search with custom region."""
         coordinator.audible.search = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         await coordinator.search_metadata("The Hobbit", region="uk")
-        
-        coordinator.audible.search.assert_called_once_with(
-            title="The Hobbit", author="", region="uk"
-        )
+
+        coordinator.audible.search.assert_called_once_with(title="The Hobbit", author="", region="uk")
 
     @pytest.mark.asyncio
     async def test_search_no_results(self, coordinator):
         """Test search with no results."""
         coordinator.audible.search = AsyncMock(return_value=[])
-        
+
         result = await coordinator.search_metadata("Unknown Book")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_search_returns_none(self, coordinator):
         """Test search returning None."""
         coordinator.audible.search = AsyncMock(return_value=None)
-        
+
         result = await coordinator.search_metadata("Unknown Book")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_search_network_error(self, coordinator):
         """Test search network error."""
-        coordinator.audible.search = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
-        
+        coordinator.audible.search = AsyncMock(side_effect=httpx.RequestError("Network error"))
+
         result = await coordinator.search_metadata("The Hobbit")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_search_value_error(self, coordinator):
         """Test search with malformed response."""
-        coordinator.audible.search = AsyncMock(
-            side_effect=ValueError("Malformed")
-        )
-        
+        coordinator.audible.search = AsyncMock(side_effect=ValueError("Malformed"))
+
         result = await coordinator.search_metadata("The Hobbit")
-        
+
         assert result is None
 
     @pytest.mark.asyncio
     async def test_search_unexpected_error(self, coordinator):
         """Test search with unexpected error."""
-        coordinator.audible.search = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
-        
+        coordinator.audible.search = AsyncMock(side_effect=RuntimeError("Unexpected"))
+
         result = await coordinator.search_metadata("The Hobbit")
-        
+
         assert result is None
 
 
@@ -624,14 +577,12 @@ class TestGetEnhancedMetadata:
     """Test metadata enhancement with chapters."""
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_with_chapters(
-        self, coordinator, sample_audnex_metadata, sample_chapters
-    ):
+    async def test_enhanced_metadata_with_chapters(self, coordinator, sample_audnex_metadata, sample_chapters):
         """Test adding chapters to metadata."""
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=sample_chapters)
-        
+
         result = await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         assert "chapters" in result
         assert result["chapter_count"] == 2
         assert "metadata_workflow" in result
@@ -641,115 +592,91 @@ class TestGetEnhancedMetadata:
     async def test_enhanced_metadata_no_asin(self, coordinator):
         """Test enhancement when no ASIN present."""
         metadata = {"title": "Test Book"}
-        
+
         result = await coordinator.get_enhanced_metadata(metadata)
-        
+
         assert "chapters" not in result
         assert "metadata_workflow" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_chapters_not_found(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_chapters_not_found(self, coordinator, sample_audnex_metadata):
         """Test enhancement when chapters not available."""
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=None)
-        
+
         result = await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         assert "chapters" not in result
         assert "metadata_workflow" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_uses_audnex_region(
-        self, coordinator, sample_audnex_metadata, sample_chapters
-    ):
+    async def test_enhanced_metadata_uses_audnex_region(self, coordinator, sample_audnex_metadata, sample_chapters):
         """Test that enhancement uses the region from book metadata."""
         sample_audnex_metadata["audnex_region"] = "uk"
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=sample_chapters)
-        
+
         await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         call_args = coordinator.audnex.get_chapters_by_asin.call_args
         assert call_args.kwargs["region"] == "uk"
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_passes_force_update(
-        self, coordinator, sample_audnex_metadata, sample_chapters
-    ):
+    async def test_enhanced_metadata_passes_force_update(self, coordinator, sample_audnex_metadata, sample_chapters):
         """Test that force_update is passed to chapters lookup."""
         coordinator.force_update = True
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=sample_chapters)
-        
+
         await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         call_args = coordinator.audnex.get_chapters_by_asin.call_args
         assert call_args.kwargs["update"] is True
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_network_error(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_network_error(self, coordinator, sample_audnex_metadata):
         """Test network error during chapter fetch."""
-        coordinator.audnex.get_chapters_by_asin = AsyncMock(
-            side_effect=httpx.RequestError("Network error")
-        )
-        
+        coordinator.audnex.get_chapters_by_asin = AsyncMock(side_effect=httpx.RequestError("Network error"))
+
         result = await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         # Should still return enhanced metadata without chapters
         assert "chapters" not in result
         assert "metadata_workflow" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_value_error(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_value_error(self, coordinator, sample_audnex_metadata):
         """Test malformed chapter response."""
-        coordinator.audnex.get_chapters_by_asin = AsyncMock(
-            side_effect=ValueError("Malformed")
-        )
-        
+        coordinator.audnex.get_chapters_by_asin = AsyncMock(side_effect=ValueError("Malformed"))
+
         result = await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         assert "chapters" not in result
         assert "metadata_workflow" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_unexpected_error(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_unexpected_error(self, coordinator, sample_audnex_metadata):
         """Test unexpected error during chapter fetch."""
-        coordinator.audnex.get_chapters_by_asin = AsyncMock(
-            side_effect=RuntimeError("Unexpected")
-        )
-        
+        coordinator.audnex.get_chapters_by_asin = AsyncMock(side_effect=RuntimeError("Unexpected"))
+
         result = await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         assert "chapters" not in result
         assert "metadata_workflow" in result
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_cancelled_error_propagates(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_cancelled_error_propagates(self, coordinator, sample_audnex_metadata):
         """Test that CancelledError is re-raised."""
-        coordinator.audnex.get_chapters_by_asin = AsyncMock(
-            side_effect=asyncio.CancelledError()
-        )
-        
+        coordinator.audnex.get_chapters_by_asin = AsyncMock(side_effect=asyncio.CancelledError())
+
         with pytest.raises(asyncio.CancelledError):
             await coordinator.get_enhanced_metadata(sample_audnex_metadata)
 
     @pytest.mark.asyncio
-    async def test_enhanced_metadata_preserves_original(
-        self, coordinator, sample_audnex_metadata
-    ):
+    async def test_enhanced_metadata_preserves_original(self, coordinator, sample_audnex_metadata):
         """Test that original metadata is not modified."""
         original_copy = sample_audnex_metadata.copy()
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=None)
-        
+
         await coordinator.get_enhanced_metadata(sample_audnex_metadata)
-        
+
         # Original should be unchanged
         assert sample_audnex_metadata == original_copy
 
@@ -766,7 +693,7 @@ class TestAddWebhookInfo:
     def test_add_webhook_info_full_payload(self, coordinator, sample_webhook_payload):
         """Test extracting all webhook info fields."""
         result = coordinator._add_webhook_info(sample_webhook_payload)
-        
+
         assert result["webhook_name"] == "The Hobbit by J.R.R. Tolkien [Audiobook]"
         assert result["webhook_url"] == "https://www.myanonamouse.net/t/12345"
         assert result["webhook_indexer"] == "MyAnonamouse"
@@ -787,7 +714,7 @@ class TestAddWebhookInfo:
     def test_add_webhook_info_empty_payload(self, coordinator):
         """Test with empty payload uses defaults."""
         result = coordinator._add_webhook_info({})
-        
+
         assert result["webhook_name"] == ""
         assert result["webhook_url"] == ""
         assert result["webhook_size"] == 0
@@ -797,17 +724,17 @@ class TestAddWebhookInfo:
     def test_add_webhook_info_size_calculation(self, coordinator):
         """Test size MB calculation."""
         payload = {"size": 1048576}  # 1 MB
-        
+
         result = coordinator._add_webhook_info(payload)
-        
+
         assert result["webhook_size_mb"] == 1.0
 
     def test_add_webhook_info_no_size(self, coordinator):
         """Test when size is not provided."""
         payload = {"name": "Test"}
-        
+
         result = coordinator._add_webhook_info(payload)
-        
+
         assert result["webhook_size_mb"] == 0
 
 
@@ -822,10 +749,9 @@ class TestCLIMain:
 
     def test_main_no_args_shows_error(self, capsys):
         """Test that running with no args shows error."""
-        with patch("sys.argv", ["metadata_coordinator"]):
-            with patch("src.metadata_coordinator.MetadataCoordinator"):
-                main()
-        
+        with patch("sys.argv", ["metadata_coordinator"]), patch("src.metadata_coordinator.MetadataCoordinator"):
+            main()
+
         captured = capsys.readouterr()
         assert "Error: Must provide --url/--name, --asin, or --title" in captured.out
 
@@ -834,13 +760,11 @@ class TestCLIMain:
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST1234"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "✅ Metadata found:" in captured.out
         assert "The Hobbit" in captured.out
@@ -850,13 +774,11 @@ class TestCLIMain:
         with patch("sys.argv", ["metadata_coordinator", "--url", "https://mam.net/t/123"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_from_webhook = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_from_webhook = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "✅ Metadata found:" in captured.out
 
@@ -865,13 +787,11 @@ class TestCLIMain:
         with patch("sys.argv", ["metadata_coordinator", "--name", "The Hobbit"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_from_webhook = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_from_webhook = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "✅ Metadata found:" in captured.out
 
@@ -880,13 +800,11 @@ class TestCLIMain:
         with patch("sys.argv", ["metadata_coordinator", "--title", "The Hobbit", "--author", "Tolkien"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.search_metadata = AsyncMock(
-                    return_value=sample_audible_metadata.copy()
-                )
+                mock_instance.search_metadata = AsyncMock(return_value=sample_audible_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "✅ Metadata found:" in captured.out
 
@@ -895,20 +813,16 @@ class TestCLIMain:
         enhanced_meta = sample_audnex_metadata.copy()
         enhanced_meta["chapters"] = sample_chapters
         enhanced_meta["chapter_count"] = 2
-        
+
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST", "--enhanced"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
-                mock_instance.get_enhanced_metadata = AsyncMock(
-                    return_value=enhanced_meta
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
+                mock_instance.get_enhanced_metadata = AsyncMock(return_value=enhanced_meta)
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Chapters: 2" in captured.out
 
@@ -919,60 +833,54 @@ class TestCLIMain:
                 mock_instance = MagicMock()
                 mock_instance.get_metadata_by_asin = AsyncMock(return_value=None)
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "❌ No metadata found" in captured.out
 
     def test_main_displays_series_info_dict(self, capsys, sample_audnex_metadata):
         """Test CLI displays series info as dict."""
         sample_audnex_metadata["series"] = [{"title": "Middle-earth", "sequence": "1"}]
-        
+
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Series: Middle-earth #1" in captured.out
 
     def test_main_displays_series_info_string(self, capsys, sample_audnex_metadata):
         """Test CLI displays series info as string."""
         sample_audnex_metadata["series"] = ["Middle-earth #1"]
-        
+
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Series: Middle-earth #1" in captured.out
 
     def test_main_displays_description(self, capsys, sample_audnex_metadata):
         """Test CLI displays truncated description."""
         sample_audnex_metadata["description"] = "A" * 300  # Long description
-        
+
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Description:" in captured.out
         assert "..." in captured.out  # Truncated
@@ -982,13 +890,11 @@ class TestCLIMain:
         with patch("sys.argv", ["metadata_coordinator", "--asin", "B0TEST", "--region", "uk"]):
             with patch("src.metadata_coordinator.MetadataCoordinator") as MockCoord:
                 mock_instance = MagicMock()
-                mock_instance.get_metadata_by_asin = AsyncMock(
-                    return_value=sample_audnex_metadata.copy()
-                )
+                mock_instance.get_metadata_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
                 MockCoord.return_value = mock_instance
-                
+
                 main()
-        
+
         # Verify region was passed
         mock_instance.get_metadata_by_asin.assert_called_once()
         call_args = mock_instance.get_metadata_by_asin.call_args
@@ -1013,12 +919,12 @@ class TestIntegrationScenarios:
         coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=sample_chapters)
-        
+
         # Get metadata from webhook
         metadata = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
         assert metadata is not None
         assert metadata["source"] == "audnex"
-        
+
         # Enhance with chapters
         enhanced = await coordinator.get_enhanced_metadata(metadata)
         assert enhanced["chapter_count"] == 2
@@ -1030,14 +936,12 @@ class TestIntegrationScenarios:
     ):
         """Test workflow with fallback: MAM fails → Audnex fails → Audible succeeds."""
         # MAM fails
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(
-            side_effect=httpx.RequestError("MAM down")
-        )
+        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=httpx.RequestError("MAM down"))
         # Audible succeeds
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
-        
+
         metadata = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
-        
+
         assert metadata is not None
         assert metadata["source"] == "audible"
         assert metadata["asin_source"] == "search"
