@@ -15,11 +15,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.metadata_coordinator import MetadataCoordinator
 
 
-# Configure logging
+# Configure logging (stdout only - no file creation on import)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/metadata_flow_test.log")],
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 
@@ -241,7 +241,6 @@ def main():
     if success:
         logging.info("\n🚀 Ready for careful live testing with real data!")
         logging.info("   Remember: 30-second rate limit is enforced")
-        logging.info("   Logs are saved to: logs/metadata_flow_test.log")
     else:
         logging.error("\n❌ Fix issues before proceeding to live testing")
 

@@ -20,11 +20,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.audnex_metadata import AudnexMetadata
 
 
-# Configure logging
+# Configure logging (stdout only - no file creation on import)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/audnex_direct_test.log")],
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 
