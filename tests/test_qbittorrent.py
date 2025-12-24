@@ -166,19 +166,43 @@ class TestQBittorrentManager:
             with pytest.raises(TorrentAddError):
                 manager.add_torrent_by_url("ftp://invalid.com/file.torrent")
 
+    def test_add_torrent_by_url_empty_string(self, monkeypatch):
+        monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
+        monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
+        monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
+
+        with patch("src.qbittorrent.Client") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client.app_version.return_value = "4.5.0"
+            mock_client_class.return_value = mock_client
+
+            manager = QBittorrentManager()
+
+            from src.qbittorrent import TorrentAddError
+
+            with pytest.raises(TorrentAddError, match="URL cannot be empty"):
+                manager.add_torrent_by_url("")
+
+    def test_add_torrent_by_url_malformed_magnet(self, monkeypatch):
+        monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
+        monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
+        monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
+
+        with patch("src.qbittorrent.Client") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client.app_version.return_value = "4.5.0"
+            # Simulate that qBittorrent returns "Fails." for malformed magnet
+            mock_client.torrents_add.return_value = "Fails."
+            mock_client_class.return_value = mock_client
+
+            manager = QBittorrentManager()
+
+            # Should return False for failed torrent add
+            result = manager.add_torrent_by_url("magnet:?xt=urn:btih:")
+            assert result is False
+
 
 class TestQbittorrentClient:
-    @pytest.fixture(autouse=True)
-    def reset_singleton(self):
-        """Reset the singleton before and after each test."""
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-        yield
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-
     def test_get_client_success(self, monkeypatch):
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
