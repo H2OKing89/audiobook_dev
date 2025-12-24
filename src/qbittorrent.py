@@ -1,4 +1,3 @@
-import logging
 import os
 import tempfile
 from pathlib import Path
@@ -8,8 +7,10 @@ from urllib.parse import urlparse
 import httpx
 from qbittorrentapi import Client, LoginFailed
 
+from src.logging_setup import get_logger
 
-logger = logging.getLogger(__name__)
+
+log = get_logger(__name__)
 
 
 def get_client() -> Client:
@@ -17,16 +18,16 @@ def get_client() -> Client:
     host = os.getenv("QBITTORRENT_URL")
     username = os.getenv("QBITTORRENT_USERNAME")
     password = os.getenv("QBITTORRENT_PASSWORD")
-    logger.debug("Initializing qBittorrent client with host=%s, username=%s", host, username)
+    log.debug("qbittorrent.client.init", host=host, username=username)
     if not host or not username or not password:
         raise ValueError("QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set")
     try:
         return Client(host=host, username=username, password=password)
     except LoginFailed as e:
-        logger.error("qBittorrent login failed for host=%s, username=%s: %s", host, username, e)
+        log.error("qbittorrent.login.failed", host=host, username=username, error=str(e))
         raise ConnectionError(f"Failed to authenticate with qBittorrent at {host}") from e
     except Exception as e:
-        logger.error("Failed to connect to qBittorrent at host=%s: %s", host, e)
+        log.error("qbittorrent.connect.failed", host=host, error=str(e))
         raise ConnectionError(f"Failed to connect to qBittorrent at {host}: {e}") from e
 
 
@@ -35,12 +36,33 @@ def add_torrent(torrent_data: dict[str, Any]) -> bool:
     try:
         client = get_client()
         url = torrent_data.get("url")
-        logger.info("Adding torrent by URL: %s", url)
+        log.info("qbittorrent.torrent.add_by_url", url=url)
         resp = client.torrents_add(urls=url)
-        logger.info("Added torrent: %s, qBittorrent API response: %s", url, resp)
-        return True
+
+        # Normalize response for comparison
+        resp_normalized = str(resp).strip().lower().rstrip(".") if resp else ""
+
+        if resp_normalized == "ok":
+            log.info("qbittorrent.torrent.add.success", url=url, result="ok")
+            return True
+        elif resp_normalized == "fails":
+            log.warning(
+                "qbittorrent.torrent.add.rejected",
+                url=url,
+                result="fails",
+                reason="duplicate_or_invalid",
+            )
+            return False
+        else:
+            log.error(
+                "qbittorrent.torrent.add.unknown_response",
+                url=url,
+                result="unknown",
+                api_response=str(resp),
+            )
+            return False
     except Exception:
-        logger.exception("Error adding torrent")
+        log.exception("qbittorrent.torrent.add.error")
         return False
 
 
@@ -62,38 +84,38 @@ def add_torrent_file_with_cookie(
         # Validate download URL before attempting network call
         parsed = urlparse(download_url or "")
         if not (parsed.scheme in ("http", "https") and parsed.netloc):
-            logger.error("Invalid download URL provided: %s", download_url)
+            log.error("qbittorrent.download.invalid_url", url=download_url)
             return False
 
         # Download .torrent file
         headers = {"Cookie": cookie} if cookie else {}
         safe_cookie = "set" if cookie else "not set"
-        logger.info("Downloading .torrent file from %s with cookie: %s", download_url, safe_cookie)
+        log.info("qbittorrent.torrent.downloading", url=download_url, cookie_status=safe_cookie)
         base_name = "".join(c if c.isalnum() or c in "-_." else "_" for c in name)
         with tempfile.NamedTemporaryFile(delete=False, prefix=f"{base_name}.", suffix=".torrent") as tmp:
             with httpx.stream("GET", download_url, headers=headers, timeout=30.0, follow_redirects=True) as r:
-                logger.debug("HTTP GET %s status=%s", download_url, getattr(r, "status_code", "unknown"))
+                log.debug("qbittorrent.http.get", url=download_url, status=getattr(r, "status_code", "unknown"))
                 r.raise_for_status()
                 for chunk in r.iter_bytes(1024 * 128):
                     tmp.write(chunk)
             tmp_name = tmp.name
-        logger.info("Downloaded torrent to %s", tmp_name)
+        log.info("qbittorrent.torrent.downloaded", path=tmp_name)
         # Upload to qBittorrent
         client = get_client()
         try:
-            logger.debug("Logging in to qBittorrent...")
+            log.debug("qbittorrent.auth.logging_in")
             client.auth_log_in()
-            logger.info("Logged in to qBittorrent successfully.")
+            log.info("qbittorrent.auth.success")
         except LoginFailed as e:
-            logger.exception("qBittorrent login failed")
+            log.exception("qbittorrent.auth.failed")
             raise Exception(f"qBittorrent login failed: {e}") from e
-        logger.info(
-            "Uploading torrent file to qBittorrent with options: category=%s, tags=%s, paused=%s, autoTMM=%s, contentLayout=%s",
-            category,
-            tags,
-            paused,
-            autoTMM,
-            contentLayout,
+        log.info(
+            "qbittorrent.torrent.uploading",
+            category=category,
+            tags=tags,
+            paused=paused,
+            autoTMM=autoTMM,
+            contentLayout=contentLayout,
         )
         with Path(tmp_name).open("rb") as f:
             resp = client.torrents_add(
@@ -104,16 +126,44 @@ def add_torrent_file_with_cookie(
                 contentLayout=contentLayout,
                 tags=tags or [],
             )
-            logger.info("qBittorrent API response: %s", resp)
-        logger.info("Successfully uploaded torrent to qBittorrent")
-        return True
+
+        # qBittorrent API returns:
+        # - "Ok." on success
+        # - "Fails." on failure (duplicate, invalid file, etc.)
+        resp_normalized = str(resp).strip().lower().rstrip(".") if resp else ""
+
+        if resp_normalized == "ok":
+            log.info(
+                "qbittorrent.torrent.upload.success",
+                result="ok",
+            )
+            return True
+        elif resp_normalized == "fails":
+            # "Fails." typically means duplicate or invalid torrent
+            # Log as warning since it might be expected (re-adding same torrent)
+            log.warning(
+                "qbittorrent.torrent.upload.rejected",
+                result="fails",
+                reason="duplicate_or_invalid",
+                api_response=str(resp),
+            )
+            return False
+        else:
+            # Unexpected response - log the full response for debugging
+            log.error(
+                "qbittorrent.torrent.upload.unknown_response",
+                result="unknown",
+                api_response=str(resp),
+                reason="unexpected_api_response",
+            )
+            return False
     except Exception:
-        logger.exception("Failed to add torrent file")
+        log.exception("qbittorrent.torrent.add_file_error")
         return False
     finally:
         if tmp_name:
             try:
                 Path(tmp_name).unlink()
-                logger.debug("Removed temp file: %s", tmp_name)
+                log.debug("qbittorrent.tempfile.removed", path=tmp_name)
             except Exception:
-                logger.warning("Could not remove temp file: %s", tmp_name)
+                log.warning("qbittorrent.tempfile.remove_failed", path=tmp_name)
