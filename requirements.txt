@@ -23,9 +23,3 @@ playwright
 # Structured logging
 structlog>=24.4.0
 orjson>=3.10.0
-
-# Dev/test dependencies
-pytest
-pytest-cov
-pytest-asyncio==1.3.0
-rich  # prettier console output during dev
