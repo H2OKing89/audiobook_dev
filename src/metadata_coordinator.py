@@ -35,7 +35,12 @@ class MetadataCoordinator:
         self.audnex = AudnexMetadata()
         self.audible = AudibleScraper()
 
-        log.info("coordinator.init")
+        # Store audnex config options for method calls
+        audnex_config = self.config.get("metadata", {}).get("audnex", {})
+        self.seed_authors = audnex_config.get("seed_authors", False)
+        self.force_update = audnex_config.get("force_update", False)
+
+        log.info("coordinator.init", seed_authors=self.seed_authors, force_update=self.force_update)
 
     async def get_metadata_from_webhook(self, webhook_payload: dict[str, Any]) -> dict[str, Any] | None:
         """
@@ -73,9 +78,13 @@ class MetadataCoordinator:
 
         # Step 2: If we have an ASIN, get metadata from Audnex
         if asin:
-            log.info("coordinator.step2.audnex_fetch", asin=asin)
+            log.info("coordinator.step2.audnex_fetch", asin=asin, seed_authors=self.seed_authors)
             try:
-                metadata = await self.audnex.get_book_by_asin(asin)
+                metadata = await self.audnex.get_book_by_asin(
+                    asin,
+                    seed_authors=self.seed_authors,
+                    update=self.force_update,
+                )
                 if metadata:
                     log.info("coordinator.step2.metadata_found")
                     # Add source and workflow information
@@ -130,12 +139,38 @@ class MetadataCoordinator:
         log.error("coordinator.workflow.exhausted")
         return None
 
-    async def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
-        """Get metadata directly by ASIN."""
-        log.info("coordinator.asin_lookup", asin=asin, region=region)
+    async def get_metadata_by_asin(
+        self,
+        asin: str,
+        region: str = "us",
+        *,
+        seed_authors: bool | None = None,
+        update: bool | None = None,
+    ) -> dict[str, Any] | None:
+        """Get metadata directly by ASIN.
+
+        Args:
+            asin: Amazon Standard Identification Number
+            region: Audible region (default: "us")
+            seed_authors: Whether to seed author information (default: from config)
+            update: Force server to check for updated data (default: from config)
+
+        Returns:
+            Metadata dict or None if not found
+        """
+        # Use config defaults if not explicitly provided
+        use_seed_authors = seed_authors if seed_authors is not None else self.seed_authors
+        use_update = update if update is not None else self.force_update
+
+        log.info("coordinator.asin_lookup", asin=asin, region=region, seed_authors=use_seed_authors, update=use_update)
 
         try:
-            metadata = await self.audnex.get_book_by_asin(asin, region=region)
+            metadata = await self.audnex.get_book_by_asin(
+                asin,
+                region=region,
+                seed_authors=use_seed_authors,
+                update=use_update,
+            )
             if metadata:
                 log.info("coordinator.asin_lookup.found")
                 metadata["source"] = "audnex"
@@ -183,7 +218,11 @@ class MetadataCoordinator:
             try:
                 # Use the same region that worked for book metadata to avoid redundant API calls
                 region = enhanced.get("audnex_region", "us")
-                chapters = await self.audnex.get_chapters_by_asin(asin, region=region)
+                chapters = await self.audnex.get_chapters_by_asin(
+                    asin,
+                    region=region,
+                    update=self.force_update,
+                )
                 if chapters:
                     enhanced["chapters"] = chapters
                     enhanced["chapter_count"] = len(chapters.get("chapters", []))

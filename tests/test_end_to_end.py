@@ -280,20 +280,24 @@ class TestEndToEndIntegration:
             )
 
         def process_webhook(payload_data):
-            with (
-                patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": payload_data["name"]}),
-            ):
-                resp = self.client.post(
-                    "/webhook/audiobook-requests", json=payload_data, headers={"X-Autobrr-Token": "test_token"}
-                )
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload_data, headers={"X-Autobrr-Token": "test_token"}
+            )
+            return {"status_code": resp.status_code, "payload": payload_data, "success": resp.status_code == 200}
 
-                return {"status_code": resp.status_code, "payload": payload_data, "success": resp.status_code == 200}
+        # Move patching outside concurrent execution to avoid thread-safety issues
+        with (
+            patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
+            patch("src.metadata.fetch_metadata") as mock_fetch,
+        ):
+            # Mock needs to return different values for different payloads
+            # Use side_effect to handle concurrent calls properly
+            mock_fetch.side_effect = lambda p: {"title": p.get("name", "Unknown")}
 
-        # Process webhooks concurrently
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(process_webhook, payload) for payload in payloads]
-            results = [future.result() for future in concurrent.futures.as_completed(futures)]
+            # Process webhooks concurrently
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                futures = [executor.submit(process_webhook, payload) for payload in payloads]
+                results = [future.result() for future in concurrent.futures.as_completed(futures)]
 
         # Verify all succeeded
         successful_results = [r for r in results if r["success"]]

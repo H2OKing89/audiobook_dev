@@ -11,9 +11,11 @@ These tests cover:
 import inspect
 import os
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
+from pydantic import ValidationError
 
 from src.mam_api.adapter import MAMApiAdapter
 from src.mam_api.client import MamAsyncClient, MamClient, extract_tid_from_irc
@@ -430,6 +432,18 @@ class TestMAMApiAdapter:
         assert MAMApiAdapter.extract_tid_from_url("") is None
         assert MAMApiAdapter.extract_tid_from_url(None) is None
 
+    def test_extract_tid_from_url_torrents_php_invalid_id(self):
+        """Test extracting tid from torrents.php URL with invalid id value."""
+        url = "https://www.myanonamouse.net/torrents.php?id=invalid"
+        tid = MAMApiAdapter.extract_tid_from_url(url)
+        assert tid is None
+
+    def test_extract_tid_from_url_torrents_php_no_id(self):
+        """Test extracting tid from torrents.php URL without id param."""
+        url = "https://www.myanonamouse.net/torrents.php?other=123"
+        tid = MAMApiAdapter.extract_tid_from_url(url)
+        assert tid is None
+
     @pytest.mark.asyncio
     async def test_scrape_asin_backward_compat(self):
         """Test that scrape_asin_from_url maintains interface."""
@@ -462,6 +476,21 @@ class TestMAMApiAdapter:
             assert asin is None
 
     @pytest.mark.asyncio
+    async def test_scrape_asin_torrent_no_asin(self):
+        """Test scrape_asin_from_url when torrent has no ASIN."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+
+        # Create a torrent without ASIN
+        mock_torrent = MamTorrentRaw(id=12345, title="Test", isbn="")
+
+        with patch.object(adapter, "get_torrent_data", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_torrent
+
+            asin = await adapter.scrape_asin_from_url("https://www.myanonamouse.net/t/12345")
+
+            assert asin is None
+
+    @pytest.mark.asyncio
     async def test_get_full_metadata(self, sample_torrent_data):
         """Test get_full_metadata returns enhanced data."""
         adapter = MAMApiAdapter(mam_id="test_id")
@@ -477,6 +506,206 @@ class TestMAMApiAdapter:
             assert "Test Author" in metadata["authors"]
             assert "Narrator One" in metadata["narrators"]
             assert metadata["source"] == "mam_api"
+
+    @pytest.mark.asyncio
+    async def test_get_full_metadata_no_torrent(self):
+        """Test get_full_metadata when no torrent found."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+
+        with patch.object(adapter, "get_torrent_data", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = None
+
+            metadata = await adapter.get_full_metadata("https://www.myanonamouse.net/t/12345")
+
+            assert metadata is None
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self):
+        """Test async context manager functionality."""
+        async with MAMApiAdapter(mam_id="test_id") as adapter:
+            assert adapter is not None
+            assert isinstance(adapter, MAMApiAdapter)
+        # After exiting, client should be closed
+        assert adapter._client is None
+
+    @pytest.mark.asyncio
+    async def test_close_method(self):
+        """Test close method."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+        # Create a mock client
+        mock_client = MagicMock()
+        mock_client.aclose = AsyncMock()
+        adapter._client = mock_client
+
+        await adapter.close()
+
+        mock_client.aclose.assert_called_once()
+        # Client should be set to None after close
+        assert adapter._client is None
+
+    @pytest.mark.asyncio
+    async def test_close_no_client(self):
+        """Test close method when no client exists."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+        adapter._client = None
+
+        # Should not raise
+        await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_get_client_creates_client(self):
+        """Test _get_client creates client on first call."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+
+        with patch("src.mam_api.adapter.MamAsyncClient") as MockClient:
+            mock_instance = MagicMock()
+            MockClient.return_value = mock_instance
+
+            client = await adapter._get_client()
+
+            assert client is mock_instance
+            MockClient.assert_called_once_with(mam_id="test_id")
+
+    @pytest.mark.asyncio
+    async def test_get_client_reuses_client(self):
+        """Test _get_client reuses existing client."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+        existing_client = MagicMock()
+        adapter._client = existing_client
+
+        client = await adapter._get_client()
+
+        assert client is existing_client
+
+    @pytest.mark.asyncio
+    async def test_get_client_no_mam_id_raises(self):
+        """Test _get_client raises error without mam_id."""
+        # Make sure env var is not set
+        with patch.dict(os.environ, {}, clear=True):
+            adapter = MAMApiAdapter(mam_id=None)
+            adapter.mam_id = None  # Explicitly set to None
+
+            from src.mam_api.client import MamApiError
+
+            with pytest.raises(MamApiError, match="MAM_ID not configured"):
+                await adapter._get_client()
+
+    @pytest.mark.asyncio
+    async def test_rate_limiting(self):
+        """Test rate limiting between API calls."""
+        import time
+
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0.1)
+
+        # First call should not wait
+        start = time.time()
+        await adapter._check_rate_limit()
+        first_elapsed = time.time() - start
+        assert first_elapsed < 0.05  # Should be nearly instant
+
+        # Immediate second call should wait
+        start = time.time()
+        await adapter._check_rate_limit()
+        second_elapsed = time.time() - start
+        assert second_elapsed >= 0.08  # Should wait ~0.1 seconds
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_success(self, sample_torrent_data):
+        """Test get_torrent_data returns torrent on success."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+        mock_torrent = MamTorrentRaw(**sample_torrent_data)
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(return_value=mock_torrent)
+            mock_get_client.return_value = mock_client
+
+            result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/1234567")
+
+            assert result is not None
+            assert result.id == 1234567
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_no_tid(self):
+        """Test get_torrent_data returns None when URL has no tid."""
+        adapter = MAMApiAdapter(mam_id="test_id")
+
+        result = await adapter.get_torrent_data("https://example.com/invalid")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_not_found(self):
+        """Test get_torrent_data returns None when torrent not found."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(return_value=None)
+            mock_get_client.return_value = mock_client
+
+            result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/99999")
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_api_error(self):
+        """Test get_torrent_data handles MamApiError."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+
+        from src.mam_api.client import MamApiError
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(side_effect=MamApiError("API error"))
+            mock_get_client.return_value = mock_client
+
+            result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/12345")
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_http_error(self):
+        """Test get_torrent_data handles HTTP errors."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(side_effect=httpx.HTTPError("HTTP error"))
+            mock_get_client.return_value = mock_client
+
+            result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/12345")
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_validation_error(self):
+        """Test get_torrent_data handles validation errors."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(side_effect=ValidationError.from_exception_data("test", []))
+            mock_get_client.return_value = mock_client
+
+            result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/12345")
+
+            assert result is None
+
+    def test_adapter_init_without_mam_id_from_env(self):
+        """Test adapter initialization without mam_id (checks env var)."""
+        with patch.dict(os.environ, {}, clear=True):
+            # Clear MAM_ID from env
+            if "MAM_ID" in os.environ:
+                del os.environ["MAM_ID"]
+            adapter = MAMApiAdapter()
+            assert adapter.mam_id is None
+
+    def test_adapter_alias_mam_scraper(self):
+        """Test that MAMScraper is an alias for MAMApiAdapter."""
+        from src.mam_api.adapter import MAMScraper
+
+        assert MAMScraper is MAMApiAdapter
 
 
 # =============================================================================
