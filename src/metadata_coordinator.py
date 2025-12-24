@@ -8,7 +8,6 @@ Orchestrates the metadata fetching workflow:
 
 import argparse
 import asyncio
-import logging
 import sys
 import time
 from pathlib import Path
@@ -22,17 +21,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.audible_scraper import AudibleScraper
 from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
+from src.logging_setup import get_logger
 from src.mam_api import MAMApiAdapter  # New API-based adapter (was MAMScraper)
 
 
-logger = logging.getLogger(__name__)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler("logs/metadata_coordinator.log")],
-)
+log = get_logger(__name__)
 
 
 class MetadataCoordinator:
@@ -42,7 +35,7 @@ class MetadataCoordinator:
         self.audnex = AudnexMetadata()
         self.audible = AudibleScraper()
 
-        logger.info("Metadata coordinator initialized")
+        log.info("coordinator.init")
 
     async def get_metadata_from_webhook(self, webhook_payload: dict[str, Any]) -> dict[str, Any] | None:
         """
@@ -57,35 +50,34 @@ class MetadataCoordinator:
         url = webhook_payload.get("url")
         name = webhook_payload.get("name", "")
 
-        logger.info("Starting metadata workflow for: %s", name)
-        logger.info("Source URL: %s", url)
+        log.info("coordinator.workflow.start", name=name, url=url)
 
         # Step 1: Try to extract ASIN from MAM URL if it's a MAM URL
         asin = None
         if url and "myanonamouse.net" in url:
-            logger.info("Step 1: Attempting to extract ASIN from MAM URL...")
+            log.info("coordinator.step1.mam_extract")
             try:
                 asin = await self.mam_scraper.scrape_asin_from_url(url)
                 if asin:
-                    logger.info("✅ ASIN extracted from MAM: %s", asin)
+                    log.info("coordinator.step1.asin_found", asin=asin)
                 else:
-                    logger.warning("❌ No ASIN found on MAM page")
+                    log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
             except httpx.RequestError:
-                logger.exception("Network error scraping MAM")
+                log.exception("coordinator.step1.network_error")
             except ValueError:
-                logger.exception("Malformed response scraping MAM")
+                log.exception("coordinator.step1.malformed_response")
             except Exception:
-                logger.exception("Unexpected error scraping MAM")
+                log.exception("coordinator.step1.unexpected_error")
         else:
-            logger.info("Step 1: Skipped (not a MAM URL)")
+            log.info("coordinator.step1.skipped")
 
         # Step 2: If we have an ASIN, get metadata from Audnex
         if asin:
-            logger.info("Step 2: Getting metadata from Audnex for ASIN: %s", asin)
+            log.info("coordinator.step2.audnex_fetch", asin=asin)
             try:
                 metadata = await self.audnex.get_book_by_asin(asin)
                 if metadata:
-                    logger.info("✅ Metadata found via Audnex")
+                    log.info("coordinator.step2.metadata_found")
                     # Add source and workflow information
                     metadata["source"] = "audnex"
                     metadata["asin_source"] = "mam"
@@ -96,21 +88,21 @@ class MetadataCoordinator:
 
                     return metadata
                 else:
-                    logger.warning("❌ No metadata found in Audnex for extracted ASIN")
+                    log.warning("coordinator.step2.no_metadata")
             except httpx.RequestError:
-                logger.exception("Network error fetching from Audnex")
+                log.exception("coordinator.step2.network_error")
             except ValueError:
-                logger.exception("Malformed response from Audnex")
+                log.exception("coordinator.step2.malformed_response")
             except Exception:
-                logger.exception("Unexpected error fetching from Audnex")
+                log.exception("coordinator.step2.unexpected_error")
 
         # Step 3: Fallback to Audible search using title/author from name
-        logger.info("Step 3: Falling back to Audible search...")
+        log.info("coordinator.step3.audible_search")
         try:
             results = await self.audible.search_from_webhook_name(name)
             if results:
                 metadata = results[0]  # Take the first (best) result
-                logger.info("✅ Metadata found via Audible search")
+                log.info("coordinator.step3.metadata_found")
                 # Add source and workflow information
                 metadata["source"] = "audible"
                 metadata["asin_source"] = "search"
@@ -121,64 +113,64 @@ class MetadataCoordinator:
 
                 return metadata
             else:
-                logger.warning("❌ No metadata found via Audible search")
+                log.warning("coordinator.step3.no_metadata")
         except httpx.RequestError as e:
-            logger.exception("Network error searching Audible")
+            log.exception("coordinator.step3.network_error")
             # Surface network errors to callers/tests as a controlled ValueError
             raise ValueError("Could not fetch metadata") from e
         except ValueError as e:
             # Malformed JSON or other parsing errors from upstream APIs should be treated
             # as controlled metadata fetch failures so callers/tests see a deterministic
             # ValueError("Could not fetch metadata").
-            logger.exception("Malformed response searching Audible")
+            log.exception("coordinator.step3.malformed_response")
             raise ValueError("Could not fetch metadata") from e
         except Exception:
-            logger.exception("Error searching Audible")
+            log.exception("coordinator.step3.unexpected_error")
 
-        logger.error("❌ All metadata sources exhausted - no metadata found")
+        log.error("coordinator.workflow.exhausted")
         return None
 
     async def get_metadata_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """Get metadata directly by ASIN."""
-        logger.info("Getting metadata for ASIN: %s (region: %s)", asin, region)
+        log.info("coordinator.asin_lookup", asin=asin, region=region)
 
         try:
             metadata = await self.audnex.get_book_by_asin(asin, region=region)
             if metadata:
-                logger.info("✅ Metadata found via Audnex")
+                log.info("coordinator.asin_lookup.found")
                 metadata["source"] = "audnex"
                 metadata["asin_source"] = "direct"
                 return metadata
         except httpx.RequestError:
-            logger.exception("Network error fetching from Audnex")
+            log.exception("coordinator.asin_lookup.network_error")
         except ValueError:
-            logger.exception("Malformed response from Audnex")
+            log.exception("coordinator.asin_lookup.malformed_response")
         except Exception:
-            logger.exception("Unexpected error fetching from Audnex")
+            log.exception("coordinator.asin_lookup.unexpected_error")
 
-        logger.error("❌ No metadata found for ASIN")
+        log.error("coordinator.asin_lookup.not_found")
         return None
 
     async def search_metadata(self, title: str, author: str = "", region: str = "us") -> dict[str, Any] | None:
         """Search for metadata by title and author."""
-        logger.info("Searching metadata: title='%s', author='%s', region=%s", title, author, region)
+        log.info("coordinator.search", title=title, author=author, region=region)
 
         try:
             results = await self.audible.search(title=title, author=author, region=region)
             if results:
                 metadata = results[0]  # Take the first (best) result
-                logger.info("✅ Metadata found via search")
+                log.info("coordinator.search.found")
                 metadata["source"] = "audible"
                 metadata["asin_source"] = "search"
                 return metadata
         except httpx.RequestError:
-            logger.exception("Network error searching")
+            log.exception("coordinator.search.network_error")
         except ValueError:
-            logger.exception("Malformed response from search")
+            log.exception("coordinator.search.malformed_response")
         except Exception:
-            logger.exception("Unexpected error searching")
+            log.exception("coordinator.search.unexpected_error")
 
-        logger.error("❌ No metadata found via search")
+        log.error("coordinator.search.not_found")
         return None
 
     async def get_enhanced_metadata(self, basic_metadata: dict[str, Any]) -> dict[str, Any]:
@@ -195,16 +187,16 @@ class MetadataCoordinator:
                 if chapters:
                     enhanced["chapters"] = chapters
                     enhanced["chapter_count"] = len(chapters.get("chapters", []))
-                    logger.info("Added %s chapters to metadata", enhanced.get("chapter_count", 0))
+                    log.info("coordinator.enhanced.chapters_added", count=enhanced.get("chapter_count", 0))
             except asyncio.CancelledError:
                 # Re-raise cancellation to properly propagate task cancellation
                 raise
             except httpx.RequestError:
-                logger.exception("Network error fetching chapters")
+                log.exception("coordinator.enhanced.network_error")
             except ValueError:
-                logger.exception("Malformed response fetching chapters")
+                log.exception("coordinator.enhanced.malformed_response")
             except Exception:
-                logger.exception("Unexpected error fetching chapters")
+                log.exception("coordinator.enhanced.unexpected_error")
 
         # Add workflow information
         enhanced["metadata_workflow"] = {

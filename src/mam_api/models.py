@@ -12,14 +12,10 @@ IMPORTANT: Several MAM fields are JSON-encoded strings that must be parsed:
 from __future__ import annotations
 
 import json
-import logging
 from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-
-logger = logging.getLogger(__name__)
 
 
 def _safe_json_loads(value: Any, *, default: Any) -> Any:
