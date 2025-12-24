@@ -48,6 +48,7 @@ def _token_fingerprint(token: str) -> str:
     """Return last 4 characters of token for safe logging."""
     return token[-4:] if len(token) > 4 else token
 
+
 # Load configuration
 config = load_config()
 server_cfg = config.get("server", {})
