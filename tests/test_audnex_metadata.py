@@ -3,16 +3,14 @@ Comprehensive tests for AudnexMetadata module.
 Tests all API methods, validation, cleaning functions, and CLI.
 """
 
-import argparse
-import asyncio
-from io import StringIO
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from src.audnex_metadata import AudnexMetadata, async_main, main
 from src.http_client import AsyncHttpClient
+
 
 # Mark all tests in this module to skip the autouse mock_external_apis fixture
 # so we can actually test the AudnexMetadata implementation
@@ -162,7 +160,7 @@ class TestAudnexMetadataContextManager:
         mock_load_config.return_value = mock_config
         mock_get_client.return_value = mock_http_client
 
-        async with AudnexMetadata() as audnex:
+        async with AudnexMetadata():
             pass
 
         # Client should not be closed (managed by app lifespan)
@@ -897,9 +895,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B08G9PRS1K"]):
-            with patch("builtins.print") as mock_print:
-                await async_main()
+        with patch("sys.argv", ["audnex", "B08G9PRS1K"]), patch("builtins.print"):
+            await async_main()
 
         mock_instance.get_book_by_asin.assert_called_once()
 
@@ -924,9 +921,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]):
-            with patch("builtins.print"):
-                await async_main()
+        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]), patch("builtins.print"):
+            await async_main()
 
         mock_instance.get_chapters_by_asin.assert_called_once()
 
@@ -943,9 +939,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]):
-            with patch("builtins.print") as mock_print:
-                await async_main()
+        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]), patch("builtins.print") as mock_print:
+            await async_main()
 
         mock_instance.get_chapters_by_asin.assert_called_once()
         # Should NOT print chapter info since chapters was None
@@ -961,9 +956,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "--search-author", "Andy Weir"]):
-            with patch("builtins.print"):
-                await async_main()
+        with patch("sys.argv", ["audnex", "--search-author", "Andy Weir"]), patch("builtins.print"):
+            await async_main()
 
         mock_instance.search_author_by_name.assert_called_once()
 
@@ -976,9 +970,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "--search-author", "Unknown"]):
-            with patch("builtins.print") as mock_print:
-                await async_main()
+        with patch("sys.argv", ["audnex", "--search-author", "Unknown"]), patch("builtins.print"):
+            await async_main()
 
     @pytest.mark.asyncio
     @patch("src.audnex_metadata.AudnexMetadata")
@@ -993,9 +986,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "--author", "B00G0WYW92"]):
-            with patch("builtins.print"):
-                await async_main()
+        with patch("sys.argv", ["audnex", "--author", "B00G0WYW92"]), patch("builtins.print"):
+            await async_main()
 
         mock_instance.get_author_by_asin.assert_called_once()
 
@@ -1008,9 +1000,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "--author", "B000000000"]):
-            with patch("builtins.print"):
-                await async_main()
+        with patch("sys.argv", ["audnex", "--author", "B000000000"]), patch("builtins.print"):
+            await async_main()
 
     @pytest.mark.asyncio
     @patch("src.audnex_metadata.AudnexMetadata")
@@ -1021,9 +1012,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B000000000"]):
-            with patch("builtins.print") as mock_print:
-                await async_main()
+        with patch("sys.argv", ["audnex", "B000000000"]), patch("builtins.print"):
+            await async_main()
 
     @pytest.mark.asyncio
     @patch("src.audnex_metadata.AudnexMetadata")
@@ -1036,9 +1026,11 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--region", "uk", "--seed-authors", "--update"]):
-            with patch("builtins.print"):
-                await async_main()
+        with (
+            patch("sys.argv", ["audnex", "B08G9PRS1K", "--region", "uk", "--seed-authors", "--update"]),
+            patch("builtins.print"),
+        ):
+            await async_main()
 
         mock_instance.get_book_by_asin.assert_called_with(
             "B08G9PRS1K",
@@ -1064,9 +1056,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex"]):
-            with pytest.raises(SystemExit):
-                await async_main()
+        with patch("sys.argv", ["audnex"]), pytest.raises(SystemExit):
+            await async_main()
 
     @pytest.mark.asyncio
     @patch("src.audnex_metadata.AudnexMetadata")
@@ -1085,9 +1076,8 @@ class TestCLI:
         MockAudnex.return_value.__aenter__.return_value = mock_instance
         MockAudnex.return_value.__aexit__.return_value = None
 
-        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]):
-            with patch("builtins.print") as mock_print:
-                await async_main()
+        with patch("sys.argv", ["audnex", "B08G9PRS1K", "--chapters"]), patch("builtins.print"):
+            await async_main()
 
 
 class TestGetClient:
@@ -1126,7 +1116,8 @@ class TestValidRegions:
     def test_valid_regions_contains_all_expected(self):
         """Test VALID_REGIONS contains all expected regions."""
         expected = {"au", "ca", "de", "es", "fr", "in", "it", "jp", "us", "uk"}
-        assert AudnexMetadata.VALID_REGIONS == expected
+        assert expected == AudnexMetadata.VALID_REGIONS
+
 
 class TestSingleRegionModeChapters:
     """Test single region mode for chapters."""
