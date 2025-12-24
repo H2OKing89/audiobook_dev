@@ -4,7 +4,7 @@ import threading
 import time
 from pathlib import Path
 
-from src.config import load_config
+from src.config import load_config, ConfigurationError
 from src.logging_setup import get_logger
 
 
@@ -39,7 +39,7 @@ def _get_ttl() -> int:
         try:
             config = load_config()
             _ttl = config.get("server", {}).get("reply_token_ttl", 3600)
-        except (RuntimeError, FileNotFoundError):
+        except (ConfigurationError, FileNotFoundError):
             # Config not available (e.g., in tests), use default
             _ttl = 3600
     return _ttl

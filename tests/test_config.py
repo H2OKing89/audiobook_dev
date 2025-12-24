@@ -3,7 +3,7 @@ from unittest.mock import mock_open, patch
 import pytest
 
 import src.config
-from src.config import load_config
+from src.config import ConfigurationError, load_config
 
 
 class TestConfig:
@@ -38,7 +38,7 @@ logging:
     def test_load_config_file_not_found(self):
         with (
             patch("pathlib.Path.open", side_effect=FileNotFoundError("Config file not found")),
-            pytest.raises(RuntimeError, match="Configuration file missing"),
+            pytest.raises(ConfigurationError, match="Configuration file missing"),
         ):
             load_config()
 
@@ -47,7 +47,7 @@ logging:
         m = mock_open(read_data=invalid_yaml)
         with (
             patch("pathlib.Path.open", m),
-            pytest.raises(RuntimeError, match="Invalid YAML"),
+            pytest.raises(ConfigurationError, match="Invalid YAML"),
         ):
             load_config()
 
