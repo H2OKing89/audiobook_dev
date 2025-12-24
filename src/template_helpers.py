@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from fastapi import Request
@@ -6,12 +5,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from src.config import load_config
+from src.logging_setup import get_logger
 
 
 # Initialize Jinja2 templates (looks for 'templates/' at project root)
 templates = Jinja2Templates(directory="templates")
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def get_config() -> dict[str, Any]:
@@ -22,7 +22,7 @@ def get_config() -> dict[str, Any]:
     try:
         return load_config()
     except Exception as e:
-        logger.exception("Failed to load configuration in template helper: %s", e)
+        log.exception("template.config.load_failed", error=str(e))
         # Return empty dict to prevent template rendering errors
         return {}
 
@@ -40,12 +40,11 @@ def render_template(request: Request, template_name: str, context: dict) -> HTML
         full_context = {"request": request}
         full_context.update(context or {})
 
-        logger.debug("Rendering template: %s with context keys: %s", template_name, list(full_context.keys()))
+        log.debug("template.rendering", template=template_name, context_keys=list(full_context.keys()))
         response = templates.TemplateResponse(request, template_name, full_context)
-        logger.debug("Template %s rendered successfully", template_name)
+        log.debug("template.render_success", template=template_name)
         return response
 
-    except Exception as e:
-        logger.error("Failed to render template %s: %s", template_name, e)
-        logger.exception("Full template rendering exception for %s:", template_name)
+    except Exception:
+        log.exception("template.render_exception", template=template_name)
         raise

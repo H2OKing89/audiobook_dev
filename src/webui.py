@@ -1,5 +1,4 @@
 import html
-import logging
 import os
 import re
 
@@ -9,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 
 from src.config import load_config
 from src.db import delete_request, get_request  # use persistent DB store
+from src.logging_setup import get_logger
 from src.qbittorrent import add_torrent_file_with_cookie
 from src.security import generate_csrf_token, get_client_ip
 from src.template_helpers import render_template
@@ -16,7 +16,12 @@ from src.utils import format_release_date, format_size, strip_html_tags
 
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
+
+
+def _token_fingerprint(token: str) -> str:
+    """Return last 4 characters of token for safe logging."""
+    return token[-4:] if len(token) > 4 else token
 
 
 # Helper function to generate CSRF token and validate for forms
@@ -34,7 +39,7 @@ def sanitize_input(text: str | None) -> str:
     cleaned = re.sub(r"<script.*?>.*?</script>", "", text, flags=re.DOTALL)
     # Escape HTML entities
     sanitized = html.escape(cleaned)
-    logging.debug("Sanitized input: '%.50s...' -> '%.50s...'", text, sanitized)
+    log.debug("webui.sanitize_input", input_len=len(text), output_len=len(sanitized))
     return sanitized
 
 
@@ -42,18 +47,18 @@ def sanitize_input(text: str | None) -> str:
 async def home(request: Request) -> HTMLResponse:
     """Serve the home page"""
     client_ip = get_client_ip(request)
-    logging.info(f"Home page accessed from IP: {client_ip}")
+    log.info("webui.home", client_ip=client_ip)
 
     # Add CSRF token if protection is enabled
     context = {}
     if get_csrf_protection_enabled():
         context["csrf_token"] = generate_csrf_token()
-        logging.debug("CSRF token generated for home page")
+        log.debug("webui.csrf_token_generated", page="home")
 
     try:
         return render_template(request, "index.html", context)
     except Exception as e:
-        logging.error(f"Failed to render home page: {e}")
+        log.error("webui.home.render_failed", error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -62,25 +67,28 @@ async def approve(token: str, request: Request) -> HTMLResponse:
     """Display the approval page for a given token"""
     # Log client IP for security monitoring
     client_ip = get_client_ip(request)
-    logging.debug(f"Approve page accessed from IP: {client_ip} for token: {token}")
+    token_fp = _token_fingerprint(token)
+    log.debug("webui.approve.access", token_id=token_fp, client_ip=client_ip)
 
     try:
         entry = get_request(token)
-        logging.debug(f"Approve called for token: {token}, entry: {'found' if entry else 'not found'}")
+        log.debug("webui.approve.entry_lookup", token_id=token_fp, found=bool(entry))
 
         if not entry:
             # token invalid or expired
-            logging.warning(f"Approval attempt with invalid/expired token: {token} from IP: {client_ip}")
+            log.warning("webui.approve.token_invalid", token_id=token_fp, client_ip=client_ip)
             response = render_template(request, "token_expired.html", {})
             response.status_code = 410
             return response
 
         metadata = entry.get("metadata") or {}
         payload = entry.get("payload") or {}
-        logging.debug(
-            f"Metadata for approval: title='{metadata.get('title', 'N/A')}', author='{metadata.get('author', 'N/A')}'"
+        log.debug(
+            "webui.approve.metadata",
+            token_id=token_fp,
+            title=metadata.get("title"),
+            author=metadata.get("author"),
         )
-        logging.debug(f"Payload for approval: name='{payload.get('name', 'N/A')}', size={payload.get('size', 'N/A')}")
 
         # Format release_date to YYYY-MM-DD if present
         release_date = metadata.get("release_date") or payload.get("release_date") or ""
@@ -89,7 +97,7 @@ async def approve(token: str, request: Request) -> HTMLResponse:
         size = payload.get("size") or metadata.get("size")
         if size:
             metadata["size"] = format_size(size)
-            logging.debug(f"Formatted size: {metadata['size']}")
+            log.debug("webui.approve.size_formatted", token_id=token_fp, size=metadata["size"])
         # Ensure url and download_url are present
         metadata["url"] = payload.get("url")
         metadata["download_url"] = payload.get("download_url")
@@ -114,14 +122,14 @@ async def approve(token: str, request: Request) -> HTMLResponse:
         # Add CSRF token if protection is enabled
         if get_csrf_protection_enabled():
             context["csrf_token"] = generate_csrf_token()
-            logging.debug("CSRF token generated for approval page")
+            log.debug("webui.csrf_token_generated", page="approval", token_id=token_fp)
 
         response = render_template(request, "approval.html", context)
-        logging.info(f"Approval page rendered successfully for token: {token}")
+        log.info("webui.approve.rendered", token_id=token_fp)
         return response
 
     except Exception as e:
-        logging.error(f"Error rendering approval page for token {token}: {e}")
+        log.error("webui.approve.render_failed", token_id=token_fp, error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -129,14 +137,15 @@ async def approve(token: str, request: Request) -> HTMLResponse:
 async def approve_action(token: str, request: Request) -> HTMLResponse:
     """Process the approval action for a given token"""
     client_ip = get_client_ip(request)
-    logging.info(f"Approval action triggered from IP: {client_ip} for token: {token}")
+    token_fp = _token_fingerprint(token)
+    log.info("webui.approve_action", token_id=token_fp, client_ip=client_ip)
 
     try:
         entry = get_request(token)
-        logging.debug(f"Approve-Action called for token: {token}, entry: {'found' if entry else 'not found'}")
+        log.debug("webui.approve_action.entry_lookup", token_id=token_fp, found=bool(entry))
 
         if not entry:
-            logging.warning(f"Approval action attempt with invalid/expired token: {token} from IP: {client_ip}")
+            log.warning("webui.approve_action.token_invalid", token_id=token_fp, client_ip=client_ip)
             response = render_template(request, "token_expired.html", {})
             response.status_code = 410
             return response
@@ -153,7 +162,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             download_url = payload.get("download_url") or ""
             mam_id: str | None = os.environ.get("MAM_ID")
             if not mam_id:
-                logger.warning("[token=%s] MAM_ID not set; proceeding without MAM cookie for torrent download", token)
+                log.warning("webui.approve_action.no_mam_id", token_id=token_fp)
             # Format as cookie header value for torrent download (None is safe - qbittorrent accepts Optional[str])
             cookie = f"mam_id={mam_id}" if mam_id else None
             category = qb_cfg.get("category")
@@ -166,11 +175,17 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             if not download_url:
                 # Do not treat missing download_url as fatal — mark approved but skip qBittorrent
                 warning_message = "No download URL provided for this request; approved without queuing a download."
-                logging.info(f"[token={token}] {warning_message}")
+                log.info("webui.approve_action.no_download_url", token_id=token_fp)
             else:
-                logging.info(f"[token={token}] Triggering qBittorrent download for: {name}")
-                logging.debug(
-                    f"[token={token}] qBittorrent config: category={category}, tags={tags}, paused={paused}, autoTMM={autoTMM}, contentLayout={contentLayout}"
+                log.info("webui.approve_action.qbit_download", token_id=token_fp, name=name)
+                log.debug(
+                    "webui.approve_action.qbit_config",
+                    token_id=token_fp,
+                    category=category,
+                    tags=tags,
+                    paused=paused,
+                    autoTMM=autoTMM,
+                    contentLayout=contentLayout,
                 )
                 try:
                     # Pass download_url first, then name - matching the function signature
@@ -187,19 +202,18 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                     )
                     if not result:
                         error_message = "Failed to add torrent to qBittorrent. Please try again later."
-                        logging.error(f"[token={token}] qBittorrent download failed: {error_message}")
+                        log.error("webui.approve_action.qbit_failed", token_id=token_fp, error=error_message)
                     else:
-                        logging.info(f"[token={token}] qBittorrent download successful for: {name}")
+                        log.info("webui.approve_action.qbit_success", token_id=token_fp, name=name)
                 except Exception as e:
-                    logging.error(f"[token={token}] qBittorrent error: {e}")
-                    logging.exception(f"[token={token}] Full qBittorrent exception traceback:")
+                    log.exception("webui.approve_action.qbit_error", token_id=token_fp)
                     error_message = f"Failed to add torrent to qBittorrent: {e}"
         else:
-            logging.info(f"[token={token}] qBittorrent is disabled in config, skipping download")
+            log.info("webui.approve_action.qbit_disabled", token_id=token_fp)
 
         # Delete the token after processing
         delete_request(token)
-        logging.debug(f"[token={token}] Token deleted after approval processing")
+        log.debug("webui.approve_action.token_deleted", token_id=token_fp)
 
         close_delay = config.get("server", {}).get("approve_success_autoclose", 3)
 
@@ -212,7 +226,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                 "og_description": error_message,
                 "og_image": "https://ptpimg.me/l7pkv0.png",
             }
-            logging.warning(f"[token={token}] Rendering failure page due to: {error_message}")
+            log.warning("webui.approve_action.failed", token_id=token_fp, error=error_message)
             response = render_template(request, "failure.html", context)
         else:
             # Dynamic OG meta for success page
@@ -226,14 +240,14 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
             # Attach non-fatal warning if present
             if warning_message:
                 context["warning_message"] = warning_message
-                logging.info(f"[token={token}] Success with warning: {warning_message}")
+                log.info("webui.approve_action.success_with_warning", token_id=token_fp, warning=warning_message)
 
-            logging.info(f"[token={token}] Approval successful, rendering success page")
+            log.info("webui.approve_action.success", token_id=token_fp)
             response = render_template(request, "success.html", context)
         return response
 
     except Exception as e:
-        logging.error(f"Error processing approval action for token {token}: {e}")
+        log.error("webui.approve_action.error", token_id=token_fp, error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -242,14 +256,15 @@ async def reject(token: str, request: Request) -> HTMLResponse:
     """Display the rejection page and process rejection for a given token"""
     # Log client IP for security monitoring
     client_ip = get_client_ip(request)
-    logging.debug(f"Reject page accessed from IP: {client_ip} for token: {token}")
+    token_fp = _token_fingerprint(token)
+    log.debug("webui.reject.access", token_id=token_fp, client_ip=client_ip)
 
     try:
         entry = get_request(token)
-        logging.debug(f"Reject called for token: {token}, entry: {'found' if entry else 'not found'}")
+        log.debug("webui.reject.entry_lookup", token_id=token_fp, found=bool(entry))
 
         if not entry:
-            logging.warning(f"Rejection attempt with invalid/expired token: {token} from IP: {client_ip}")
+            log.warning("webui.reject.token_invalid", token_id=token_fp, client_ip=client_ip)
             response = render_template(request, "token_expired.html", {})
             response.status_code = 410
             return response
@@ -258,7 +273,7 @@ async def reject(token: str, request: Request) -> HTMLResponse:
         metadata = entry.get("metadata", {})
         payload = entry.get("payload", {})
         title = metadata.get("title") or payload.get("name", "Unknown")
-        logging.info(f"[token={token}] Request rejected: '{title}' from IP: {client_ip}")
+        log.info("webui.reject.processed", token_id=token_fp, title=title, client_ip=client_ip)
 
         # Dynamic OG meta for rejection page
         context = {
@@ -271,15 +286,14 @@ async def reject(token: str, request: Request) -> HTMLResponse:
         # Add CSRF token if protection is enabled
         if get_csrf_protection_enabled():
             context["csrf_token"] = generate_csrf_token()
-            logging.debug("CSRF token generated for rejection page")
+            log.debug("webui.csrf_token_generated", page="rejection", token_id=token_fp)
 
         response = render_template(request, "rejection.html", context)
-        logging.info(f"[token={token}] Rejection processed successfully")
+        log.info("webui.reject.rendered", token_id=token_fp)
         return response
 
     except Exception as e:
-        logging.error(f"Error processing rejection for token {token}: {e}")
-        logging.exception(f"Full exception traceback for rejection {token}:")
+        log.exception("webui.reject.error", token_id=token_fp)
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -287,27 +301,26 @@ async def reject(token: str, request: Request) -> HTMLResponse:
 async def reject_post(token: str, request: Request) -> HTMLResponse:
     """Handle POST request for token rejection with CSRF validation"""
     client_ip = get_client_ip(request)
-    logging.info(f"Reject POST request from IP: {client_ip} for token: {token}")
+    token_fp = _token_fingerprint(token)
+    log.info("webui.reject_post", token_id=token_fp, client_ip=client_ip)
 
     try:
         # Validate CSRF token if protection is enabled
         if get_csrf_protection_enabled():
             # Test environment bypass: skip CSRF validation when webhook notifications are disabled
             if os.getenv("DISABLE_WEBHOOK_NOTIFICATIONS") == "1":
-                logging.info(
-                    f"[token={token}] DISABLE_WEBHOOK_NOTIFICATIONS set - bypassing CSRF validation for test run"
-                )
+                log.info("webui.reject_post.csrf_bypass", token_id=token_fp, reason="test_env")
             else:
                 form_data = await request.form()
                 csrf_token = form_data.get("csrf_token")
                 if not csrf_token or not isinstance(csrf_token, str) or len(csrf_token) < 32:
-                    logging.warning(f"[token={token}] CSRF token validation failed on reject from IP: {client_ip}")
+                    log.warning("webui.reject_post.csrf_failed", token_id=token_fp, client_ip=client_ip)
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token validation failed")
-                logging.debug(f"[token={token}] CSRF token validated successfully")
+                log.debug("webui.reject_post.csrf_valid", token_id=token_fp)
 
         # Perform deletion and render rejection page
         delete_request(token)
-        logging.debug(f"[token={token}] Token deleted after rejection (POST)")
+        log.debug("webui.reject_post.token_deleted", token_id=token_fp)
 
         # Build context similar to GET handler and render rejection confirmation
         context = {
@@ -317,14 +330,13 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
             "og_image": "https://ptpimg.me/l7pkv0.png",
         }
         response = render_template(request, "rejection.html", context)
-        logging.info(f"[token={token}] Rejection processed successfully (POST)")
+        log.info("webui.reject_post.success", token_id=token_fp)
         return response
 
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error processing reject POST for token {token}: {e}")
-        logging.exception(f"Full exception traceback for reject POST {token}:")
+        log.exception("webui.reject_post.error", token_id=token_fp)
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -332,23 +344,22 @@ async def reject_post(token: str, request: Request) -> HTMLResponse:
 async def approve_post(token: str, request: Request) -> HTMLResponse:
     """Handle POST request for token approval with CSRF validation"""
     client_ip = get_client_ip(request)
-    logging.info(f"Approve POST request from IP: {client_ip} for token: {token}")
+    token_fp = _token_fingerprint(token)
+    log.info("webui.approve_post", token_id=token_fp, client_ip=client_ip)
 
     try:
         # Validate CSRF token if protection is enabled
         if get_csrf_protection_enabled():
             # Test environment bypass: skip CSRF validation when webhook notifications are disabled
             if os.getenv("DISABLE_WEBHOOK_NOTIFICATIONS") == "1":
-                logging.info(
-                    f"[token={token}] DISABLE_WEBHOOK_NOTIFICATIONS set - bypassing CSRF validation for test run"
-                )
+                log.info("webui.approve_post.csrf_bypass", token_id=token_fp, reason="test_env")
             else:
                 form_data = await request.form()
                 csrf_token = form_data.get("csrf_token")
                 if not csrf_token or not isinstance(csrf_token, str) or len(csrf_token) < 32:
-                    logging.warning(f"[token={token}] CSRF token validation failed on approve from IP: {client_ip}")
+                    log.warning("webui.approve_post.csrf_failed", token_id=token_fp, client_ip=client_ip)
                     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="CSRF token validation failed")
-                logging.debug(f"[token={token}] CSRF token validated successfully")
+                log.debug("webui.approve_post.csrf_valid", token_id=token_fp)
 
         # For the test_token_lifecycle_complete test
         # This should mirror the functionality of approve_action
@@ -357,8 +368,7 @@ async def approve_post(token: str, request: Request) -> HTMLResponse:
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error processing approve POST for token {token}: {e}")
-        logging.exception(f"Full exception traceback for approve POST {token}:")
+        log.exception("webui.approve_post.error", token_id=token_fp)
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -369,7 +379,7 @@ async def admin_dashboard(request: Request) -> HTMLResponse:
     # If users try to access without proper auth, they'll get the 401 page
 
     client_ip = get_client_ip(request)
-    logging.info(f"Admin dashboard accessed from IP: {client_ip}")
+    log.info("webui.admin.access", client_ip=client_ip)
 
     # Simple admin dashboard content
     context = {"title": "Admin Dashboard", "message": "Welcome to the admin area!", "client_ip": client_ip}
@@ -404,7 +414,7 @@ async def admin_dashboard(request: Request) -> HTMLResponse:
         return HTMLResponse(content=admin_html)
 
     except Exception as e:
-        logging.error(f"Failed to render admin dashboard: {e}")
+        log.exception("webui.admin.error")
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
@@ -430,5 +440,5 @@ async def approve_minimal(token: str, request: Request) -> HTMLResponse:
         response = render_template(request, "approval_minimal.html", context)
         return response
     except Exception as e:
-        logging.error(f"Error in minimal approval: {e}")
+        log.exception("webui.approve_minimal.error", token=token)
         raise HTTPException(status_code=500, detail="Internal server error") from e

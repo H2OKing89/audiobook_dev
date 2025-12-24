@@ -1,7 +1,11 @@
-import logging
 import re
 from html import escape, unescape
 from typing import Any
+
+from src.logging_setup import get_logger
+
+
+log = get_logger(__name__)
 
 
 def format_metadata(metadata: dict[str, Any]) -> str:
@@ -13,9 +17,9 @@ def validate_payload(payload: dict[str, Any], required_keys: list[str]) -> bool:
     """Validate that payload contains all required keys"""
     missing_keys = [key for key in required_keys if key not in payload]
     if missing_keys:
-        logging.warning(f"Payload validation failed: missing keys {missing_keys}")
+        log.warning("payload.validation_failed", missing_keys=missing_keys)
         return False
-    logging.debug("Payload validation successful: all required keys present")
+    log.debug("payload.validation_success")
     return True
 
 
@@ -31,10 +35,10 @@ def format_size(size_bytes: Any) -> str:
     """Format file size in bytes to human readable format"""
     try:
         if size_bytes is None:
-            logging.debug("Size formatting: size_bytes is None")
+            log.debug("format_size.null_input")
             return "?"
         size = float(size_bytes)
-        logging.debug(f"Formatting size: {size} bytes")
+        log.debug("format_size", size_bytes=size)
         if size < 1024:
             return f"{size:.0f} B"
         elif size < 1024**2:
@@ -44,7 +48,7 @@ def format_size(size_bytes: Any) -> str:
         else:
             return f"{size / 1024**3:.2f} GB"
     except Exception as e:
-        logging.warning(f"Size formatting failed for {size_bytes}: {e}")
+        log.warning("format_size.failed", size_bytes=size_bytes, error=str(e))
         return "?"
 
 
@@ -53,7 +57,7 @@ def clean_author_list(authors: list[dict[str, Any]]) -> list[str]:
     Return only authors, not illustrators or translators.
     """
     if not authors:
-        logging.debug("Author list is empty")
+        log.debug("clean_author_list.empty_input")
         return []
 
     filtered = []
@@ -67,7 +71,7 @@ def clean_author_list(authors: list[dict[str, Any]]) -> list[str]:
         if name:
             filtered.append(name)
 
-    logging.debug(f"Author filtering: {len(filtered)} kept, {excluded_count} excluded")
+    log.debug("clean_author_list", kept=len(filtered), excluded=excluded_count)
     return filtered
 
 
@@ -77,7 +81,7 @@ def clean_light_novel(text: str | None) -> str | None:
         return text
     cleaned = text.replace("(Light Novel)", "").replace("(light novel)", "").strip()
     if cleaned != text:
-        logging.debug(f"Light novel title cleaned: '{text}' -> '{cleaned}'")
+        log.debug("clean_light_novel", original=text, cleaned=cleaned)
     return cleaned
 
 

@@ -13,7 +13,6 @@ Usage:
 """
 
 import asyncio
-import logging
 import os
 import re
 import time
@@ -23,11 +22,13 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from pydantic import ValidationError
 
+from src.logging_setup import get_logger
+
 from .client import MamApiError, MamAsyncClient
 from .models import MamTorrentRaw
 
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 class MAMApiAdapter:
@@ -51,7 +52,7 @@ class MAMApiAdapter:
         """
         self.mam_id = mam_id or os.getenv("MAM_ID")
         if not self.mam_id:
-            logger.warning("MAM_ID not provided. Set MAM_ID environment variable or pass mam_id to constructor.")
+            log.warning("mam.adapter.no_mam_id")
 
         # Instance-level rate limiting to avoid shared state across instances
         self._last_api_call_time: float = 0
@@ -87,7 +88,7 @@ class MAMApiAdapter:
 
         if time_since_last < self._rate_limit_seconds:
             wait_time = self._rate_limit_seconds - time_since_last
-            logger.debug("Rate limiting: waiting %.2fs", wait_time)
+            log.debug("mam.adapter.rate_limit", wait_time=wait_time)
             await asyncio.sleep(wait_time)
 
         self._last_api_call_time = time.time()
@@ -131,7 +132,7 @@ class MAMApiAdapter:
                 except (ValueError, IndexError):
                     pass
 
-        logger.warning("Could not extract torrent ID from URL: %s", url)
+        log.warning("mam.adapter.tid_extract_failed", url=url)
         return None
 
     async def get_torrent_data(self, url: str) -> MamTorrentRaw | None:
@@ -146,10 +147,10 @@ class MAMApiAdapter:
         """
         tid = self.extract_tid_from_url(url)
         if not tid:
-            logger.error("Could not extract torrent ID from URL: %s", url)
+            log.error("mam.adapter.no_tid", url=url)
             return None
 
-        logger.info("Fetching torrent data for tid=%s", tid)
+        log.info("mam.adapter.fetch_torrent", tid=tid)
 
         try:
             await self._check_rate_limit()
@@ -157,20 +158,20 @@ class MAMApiAdapter:
             torrent = await client.get_torrent(tid)
 
             if torrent:
-                logger.info("✅ Torrent data retrieved: %s", torrent.title)
+                log.info("mam.adapter.torrent_found", title=torrent.title)
                 return torrent
             else:
-                logger.warning("No torrent found for tid=%s", tid)
+                log.warning("mam.adapter.torrent_not_found", tid=tid)
                 return None
 
         except MamApiError:
-            logger.exception("MAM API error for tid=%s", tid)
+            log.exception("mam.adapter.api_error", tid=tid)
             return None
         except httpx.HTTPError:
-            logger.exception("HTTP error fetching torrent tid=%s", tid)
+            log.exception("mam.adapter.http_error", tid=tid)
             return None
         except ValidationError:
-            logger.exception("Validation error parsing torrent tid=%s", tid)
+            log.exception("mam.adapter.validation_error", tid=tid)
             return None
 
     async def scrape_asin_from_url(self, url: str, force_login: bool = False) -> str | None:
@@ -188,7 +189,7 @@ class MAMApiAdapter:
             ASIN string if found, None otherwise
         """
         if force_login:
-            logger.debug("force_login parameter ignored - using cookie-based auth")
+            log.debug("mam.adapter.force_login_ignored")
 
         torrent = await self.get_torrent_data(url)
         if not torrent:
@@ -198,10 +199,10 @@ class MAMApiAdapter:
         asin = torrent.asin
 
         if asin:
-            logger.info("✅ ASIN found via API: %s", asin)
+            log.info("mam.adapter.asin_found", asin=asin)
             return asin
         else:
-            logger.warning("No ASIN found in torrent metadata")
+            log.warning("mam.adapter.no_asin", reason="torrent_missing_asin_field")
             return None
 
     async def get_full_metadata(self, url: str) -> dict[str, Any] | None:

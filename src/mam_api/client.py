@@ -11,16 +11,16 @@ SECURITY: Never log the mam_id cookie value - it's a session token!
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any
 
 import httpx
 
+from src.logging_setup import get_logger
 from src.mam_api.models import MamSearchResponseRaw, MamTorrentRaw
 
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 MAM_BASE_URL = "https://www.myanonamouse.net"
 MAM_SEARCH_PATH = "/tor/js/loadSearchJSONbasic.php"
@@ -85,7 +85,7 @@ class MamClient:
             follow_redirects=True,
         )
         # Log initialization without exposing cookie value
-        logger.debug("Initialized MAM client with base_url=%s, http2=%s", base_url, http2)
+        log.debug("mam.client.init", base_url=base_url, http2=http2)
 
     def close(self) -> None:
         """Close the HTTP client."""
@@ -142,10 +142,10 @@ class MamClient:
 
         payload["perpage"] = perpage
 
-        logger.debug(
-            "MAM search request: tor=%s, flags=%s",
-            {k: v for k, v in tor.items() if k != "id"},
-            [k for k in payload if k not in ("tor", "perpage")],
+        log.debug(
+            "mam.search.request",
+            tor={k: v for k, v in tor.items() if k != "id"},
+            flags=[k for k in payload if k not in ("tor", "perpage")],
         )
 
         r = self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
@@ -154,7 +154,7 @@ class MamClient:
         data = r.json()
         response = MamSearchResponseRaw.model_validate(data)
 
-        logger.debug("MAM search returned %d results (found=%d)", len(response.data), response.found)
+        log.debug("mam.search.response", results=len(response.data), found=response.found)
         return response  # type: ignore[no-any-return]
 
     def get_torrent(
@@ -194,7 +194,7 @@ class MamClient:
             "browse_lang": ["0"],
         }
 
-        logger.info("Fetching MAM torrent tid=%d", tid)
+        log.info("mam.torrent.fetch", tid=tid)
 
         resp = self.search(
             tor=tor,
@@ -206,11 +206,11 @@ class MamClient:
         )
 
         if not resp.data:
-            logger.warning("MAM torrent not found: tid=%d", tid)
+            log.warning("mam.torrent.not_found", tid=tid)
             raise MamApiError(f"Torrent not found for tid={tid}")
 
         torrent = resp.data[0]
-        logger.info("Retrieved MAM torrent: tid=%d, title=%s", torrent.id, torrent.title)
+        log.info("mam.torrent.retrieved", tid=torrent.id, title=torrent.title)
         return torrent
 
     def download_torrent_by_tid(self, tid: int) -> bytes:
@@ -223,10 +223,10 @@ class MamClient:
         Returns:
             Raw bytes of the .torrent file
         """
-        logger.info("Downloading torrent file: tid=%d", tid)
+        log.info("mam.download.tid", tid=tid)
         r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
         r.raise_for_status()
-        logger.debug("Downloaded torrent: tid=%d, size=%d bytes", tid, len(r.content))
+        log.debug("mam.download.complete", tid=tid, size=len(r.content))
         return r.content  # type: ignore[no-any-return]
 
     def download_torrent_by_dl(self, dl_token: str) -> bytes:
@@ -243,10 +243,10 @@ class MamClient:
             raise ValueError("dl_token is required")
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
-        logger.info("Downloading torrent via dl token")
+        log.info("mam.download.dl_token")
         r = self._client.get(path)
         r.raise_for_status()
-        logger.debug("Downloaded torrent via dl token: size=%d bytes", len(r.content))
+        log.debug("mam.download.dl_complete", size=len(r.content))
         return r.content  # type: ignore[no-any-return]
 
 
@@ -280,7 +280,7 @@ class MamAsyncClient:
             cookies={"mam_id": mam_id},
             follow_redirects=True,
         )
-        logger.debug("Initialized async MAM client with base_url=%s, http2=%s", base_url, http2)
+        log.debug("mam.async_client.init", base_url=base_url, http2=http2)
 
     async def aclose(self) -> None:
         """Close the async HTTP client."""
@@ -338,17 +338,17 @@ class MamAsyncClient:
         if thumbnail is not None:
             enabled_flags.append("thumbnail")
 
-        logger.debug(
-            "MAM async search request: tor=%s, flags=%s",
-            {k: v for k, v in tor.items() if k != "id"},
-            enabled_flags,
+        log.debug(
+            "mam.async_search.request",
+            tor={k: v for k, v in tor.items() if k != "id"},
+            flags=enabled_flags,
         )
 
         r = await self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
         r.raise_for_status()
 
         response = MamSearchResponseRaw.model_validate(r.json())
-        logger.debug("MAM async search returned %d results", len(response.data))
+        log.debug("mam.async_search.response", results=len(response.data))
         return response  # type: ignore[no-any-return]
 
     async def get_torrent(
@@ -375,7 +375,7 @@ class MamAsyncClient:
             "browse_lang": ["0"],
         }
 
-        logger.info("Fetching MAM torrent (async): tid=%d", tid)
+        log.info("mam.async_torrent.fetch", tid=tid)
 
         resp = await self.search(
             tor=tor,
@@ -387,19 +387,19 @@ class MamAsyncClient:
         )
 
         if not resp.data:
-            logger.warning("MAM torrent not found: tid=%d", tid)
+            log.warning("mam.async_torrent.not_found", tid=tid)
             raise MamApiError(f"Torrent not found for tid={tid}")
 
         torrent = resp.data[0]
-        logger.info("Retrieved MAM torrent (async): tid=%d, title=%s", torrent.id, torrent.title)
+        log.info("mam.async_torrent.retrieved", tid=torrent.id, title=torrent.title)
         return torrent
 
     async def download_torrent_by_tid(self, tid: int) -> bytes:
         """Download .torrent file using session cookie (async)."""
-        logger.info("Downloading torrent file (async): tid=%d", tid)
+        log.info("mam.async_download.tid", tid=tid)
         r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
         r.raise_for_status()
-        logger.debug("Downloaded torrent (async): tid=%d, size=%d bytes", tid, len(r.content))
+        log.debug("mam.async_download.complete", tid=tid, size=len(r.content))
         return r.content  # type: ignore[no-any-return]
 
     async def download_torrent_by_dl(self, dl_token: str) -> bytes:
@@ -408,8 +408,8 @@ class MamAsyncClient:
             raise ValueError("dl_token is required")
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
-        logger.info("Downloading torrent via dl token (async)")
+        log.info("mam.async_download.dl_token")
         r = await self._client.get(path)
         r.raise_for_status()
-        logger.debug("Downloaded torrent via dl token (async): size=%d bytes", len(r.content))
+        log.debug("mam.async_download.dl_complete", size=len(r.content))
         return r.content  # type: ignore[no-any-return]

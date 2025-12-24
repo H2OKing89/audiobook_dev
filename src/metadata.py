@@ -5,7 +5,6 @@ This module provides async classes and functions for fetching audiobook metadata
 from Audible and Audnex APIs, with support for multiple regions and fallback logic.
 """
 
-import logging
 import os
 import re
 from typing import Any
@@ -21,10 +20,11 @@ from src.http_client import (
     get_region_tld,
     get_regions_priority,
 )
+from src.logging_setup import get_logger
 from src.utils import clean_author_list, validate_payload
 
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 # ASIN validation
@@ -103,11 +103,11 @@ class Audible:
         match = re.search(r"\.\d+|\d+(?:\.\d+)?", sequence)
         updated_sequence = match.group(0) if match else sequence
         if sequence != updated_sequence:
-            logger.debug(
-                '[Audible] Series "%s" sequence was cleaned from "%s" to "%s"',
-                series_name,
-                sequence,
-                updated_sequence,
+            log.debug(
+                "metadata.series_sequence.cleaned",
+                series=series_name,
+                original=sequence,
+                cleaned=updated_sequence,
             )
         return updated_sequence
 
@@ -189,7 +189,7 @@ class Audible:
         asin = asin.upper()
         region_query = f"?region={region}" if region else ""
         url = f"https://api.audnex.us/books/{asin}{region_query}"
-        logger.debug("[Audible] ASIN url: %s", url)
+        log.debug("metadata.audible.asin_url", url=url)
 
         data = await client.get_json(url, timeout=timeout)
         if data and data.get("asin"):
@@ -209,7 +209,7 @@ class Audible:
             timeout: Request timeout in seconds (uses client default if None)
         """
         if region and region not in self.region_map:
-            logger.error("[Audible] search: Invalid region %s", region)
+            log.error("metadata.audible.invalid_region", region=region)
             region = "us"
 
         client = await self._get_client()
@@ -236,7 +236,7 @@ class Audible:
             query_string = urlencode(query_obj)
             tld = get_region_tld(region)
             url = f"https://api.audible{tld}/1.0/catalog/products?{query_string}"
-            logger.debug("[Audible] Search url: %s", url)
+            log.debug("metadata.audible.search_url", url=url)
 
             data = await client.get_json(url)
 
@@ -300,7 +300,7 @@ class Audnexus:
             params["region"] = region
 
         url = f"{self.base_url}/authors?{urlencode(params)}"
-        logger.info('[Audnexus] Searching for author "%s"', url)
+        log.info("metadata.audnex.author_asins_search", url=url)
 
         result = await client.get_json(url)
         if result is None:
@@ -310,7 +310,7 @@ class Audnexus:
     async def author_request(self, asin: str, region: str = "") -> dict[str, Any] | None:
         """Get author details by ASIN"""
         if not is_valid_asin(asin.upper()):
-            logger.error("[Audnexus] Invalid ASIN %s", asin)
+            log.error("metadata.audnex.invalid_asin", asin=asin)
             return None
 
         client = await self._get_client()
@@ -321,7 +321,7 @@ class Audnexus:
         if params:
             url += f"?{urlencode(params)}"
 
-        logger.info('[Audnexus] Searching for author "%s"', url)
+        log.info("metadata.audnex.author_request", url=url)
 
         result = await client.get_json(url)
         return result
@@ -341,7 +341,7 @@ class Audnexus:
 
     async def find_author_by_name(self, name: str, region: str = "", max_levenshtein: int = 3) -> dict[str, Any] | None:
         """Find author by name with fuzzy matching"""
-        logger.debug("[Audnexus] Looking up author by name %s", name)
+        log.debug("metadata.audnex.find_author_by_name", name=name)
         author_asin_objs = await self.author_asins_request(name, region)
 
         closest_match = None
@@ -369,7 +369,7 @@ class Audnexus:
 
     async def get_chapters_by_asin(self, asin: str, region: str = "") -> dict[str, Any] | None:
         """Get chapters for a book by ASIN"""
-        logger.debug("[Audnexus] Get chapters for ASIN %s/%s", asin, region)
+        log.debug("metadata.audnex.get_chapters", asin=asin, region=region)
 
         client = await self._get_client()
 
@@ -447,12 +447,12 @@ async def get_audible_asin(title: str, author: str = "") -> str | None:
         return None
     except (AttributeError, ValueError, TypeError) as e:
         # Expected parsing-related errors - log and return None
-        logger.debug("get_audible_asin failed: %s", e)
+        log.debug("metadata.get_audible_asin.failed", error=str(e))
         return None
     except Exception as e:
         # bs4.FeatureNotFound and other BeautifulSoup parsing exceptions
         if "bs4" in type(e).__module__:
-            logger.debug("get_audible_asin BeautifulSoup parsing failed: %s", e)
+            log.debug("metadata.get_audible_asin.bs4_failed", error=str(e))
             return None
         # Unexpected exceptions should propagate
         raise
@@ -482,7 +482,7 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
 
     # Optional test-mode guard to prevent real external API calls during CI/test runs
     if os.getenv("DISABLE_EXTERNAL_API") == "1":
-        logger.info("DISABLE_EXTERNAL_API set; avoiding external API calls in fetch_metadata()")
+        log.info("metadata.fetch.disabled_api")
         raise ValueError("External API calls are disabled in this environment")
 
     coordinator = MetadataCoordinator()
@@ -550,7 +550,7 @@ async def fetch_metadata(payload: dict, regions: list[str] | None = None) -> dic
                         # Return the first (best) result
                         return results[0]
                 except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as e:
-                    logger.warning("Error searching region %s: %s", region, e)
+                    log.warning("metadata.search.region_error", region=region, error=str(e))
                     continue
 
         # Final error if we couldn't determine any metadata

@@ -8,10 +8,7 @@ with support for title/author searches and ASIN lookups.
 
 import argparse
 import asyncio
-import logging
 import re
-import sys
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
@@ -23,21 +20,10 @@ from src.http_client import (
     get_default_client,
     get_region_tld,
 )
+from src.logging_setup import get_logger
 
 
-logger = logging.getLogger(__name__)
-
-# Ensure logs directory exists before configuring FileHandler
-_log_dir = Path("logs")
-_log_dir.mkdir(parents=True, exist_ok=True)
-
-# Configure logging (only if not already configured)
-if not logging.getLogger().handlers:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(_log_dir / "audible_scraper.log")],
-    )
+log = get_logger(__name__)
 
 
 class AudibleScraper:
@@ -147,7 +133,7 @@ class AudibleScraper:
                 else:
                     publish_year = str(release_date)[:4]
             except Exception as e:
-                logger.debug("Failed to parse publish_year from release_date %s: %s", release_date, e)
+                log.debug("audible.parse_date.failed", release_date=release_date, error=str(e))
 
         # Handle images
         cover_url = None
@@ -246,7 +232,7 @@ class AudibleScraper:
             List of book metadata dicts
         """
         if region not in self.region_map:
-            logger.error("Invalid region: %s", region)
+            log.error("audible.search.invalid_region", region=region)
             region = "us"
 
         client = await self._get_client()
@@ -263,20 +249,20 @@ class AudibleScraper:
 
         tld = get_region_tld(region)
         url = f"https://api.audible{tld}{self.search_endpoint}?{urlencode(params)}"
-        logger.info("Searching Audible catalog: title='%s', author='%s', region=%s", title, author, region)
-        logger.debug("Search URL: %s", url)
+        log.info("audible.search.start", title=title, author=author, region=region)
+        log.debug("audible.search.url", url=url)
 
         data = await client.get_json(url)
 
         if not data:
-            logger.warning("No response from Audible search")
+            log.warning("audible.search.no_response")
             return []
 
         products = data.get("products", [])
-        logger.info("Found %d products from Audible search", len(products))
+        log.info("audible.search.results", count=len(products))
 
         if not products:
-            logger.warning("No products found in Audible search")
+            log.warning("audible.search.no_products")
             return []
 
         detailed_results = []
@@ -286,12 +272,12 @@ class AudibleScraper:
             # Only include English books
             language = product.get("language", "").lower()
             if language and language != "english":
-                logger.debug("Skipping non-English book: %s", language)
+                log.debug("audible.search.skip_non_english", language=language)
                 continue
 
             asin = product.get("asin")
             if not asin:
-                logger.debug("Skipping product without ASIN")
+                log.debug("audible.search.skip_no_asin")
                 continue
 
             # First try to convert the full Audible product data
@@ -299,10 +285,10 @@ class AudibleScraper:
                 book_data = self._product_to_book(product)
                 if book_data and book_data.get("title"):
                     detailed_results.append(book_data)
-                    logger.info("Got metadata from Audible for ASIN: %s - %s", asin, book_data.get("title"))
+                    log.info("audible.search.metadata_found", asin=asin, title=book_data.get("title"), source="audible")
                     continue
             except Exception as e:
-                logger.warning("Error processing Audible product data for %s: %s", asin, e)
+                log.warning("audible.search.product_error", asin=asin, error=str(e))
 
             # Fallback: try Audnex for detailed metadata
             try:
@@ -311,17 +297,17 @@ class AudibleScraper:
                     audnex_book = self._product_to_book(metadata)
                     if audnex_book:
                         detailed_results.append(audnex_book)
-                        logger.info("Got metadata from Audnex fallback for ASIN: %s", asin)
+                        log.info("audible.search.metadata_found", asin=asin, source="audnex_fallback")
                         continue
             except Exception as e:
-                logger.warning("Audnex fallback failed for %s: %s", asin, e)
+                log.warning("audible.search.audnex_fallback_failed", asin=asin, error=str(e))
 
-            logger.warning("No usable metadata found for ASIN: %s", asin)
+            log.warning("audible.search.no_metadata", asin=asin)
 
         if detailed_results:
-            logger.info("Returning %d results from Audible search", len(detailed_results))
+            log.info("audible.search.complete", result_count=len(detailed_results))
         else:
-            logger.warning("No metadata found via Audible search")
+            log.warning("audible.search.no_results")
 
         return detailed_results
 
@@ -337,10 +323,10 @@ class AudibleScraper:
             Book metadata dict or None if not found
         """
         if not self._is_valid_asin(asin):
-            logger.error("Invalid ASIN format: %s", asin)
+            log.error("audible.asin_search.invalid_format", asin=asin)
             return None
 
-        logger.info("Searching by ASIN: %s (region: %s)", asin, region)
+        log.info("audible.asin_search.start", asin=asin, region=region)
 
         # Use Audnex for ASIN lookups as it's more reliable
         audnex = await self._get_audnex()
@@ -367,7 +353,7 @@ class AudibleScraper:
 
         # Strategy 1: Direct ASIN search
         if asin and self._is_valid_asin(asin.upper()):
-            logger.info("Strategy 1: Searching by provided ASIN: %s", asin)
+            log.info("audible.search.strategy1", asin=asin, strategy="direct_asin")
             result = await self.search_by_asin(asin.upper(), region=region)
             if result:
                 results.append(result)
@@ -375,7 +361,7 @@ class AudibleScraper:
 
         # Strategy 2: Check if title looks like an ASIN
         if title and self._is_valid_asin(title.upper()):
-            logger.info("Strategy 2: Title looks like ASIN: %s", title)
+            log.info("audible.search.strategy2", title=title, strategy="title_as_asin")
             result = await self.search_by_asin(title.upper(), region=region)
             if result:
                 results.append(result)
@@ -383,7 +369,7 @@ class AudibleScraper:
 
         # Strategy 3: Title/Author search via Audible catalog
         if title:
-            logger.info("Strategy 3: Searching by title/author: '%s' by '%s'", title, author)
+            log.info("audible.search.strategy3", title=title, author=author, strategy="title_author")
             results = await self.search_by_title_author(title, author, region=region)
 
         return results
@@ -403,11 +389,11 @@ class AudibleScraper:
             if match:
                 title = match.group(1).strip()
                 author = match.group(2).strip()
-                logger.debug("Extracted from '%s': title='%s', author='%s'", name, title, author)
+                log.debug("audible.extract.success", name=name, title=title, author=author)
                 return title, author
 
         # Fallback: assume entire name is title
-        logger.debug("Could not extract author from '%s', using as title", name)
+        log.debug("audible.extract.fallback", name=name)
         return name.strip(), ""
 
     async def search_from_webhook_name(self, name: str, region: str = "us") -> list[dict[str, Any]]:
@@ -421,7 +407,7 @@ class AudibleScraper:
         Returns:
             List of book metadata dicts
         """
-        logger.info("Searching from webhook name: '%s'", name)
+        log.info("audible.webhook_search.start", name=name)
 
         # Extract title and author
         title, author = self.extract_title_author_from_name(name)
