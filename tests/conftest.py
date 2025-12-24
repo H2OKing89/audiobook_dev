@@ -6,12 +6,30 @@ from fastapi.testclient import TestClient
 
 from src.db import delete_request, save_request
 from src.main import app
+from src.qbittorrent import QBittorrentManager, _ManagerHolder
 from src.security import reset_rate_limit_buckets
 from src.token_gen import generate_token
 
 
 # Configure pytest-asyncio mode
 pytest_plugins = ("pytest_asyncio",)
+
+
+# =============================================================================
+# QBittorrent singleton reset fixture
+# =============================================================================
+
+
+@pytest.fixture(autouse=True)
+def reset_qbittorrent_singleton():
+    """Reset the QBittorrent singleton before and after each test."""
+    # Reset before test
+    QBittorrentManager._instance = None
+    _ManagerHolder.instance = None
+    yield
+    # Reset after test
+    QBittorrentManager._instance = None
+    _ManagerHolder.instance = None
 
 
 # =============================================================================

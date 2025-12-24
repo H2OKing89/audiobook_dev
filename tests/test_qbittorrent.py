@@ -10,9 +10,7 @@ from src.qbittorrent import (
     add_torrent,
     add_torrent_file_with_cookie,
     get_client,
-    get_manager,
     qbittorrent_session,
-    _ManagerHolder,
 )
 
 
@@ -74,19 +72,6 @@ class TestTorrentAddOptions:
 
 
 class TestQBittorrentManager:
-    @pytest.fixture(autouse=True)
-    def reset_singleton(self):
-        """Reset the singleton before and after each test."""
-        # Reset singleton
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-        yield
-        # Cleanup
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-
     def test_singleton_pattern(self, monkeypatch):
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
@@ -282,17 +267,6 @@ class TestQbittorrentClient:
 
 
 class TestQbittorrentSession:
-    @pytest.fixture(autouse=True)
-    def reset_singleton(self):
-        """Reset the singleton before and after each test."""
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-        yield
-        QBittorrentManager._instance = None
-        QBittorrentManager._client = None
-        _ManagerHolder.instance = None
-
     def test_context_manager_cleanup(self, monkeypatch):
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
