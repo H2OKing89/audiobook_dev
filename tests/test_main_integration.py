@@ -139,12 +139,11 @@ class TestMainAppIntegration:
 
     def test_client_ip_logging(self):
         # Test that client IPs are captured via X-Forwarded-For header
-        with patch("src.main.log") as mock_log:
-            resp = client.get("/", headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
-            assert resp.status_code == 200
-            # Verify request was successful - IP logging happens in middleware
-            # The actual IP capture is tested via the request headers being passed
-            assert mock_log.info.called or mock_log.debug.called or resp.status_code == 200
+        # IP logging happens in request_id_middleware which is tested separately
+        resp = client.get("/", headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
+        assert resp.status_code == 200
+        # Verify the request was processed successfully with the forwarded IP header
+        assert "X-Request-ID" in resp.headers
 
     def test_cors_headers(self):
         # Test CORS headers if enabled
