@@ -42,6 +42,9 @@ dependencies = [
     "idna",
     "cryptography",
     "PyYAML",
+    # Structured logging
+    "structlog>=24.4.0",
+    "orjson>=3.10.0",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +59,7 @@ dev = [
     "types-PyYAML",
     "types-cachetools",
     "types-beautifulsoup4",
+    "rich",  # prettier console output during dev
 ]
 
 [project.urls]
