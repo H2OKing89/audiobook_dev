@@ -253,17 +253,17 @@ class QBittorrentManager:
                 logger.info("Connected to qBittorrent v%s", version)
 
             except LoginFailed as e:
-                logger.exception("qBittorrent authentication failed: %s", e)
+                logger.exception("qBittorrent authentication failed")
                 self._client = None
                 raise QBittorrentAuthError(f"Authentication failed: {e}") from e
 
             except APIConnectionError as e:
-                logger.exception("Failed to connect to qBittorrent: %s", e)
+                logger.exception("Failed to connect to qBittorrent")
                 self._client = None
                 raise QBittorrentConnectionError(f"Connection failed: {e}") from e
 
             except Exception as e:
-                logger.exception("Unexpected error connecting to qBittorrent: %s", e)
+                logger.exception("Unexpected error connecting to qBittorrent")
                 self._client = None
                 raise QBittorrentConnectionError(f"Unexpected error: {e}") from e
 
