@@ -20,6 +20,7 @@ from src.qbittorrent import (
     add_torrent,
     add_torrent_file_with_cookie,
     get_client,
+    qbittorrent_session,
 )
 
 
@@ -716,8 +717,6 @@ class TestContextManagerWithExceptions:
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
-
-        from src.qbittorrent import qbittorrent_session
 
         with patch("src.qbittorrent.Client") as mock_client_class:
             mock_client = MagicMock()
