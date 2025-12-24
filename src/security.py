@@ -2,7 +2,6 @@
 Security module for implementing rate limiting and other security measures.
 """
 
-import logging
 import secrets
 import time
 from typing import Any
@@ -16,7 +15,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import RedirectResponse
 
 from src.config import load_config
+from src.logging_setup import get_logger
 from src.template_helpers import render_template
+
+
+log = get_logger(__name__)
 
 
 # Initialize rate limiter with client IP address as key
@@ -114,9 +117,9 @@ def rate_limit_token_generation(client_ip: str) -> bool:
     """
     allowed = token_bucket_rate_limit(client_ip)
     if not allowed:
-        logging.warning(f"Rate limit exceeded for token generation from IP: {client_ip}")
+        log.warning("security.rate_limit_exceeded", client_ip=client_ip, type="token_generation")
     else:
-        logging.debug(f"Rate limit check passed for IP: {client_ip}")
+        log.debug("security.rate_limit_passed", client_ip=client_ip)
     return allowed
 
 
@@ -129,21 +132,21 @@ def require_api_key(request: Request) -> None:
     api_key_enabled = security_cfg.get("api_key_enabled", False)
 
     if api_key_enabled:
-        logging.debug("API key validation enabled, checking request")
+        log.debug("security.api_key_check", enabled=True)
         api_key = request.headers.get("X-API-Key") or request.query_params.get("api_key")
         configured_api_key = security_cfg.get("api_key")
 
         if not configured_api_key:
-            logging.error("API key security is enabled but no key is configured")
+            log.error("security.api_key_not_configured")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server configuration error")
 
         if not api_key or api_key != configured_api_key:
             client_ip = get_client_ip(request)
-            logging.warning(f"Invalid or missing API key from IP: {client_ip}")
+            log.warning("security.api_key_invalid", client_ip=client_ip)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or missing API key")
-        logging.debug("API key validation successful")
+        log.debug("security.api_key_valid")
     else:
-        logging.debug("API key validation disabled")
+        log.debug("security.api_key_check", enabled=False)
 
 
 def generate_csrf_token() -> str:
@@ -172,7 +175,7 @@ def get_csp_header() -> str:
 async def rate_limit_exceeded_handler(request: Request, _exc: RateLimitExceeded) -> Response:
     """Custom handler for rate limit exceeded errors."""
     client_host = request.client.host if request.client else "unknown"
-    logging.warning(f"Rate limit exceeded: {client_host}")
+    log.warning("security.rate_limit_exceeded", client_ip=client_host, type="general")
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         content={"detail": "Rate limit exceeded. Please try again later.", "retry_after": 60},
@@ -256,7 +259,7 @@ async def check_endpoint_authorization(request: Request) -> Response | None:
 
     # Log unauthorized access attempt
     client_ip = get_client_ip(request)
-    logging.warning(f"Unauthorized access attempt to {path} from IP: {client_ip}")
+    log.warning("security.unauthorized_access", path=path, client_ip=client_ip)
 
     # Return 401 response with HTML template
     try:
@@ -264,7 +267,7 @@ async def check_endpoint_authorization(request: Request) -> Response | None:
         response.status_code = 401
         return response
     except Exception as e:
-        logging.error(f"Failed to render 401 page: {e}")
+        log.error("security.render_401_failed", error=str(e))
         # Fallback to simple JSON response
         return JSONResponse(status_code=401, content={"detail": "Unauthorized access"})
 
@@ -343,10 +346,10 @@ def get_client_ip(request: Request) -> str:
             # Validate IP format (basic check)
             if client_ip and client_ip != "unknown":
                 # Log which header was used for debugging
-                logging.debug(f"Client IP determined from {header}: {client_ip}")
+                log.debug("security.client_ip_from_header", header=header, client_ip=client_ip)
                 return client_ip  # type: ignore[no-any-return]
 
     # Fallback to direct connection
     direct_ip = request.client.host if request.client else "unknown"
-    logging.debug(f"Client IP determined from direct connection: {direct_ip}")
+    log.debug("security.client_ip_direct", client_ip=direct_ip)
     return direct_ip

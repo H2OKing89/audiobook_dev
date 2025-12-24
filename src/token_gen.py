@@ -1,7 +1,10 @@
-import logging
 import secrets
 
 from src.db import get_request
+from src.logging_setup import get_logger
+
+
+log = get_logger(__name__)
 
 
 def generate_token() -> str:
@@ -9,7 +12,7 @@ def generate_token() -> str:
     Generate a secure URL-safe token for one-time use.
     """
     token = secrets.token_urlsafe(16)
-    logging.debug(f"Generated new token: {token}")
+    log.debug("token.generated", token=token)
     return token
 
 
@@ -27,13 +30,13 @@ def verify_token(token: str, valid_tokens: list[str] | None = None) -> bool:
     # First check the database
     entry = get_request(token)
     if entry:
-        logging.debug(f"Token {token} verified from database")
+        log.debug("token.verified", token=token, source="database")
         return True
 
     # Fall back to valid_tokens list for backwards compatibility
     if valid_tokens and token in valid_tokens:
-        logging.debug(f"Token {token} verified from provided valid_tokens list")
+        log.debug("token.verified", token=token, source="valid_tokens_list")
         return True
 
-    logging.warning(f"Token verification failed for {token}")
+    log.warning("token.verification_failed", token=token)
     return False
