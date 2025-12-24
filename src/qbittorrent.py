@@ -16,13 +16,9 @@ log = get_logger(__name__)
 class QbittorrentError(Exception):
     """Base exception for qBittorrent-related errors."""
 
-    pass
-
 
 class QbittorrentLoginError(QbittorrentError):
     """Exception raised when qBittorrent authentication fails."""
-
-    pass
 
 
 def get_client() -> Client:
