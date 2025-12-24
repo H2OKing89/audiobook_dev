@@ -4,7 +4,7 @@ import threading
 import time
 from pathlib import Path
 
-from src.config import load_config, ConfigurationError
+from src.config import ConfigurationError, load_config
 from src.logging_setup import get_logger
 
 

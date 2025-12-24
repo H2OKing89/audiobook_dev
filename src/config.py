@@ -12,8 +12,6 @@ _logger = logging.getLogger(__name__)
 class ConfigurationError(Exception):
     """Exception raised when configuration loading or parsing fails."""
 
-    pass
-
 
 _config: dict[str, Any] | None = None
 
