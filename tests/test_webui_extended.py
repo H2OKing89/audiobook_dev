@@ -28,8 +28,8 @@ class TestWebUIEndpoints:
     def test_approve_action_valid_token(
         self,
         test_client,
-        mock_qbittorrent,  # noqa: ARG002 - fixture must be active
-        mock_notifications,  # noqa: ARG002 - fixture must be active
+        mock_qbittorrent,
+        mock_notifications,
     ):
         # Create a test token
         token = "test_action_token"
@@ -61,7 +61,7 @@ class TestWebUIEndpoints:
     def test_approve_post_with_csrf(
         self,
         test_client,
-        mock_qbittorrent,  # noqa: ARG002 - fixture must be active
+        mock_qbittorrent,
     ):
         token = "test_post_token"
         metadata = {"title": "Post Test"}
