@@ -477,7 +477,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
     pushover_enabled = pushover_cfg.get("enabled", False)
     if pushover_enabled and pushover_token and pushover_user:
         try:
-            status_code, response = send_pushover(
+            status_code, _ = send_pushover(
                 metadata,
                 payload,
                 token,
@@ -500,7 +500,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
     # Send Gotify notification
     if gotify_url and gotify_token:
         try:
-            status_code, response = send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
+            status_code, _ = send_gotify(metadata, payload, token, base_url, gotify_url, gotify_token)
             if status_code >= 200 and status_code < 300:
                 log.info("notify.success", channel="gotify", status_code=status_code)
                 notifications_sent += 1
@@ -514,7 +514,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
     # Send Discord notification
     if discord_webhook:
         try:
-            status_code, response = send_discord(metadata, payload, token, base_url, discord_webhook)
+            status_code, _ = send_discord(metadata, payload, token, base_url, discord_webhook)
             if status_code >= 200 and status_code < 300:
                 log.info("notify.success", channel="discord", status_code=status_code)
                 notifications_sent += 1
@@ -528,7 +528,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
     # Send ntfy notification
     if ntfy_enabled and ntfy_topic:
         try:
-            status_code, response = send_ntfy(
+            status_code, _ = send_ntfy(
                 metadata, payload, token, base_url, ntfy_topic, ntfy_url, ntfy_user=ntfy_user, ntfy_pass=ntfy_password
             )
             if status_code >= 200 and status_code < 300:
