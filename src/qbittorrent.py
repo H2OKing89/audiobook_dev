@@ -81,10 +81,13 @@ class QBittorrentConfig:
         if not all([host, username, password]):
             raise ValueError("QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set")
 
+        # Type narrowing: all() check above ensures these are not None
+        assert isinstance(host, str) and isinstance(username, str) and isinstance(password, str)
+
         return cls(
-            host=host,  # type: ignore[arg-type]
-            username=username,  # type: ignore[arg-type]
-            password=password,  # type: ignore[arg-type]
+            host=host,
+            username=username,
+            password=password,
             verify_certificate=verify,
         )
 
@@ -452,6 +455,7 @@ class QBittorrentManager:
                 is_skip_checking=opts.is_skip_checking,
             )
 
+            success = False  # Initialize before conditional assignment
             if isinstance(result, str):
                 success = result == "Ok."
             else:
@@ -654,18 +658,17 @@ def add_torrent_file_with_cookie(
             tags_list = [tags] if tags else None
 
     # Map contentLayout string to proper type
-    layout_map = {
-        "Original": "Original",
-        "Subfolder": "Subfolder",
-        "NoSubfolder": "NoSubfolder",
-    }
-    if contentLayout not in layout_map:
+    valid_layouts: set[str] = {"Original", "Subfolder", "NoSubfolder"}
+    if contentLayout not in valid_layouts:
         log.warning(
             "qbittorrent.torrent.invalid_content_layout",
             value=contentLayout,
             default="Subfolder",
         )
-    layout: Literal["Original", "Subfolder", "NoSubfolder"] = layout_map.get(contentLayout, "Subfolder")  # type: ignore[assignment]
+        layout: Literal["Original", "Subfolder", "NoSubfolder"] = "Subfolder"
+    else:
+        # Type narrowing: contentLayout is now known to be a valid literal
+        layout = contentLayout  # type: ignore[assignment]
 
     options = TorrentAddOptions(
         category=category,
