@@ -78,8 +78,8 @@ def _redact_sensitive_data(
         if _should_redact(key):
             value = event_dict[key]
             if value is not None:
-                # Show last 4 chars for debugging if string, otherwise fully redact
-                if isinstance(value, str) and len(value) > 4:
+                # Only show suffix for longer values (8+ chars) to avoid revealing too much
+                if isinstance(value, str) and len(value) >= 8:
                     event_dict[key] = f"***{value[-4:]}"
                 else:
                     event_dict[key] = "***REDACTED***"
