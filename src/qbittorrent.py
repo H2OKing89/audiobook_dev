@@ -82,7 +82,9 @@ class QBittorrentConfig:
             raise ValueError("QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set")
 
         # Type narrowing: all() check above ensures these are not None
-        assert isinstance(host, str) and isinstance(username, str) and isinstance(password, str)
+        assert isinstance(host, str), f"host must be a str, got {type(host)}"
+        assert isinstance(username, str), f"username must be a str, got {type(username)}"
+        assert isinstance(password, str), f"password must be a str, got {type(password)}"
 
         return cls(
             host=host,
