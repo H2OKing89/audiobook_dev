@@ -266,8 +266,8 @@ async def check_endpoint_authorization(request: Request) -> Response | None:
         response = render_template(request, "401_page.html", {"requested_path": path, "client_ip": client_ip})
         response.status_code = 401
         return response
-    except Exception as e:
-        log.error("security.render_401_failed", error=str(e))
+    except Exception:
+        log.exception("security.render_401_failed")
         # Fallback to simple JSON response
         return JSONResponse(status_code=401, content={"detail": "Unauthorized access"})
 

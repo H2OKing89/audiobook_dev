@@ -45,7 +45,6 @@ def render_template(request: Request, template_name: str, context: dict) -> HTML
         log.debug("template.render_success", template=template_name)
         return response
 
-    except Exception as e:
-        log.error("template.render_failed", template=template_name, error=str(e))
+    except Exception:
         log.exception("template.render_exception", template=template_name)
         raise

@@ -97,7 +97,7 @@ def send_ntfy(
         log.info("notify.ntfy.success", status_code=resp.status_code)
         return resp.status_code, resp.json()
     except httpx.RequestError as e:
-        log.error("notify.ntfy.json_failed", error=str(e))
+        log.exception("notify.ntfy.json_failed", error=str(e))
         # Fallback to topic endpoint
         fallback_url = f"{base}/{ntfy_topic}"
         log.info("notify.ntfy.fallback", url=fallback_url)
@@ -107,6 +107,6 @@ def send_ntfy(
             log.info("notify.ntfy.fallback_success", status_code=resp2.status_code)
             return resp2.status_code, resp2.json()
         except httpx.RequestError as e2:
-            log.error("notify.ntfy.fallback_failed", primary_error=str(e), fallback_error=str(e2))
+            log.exception("notify.ntfy.fallback_failed", primary_error=str(e), fallback_error=str(e2))
             # Return the original error plus the fallback error
             return 0, {"error": f"Primary: {e}, Fallback: {e2}"}

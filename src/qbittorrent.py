@@ -24,10 +24,10 @@ def get_client() -> Client:
     try:
         return Client(host=host, username=username, password=password)
     except LoginFailed as e:
-        log.error("qbittorrent.login.failed", host=host, username=username, error=str(e))
+        log.exception("qbittorrent.login.failed", host=host, username=username)
         raise ConnectionError(f"Failed to authenticate with qBittorrent at {host}") from e
     except Exception as e:
-        log.error("qbittorrent.connect.failed", host=host, error=str(e))
+        log.exception("qbittorrent.connect.failed", host=host)
         raise ConnectionError(f"Failed to connect to qBittorrent at {host}: {e}") from e
 
 

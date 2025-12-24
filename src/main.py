@@ -428,8 +428,8 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
         except asyncio.CancelledError:
             log.info("worker.cancelled")
             break
-        except Exception as e:
-            log.error("worker.error", error=str(e))
+        except Exception:
+            log.exception("worker.error")
             # Mark task as done even on error to prevent queue blocking
             with contextlib.suppress(ValueError):
                 metadata_queue.task_done()
@@ -495,7 +495,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="pushover", status_code=status_code)
                 notification_errors.append(f"Pushover: HTTP {status_code}")
         except Exception as e:
-            log.error("notify.error", channel="pushover", error=str(e))
+            log.exception("notify.error", channel="pushover", error=str(e))
             notification_errors.append(f"Pushover: {e}")
     # Send Gotify notification
     if gotify_url and gotify_token:
@@ -508,7 +508,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="gotify", status_code=status_code)
                 notification_errors.append(f"Gotify: HTTP {status_code}")
         except Exception as e:
-            log.error("notify.error", channel="gotify", error=str(e))
+            log.exception("notify.error", channel="gotify", error=str(e))
             notification_errors.append(f"Gotify: {e}")
 
     # Send Discord notification
@@ -522,7 +522,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="discord", status_code=status_code)
                 notification_errors.append(f"Discord: HTTP {status_code}")
         except Exception as e:
-            log.error("notify.error", channel="discord", error=str(e))
+            log.exception("notify.error", channel="discord", error=str(e))
             notification_errors.append(f"Discord: {e}")
 
     # Send ntfy notification
@@ -538,7 +538,7 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
                 log.error("notify.failed", channel="ntfy", status_code=status_code)
                 notification_errors.append(f"ntfy: HTTP {status_code}")
         except Exception as e:
-            log.error("notify.error", channel="ntfy", error=str(e))
+            log.exception("notify.error", channel="ntfy", error=str(e))
             notification_errors.append(f"ntfy: {e}")
 
     # Log summary

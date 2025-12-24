@@ -93,5 +93,5 @@ def send_gotify(
         log.info("notify.gotify.success", status_code=response.status_code)
         return response.status_code, response.json()
     except (httpx.RequestError, httpx.HTTPStatusError) as e:
-        log.error("notify.gotify.failed", error=str(e))
+        log.exception("notify.gotify.failed", error=str(e))
         return 0, {"error": f"Failed to send Gotify notification: {e}"}
