@@ -13,6 +13,18 @@ from src.logging_setup import get_logger
 log = get_logger(__name__)
 
 
+class QbittorrentError(Exception):
+    """Base exception for qBittorrent-related errors."""
+
+    pass
+
+
+class QbittorrentLoginError(QbittorrentError):
+    """Exception raised when qBittorrent authentication fails."""
+
+    pass
+
+
 def get_client() -> Client:
     """Initialize and return a qBittorrent Client using environment variables."""
     host = os.getenv("QBITTORRENT_URL")
@@ -108,7 +120,7 @@ def add_torrent_file_with_cookie(
             log.info("qbittorrent.auth.success")
         except LoginFailed as e:
             log.exception("qbittorrent.auth.failed")
-            raise Exception(f"qBittorrent login failed: {e}") from e
+            raise QbittorrentLoginError(f"qBittorrent login failed: {e}") from e
         log.info(
             "qbittorrent.torrent.uploading",
             category=category,
