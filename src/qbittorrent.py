@@ -4,13 +4,14 @@ Enhanced qBittorrent integration module.
 Key improvements over previous implementation:
 - Singleton client with proper session management (prevents memory leaks)
 - Context manager support for automatic resource cleanup
-- Native cookie support via torrents_add() - no manual .torrent downloads needed
+- Manual torrent download for cookie-authenticated URLs (qBittorrent's cookie param doesn't work for file downloads)
 - Granular exception handling using qbittorrent-api's exception hierarchy
 - Dataclass-based configuration with validation
 - Full type hints throughout
 - Backward compatible with existing function signatures
 """
 
+import hashlib
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -20,6 +21,7 @@ from types import TracebackType
 from typing import Any, Literal
 from urllib.parse import urlparse
 
+import httpx
 from qbittorrentapi import Client
 from qbittorrentapi.exceptions import (
     APIConnectionError,
@@ -142,6 +144,94 @@ class TorrentAddError(QBittorrentError):
 
 class TorrentExistsError(TorrentAddError):
     """Torrent already exists in qBittorrent (not necessarily an error)."""
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+
+def extract_info_hash(torrent_data: bytes) -> str | None:
+    """
+    Extract the info hash from raw torrent data.
+
+    Uses simple bencode parsing to find and hash the info dictionary.
+    Returns None if parsing fails.
+
+    Args:
+        torrent_data: Raw .torrent file bytes
+
+    Returns:
+        Lowercase hex string of the SHA1 info hash, or None on failure
+    """
+    try:
+        # Simple bencode parser for extracting info dict
+        def decode_int(data: bytes, start: int) -> tuple[int, int]:
+            """Decode bencode integer: i<number>e"""
+            end = data.index(b"e", start)
+            return int(data[start + 1 : end]), end + 1
+
+        def decode_string(data: bytes, start: int) -> tuple[bytes, int]:
+            """Decode bencode string: <length>:<content>"""
+            colon = data.index(b":", start)
+            length = int(data[start:colon])
+            content_start = colon + 1
+            return data[content_start : content_start + length], content_start + length
+
+        def find_info_bounds(data: bytes) -> tuple[int, int] | None:
+            """Find start and end positions of 'info' dict in torrent."""
+            # Look for '4:info' key in the root dict
+            info_key = b"4:info"
+            idx = data.find(info_key)
+            if idx == -1:
+                return None
+
+            # Start of info dict value (after the key)
+            info_start = idx + len(info_key)
+
+            # Now we need to find where the info dict ends
+            # The info dict starts with 'd' and we need to find matching 'e'
+            if data[info_start : info_start + 1] != b"d":
+                return None
+
+            depth = 0
+            pos = info_start
+            while pos < len(data):
+                char = data[pos : pos + 1]
+                if char in {b"d", b"l"}:
+                    depth += 1
+                    pos += 1
+                elif char == b"e":
+                    depth -= 1
+                    pos += 1
+                    if depth == 0:
+                        return info_start, pos
+                elif char == b"i":
+                    # Integer: skip to 'e'
+                    end = data.index(b"e", pos)
+                    pos = end + 1
+                elif char.isdigit():
+                    # String: find colon, then skip content
+                    colon = data.index(b":", pos)
+                    length = int(data[pos:colon])
+                    pos = colon + 1 + length
+                else:
+                    pos += 1
+
+            return None
+
+        bounds = find_info_bounds(torrent_data)
+        if bounds is None:
+            return None
+
+        info_start, info_end = bounds
+        info_bytes = torrent_data[info_start:info_end]
+
+        # SHA1 hash of the info dict is the torrent's info hash
+        return hashlib.sha1(info_bytes).hexdigest().lower()
+
+    except (ValueError, IndexError):
+        return None
 
 
 # =============================================================================
@@ -493,6 +583,99 @@ class QBittorrentManager:
         else:
             return success
 
+    def add_torrent_data(
+        self,
+        torrent_data: bytes,
+        options: TorrentAddOptions | None = None,
+    ) -> bool:
+        """
+        Add a torrent from raw torrent data (bytes).
+
+        This method is used when the torrent file has been downloaded
+        with authentication and we have the raw bytes.
+
+        Args:
+            torrent_data: Raw .torrent file content as bytes
+            options: Torrent configuration options
+
+        Returns:
+            True if torrent was added successfully or already exists
+
+        Raises:
+            TorrentAddError: If torrent data is invalid
+            QBittorrentConnectionError: If connection to qBittorrent fails
+        """
+        if not torrent_data:
+            log.error("qbittorrent.torrent.data.empty")
+            raise TorrentAddError("Torrent data cannot be empty")
+
+        opts = options or TorrentAddOptions()
+        log.info("qbittorrent.torrent.add_data", size=len(torrent_data))
+
+        try:
+            result = self.client.torrents_add(
+                torrent_files=torrent_data,
+                category=opts.category,
+                tags=opts.tags,
+                save_path=opts.save_path,
+                download_path=opts.download_path,
+                is_paused=opts.is_paused,
+                use_auto_torrent_management=opts.use_auto_torrent_management,
+                content_layout=opts.content_layout,
+                ratio_limit=opts.ratio_limit,
+                seeding_time_limit=opts.seeding_time_limit,
+                upload_limit=opts.upload_limit,
+                download_limit=opts.download_limit,
+                is_sequential_download=opts.is_sequential_download,
+                is_first_last_piece_priority=opts.is_first_last_piece_priority,
+                rename=opts.rename,
+                is_skip_checking=opts.is_skip_checking,
+            )
+
+            # Handle both old (string) and new (TorrentsAddedMetadata) responses
+            success = False
+            if isinstance(result, str):
+                success = result == "Ok."
+            else:
+                # TorrentsAddedMetadata response
+                success = bool(getattr(result, "hash", None))
+
+            if success:
+                log.info("qbittorrent.torrent.data.add.success")
+            else:
+                # "Fails." can mean the torrent already exists - check for that
+                info_hash = extract_info_hash(torrent_data)
+                if info_hash:
+                    existing = self.get_torrent_info(info_hash)
+                    if existing:
+                        log.info(
+                            "qbittorrent.torrent.already_exists",
+                            hash=info_hash,
+                            name=existing.get("name", "unknown"),
+                        )
+                        return True
+                log.warning("qbittorrent.torrent.data.add.failed", response=str(result))
+
+        except Conflict409Error:
+            log.info("qbittorrent.torrent.already_exists")
+            return True
+
+        except UnsupportedMediaType415Error as e:
+            log.exception("qbittorrent.torrent.data.invalid")
+            raise TorrentAddError(f"Invalid torrent data: {e}") from e
+
+        except LoginFailed as e:
+            log.exception("qbittorrent.auth.failed")
+            self._client = None
+            raise QBittorrentAuthError(f"Authentication failed: {e}") from e
+
+        except APIConnectionError as e:
+            log.exception("qbittorrent.connection.error")
+            raise QBittorrentConnectionError(f"Connection error: {e}") from e
+
+        else:
+            return success
+
     def get_torrent_info(self, torrent_hash: str) -> dict[str, Any] | None:
         """
         Get information about a specific torrent.
@@ -633,16 +816,17 @@ def add_torrent_file_with_cookie(
     """
     Add a torrent with cookie authentication.
 
-    This is a backward compatible function. The qbittorrent-api library handles
-    cookie-authenticated URLs natively through its `cookie` parameter - no need
-    to manually download .torrent files!
+    This function downloads the .torrent file using the provided cookie,
+    then adds it to qBittorrent as raw torrent data. This is necessary because
+    qBittorrent's `cookie` parameter in torrents_add() is for tracker
+    authentication, NOT for downloading the .torrent file itself.
 
     Args:
         download_url: URL to the torrent (http/https/magnet)
         name: Name for the torrent (used for logging)
         category: Category to assign to the torrent
         tags: Tag(s) to assign to the torrent
-        cookie: Cookie string for authenticated downloads
+        cookie: Cookie string for authenticated downloads (e.g., "mam_id=xxx")
         paused: Whether to add the torrent in paused state
         autoTMM: Whether to use automatic torrent management
         contentLayout: Content layout ('Original', 'Subfolder', 'NoSubfolder')
@@ -683,6 +867,67 @@ def add_torrent_file_with_cookie(
 
     log.info("qbittorrent.torrent.add_with_cookie", name=name)
 
+    # For magnet links, no cookie download needed
+    parsed = urlparse(download_url)
+    if parsed.scheme == "magnet":
+        log.debug("qbittorrent.torrent.magnet_link", name=name)
+        try:
+            return get_manager().add_torrent_by_url(
+                url=download_url,
+                options=options,
+                cookie=None,  # Magnets don't need cookies
+            )
+        except QBittorrentError:
+            log.exception("qbittorrent.torrent.add.failed", name=name)
+            return False
+
+    # For HTTP(S) URLs with cookies, we need to download the .torrent file ourselves
+    # because qBittorrent's cookie parameter is for tracker auth, not file download
+    if cookie and parsed.scheme in ("http", "https"):
+        log.info("qbittorrent.torrent.download_with_cookie", url=download_url[:100])
+        try:
+            # Download the .torrent file with cookie authentication
+            headers = {"Cookie": cookie}
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+                response = client.get(download_url, headers=headers)
+                response.raise_for_status()
+
+                # Verify we got a torrent file (should start with 'd' for bencoded dict)
+                torrent_data = response.content
+                if not torrent_data or not torrent_data.startswith(b"d"):
+                    log.error(
+                        "qbittorrent.torrent.invalid_response",
+                        content_type=response.headers.get("content-type"),
+                        size=len(torrent_data),
+                    )
+                    return False
+
+                log.info("qbittorrent.torrent.downloaded", size=len(torrent_data))
+
+            # Add the torrent data to qBittorrent
+            return get_manager().add_torrent_data(
+                torrent_data=torrent_data,
+                options=options,
+            )
+
+        except httpx.HTTPStatusError as e:
+            log.error(
+                "qbittorrent.torrent.download_failed",
+                status_code=e.response.status_code,
+                url=download_url[:100],
+            )
+            return False
+        except httpx.RequestError as e:
+            log.error("qbittorrent.torrent.download_error", error=str(e))
+            return False
+        except QBittorrentError:
+            log.exception("qbittorrent.torrent.add.failed", name=name)
+            return False
+        except Exception:
+            log.exception("qbittorrent.torrent.add.unexpected_error", name=name)
+            return False
+
+    # For URLs without cookies, use the standard method
     try:
         return get_manager().add_torrent_by_url(
             url=download_url,
