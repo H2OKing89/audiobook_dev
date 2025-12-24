@@ -43,6 +43,11 @@ log = get_logger(__name__)
 
 load_dotenv()
 
+
+def _token_fingerprint(token: str) -> str:
+    """Return last 4 characters of token for safe logging."""
+    return token[-4:] if len(token) > 4 else token
+
 # Load configuration
 config = load_config()
 server_cfg = config.get("server", {})
@@ -292,9 +297,9 @@ async def webhook(request: Request):
     token = generate_token()
 
     # Bind only a fingerprint (last 4 chars) to context - not the full token
-    token_fingerprint = token[-4:] if len(token) > 4 else token
+    token_fp = _token_fingerprint(token)
 
-    log.info("webhook.received", name=payload.get("name"), url=payload.get("url"), token_id=token_fingerprint)
+    log.info("webhook.received", name=payload.get("name"), url=payload.get("url"), token_id=token_fp)
 
     try:
         # Get coordinator from app state (initialized by lifespan handler)
@@ -397,9 +402,9 @@ async def _metadata_worker_loop(app: FastAPI) -> None:
 
             # Clear stale context but don't bind token - use fingerprint only where needed
             clear_contextvars()
-            token_fingerprint = token[-4:] if len(token) > 4 else token
+            token_fp = _token_fingerprint(token)
 
-            log.info("worker.processing", wait_time_s=round(wait_time, 1), token_id=token_fingerprint)
+            log.info("worker.processing", wait_time_s=round(wait_time, 1), token_id=token_fp)
 
             # Get coordinator from app state
             coordinator = app.state.metadata_coordinator
@@ -441,11 +446,11 @@ async def process_metadata_and_notify(token: str, metadata: dict[str, Any], payl
     Returns a summary dict: {"notifications_sent": int, "notification_errors": list}
     """
     # Use token fingerprint for logging (never log full token)
-    token_fingerprint = token[-4:] if len(token) > 4 else token
+    token_fp = _token_fingerprint(token)
 
     # Persist token, metadata, and original payload
     save_request(token, metadata, payload)
-    log.info("request.saved", title=metadata.get("title"), token_id=token_fingerprint)
+    log.info("request.saved", title=metadata.get("title"), token_id=token_fp)
 
     # Get notification settings
     base_url = server_cfg.get("base_url")

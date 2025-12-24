@@ -92,7 +92,7 @@ def send_ntfy(
     base = ntfy_url.rstrip("/")
     log.info("notify.ntfy.send", url=base)
     try:
-        resp = httpx.post(base, json=data, headers=headers, auth=auth)
+        resp = httpx.post(base, json=data, headers=headers, auth=auth, timeout=15)
         resp.raise_for_status()
         log.info("notify.ntfy.success", status_code=resp.status_code)
         return resp.status_code, resp.json()
@@ -106,7 +106,7 @@ def send_ntfy(
             resp2.raise_for_status()
             log.info("notify.ntfy.fallback_success", status_code=resp2.status_code)
             return resp2.status_code, resp2.json()
-        except httpx.RequestError as e2:
+        except (httpx.RequestError, httpx.HTTPStatusError) as e2:
             log.exception("notify.ntfy.fallback_failed", primary_error=str(e), fallback_error=str(e2))
             # Return the original error plus the fallback error
             return 0, {"error": f"Primary: {e}, Fallback: {e2}"}

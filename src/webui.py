@@ -178,6 +178,7 @@ async def approve_action(token: str, request: Request) -> HTMLResponse:
                     tags=tags,
                     paused=paused,
                     autoTMM=autoTMM,
+                    contentLayout=contentLayout,
                 )
                 try:
                     # Pass download_url first, then name - matching the function signature

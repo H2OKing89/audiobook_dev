@@ -39,7 +39,7 @@ def _get_ttl() -> int:
         try:
             config = load_config()
             _ttl = config.get("server", {}).get("reply_token_ttl", 3600)
-        except (ConfigurationError, FileNotFoundError):
+        except ConfigurationError:
             # Config not available (e.g., in tests), use default
             _ttl = 3600
     return _ttl

@@ -94,7 +94,6 @@ def _add_service_context(
     """Add service-level context to all log events."""
     event_dict.setdefault("service", "audiobook_dev")
     return event_dict  # type: ignore[return-value]
-    return event_dict  # type: ignore[return-value]
 
 
 def _is_dev_environment() -> bool:
@@ -280,6 +279,7 @@ def _get_version() -> str:
         if result.returncode == 0:
             return result.stdout.strip()
     except Exception:
+        # Git command failed or not in a git repo, silently fall through to package version
         pass
 
     # Fall back to package version

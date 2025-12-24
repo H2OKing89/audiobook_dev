@@ -109,8 +109,9 @@ def send_pushover(
             else:
                 response = httpx.post(url, data=payload_data, timeout=15)
             response.raise_for_status()
+            token_fp = token[-4:] if len(token) > 4 else token if token else None
             log.info(
-                "notify.pushover.success", token_id=token[-4:] if token else None, status_code=response.status_code
+                "notify.pushover.success", token_id=token_fp, status_code=response.status_code
             )
             return response.status_code, response.json()
         except httpx.RequestError:
