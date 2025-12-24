@@ -911,14 +911,14 @@ def add_torrent_file_with_cookie(
             )
 
         except httpx.HTTPStatusError as e:
-            log.error(
+            log.exception(
                 "qbittorrent.torrent.download_failed",
                 status_code=e.response.status_code,
                 url=download_url[:100],
             )
             return False
         except httpx.RequestError as e:
-            log.error("qbittorrent.torrent.download_error", error=str(e))
+            log.exception("qbittorrent.torrent.download_error", error=str(e))
             return False
         except QBittorrentError:
             log.exception("qbittorrent.torrent.add.failed", name=name)
