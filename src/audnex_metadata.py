@@ -140,7 +140,8 @@ class AudnexMetadata:
 
         Args:
             asin: Amazon Standard Identification Number (10 characters)
-            region: Preferred region to try first (default: "us")
+            region: Preferred region to try first (default: "us").
+                Invalid or missing region values will be normalized to "us" with a warning.
             seed_authors: Whether to seed/populate author information (default: from config)
             update: Force server to check for updated data upstream (default: from config)
 
@@ -203,7 +204,8 @@ class AudnexMetadata:
 
         Args:
             asin: Amazon Standard Identification Number (10 characters)
-            region: Preferred region to try first (default: "us")
+            region: Preferred region to try first (default: "us").
+                Invalid or missing region values will be normalized to "us" with a warning.
             update: Force server to check for updated data upstream (default: from config)
 
         Returns:
@@ -260,7 +262,8 @@ class AudnexMetadata:
 
         Args:
             name: Author name to search for
-            region: Preferred region to try first (default: "us")
+            region: Preferred region to try first (default: "us").
+                Invalid or missing region values will be normalized to "us" with a warning.
 
         Returns:
             List of author results
@@ -315,7 +318,8 @@ class AudnexMetadata:
 
         Args:
             asin: Author ASIN (10 characters)
-            region: Preferred region to try first (default: "us")
+            region: Preferred region to try first (default: "us").
+                Invalid or missing region values will be normalized to "us" with a warning.
             update: Force server to check for updated data upstream (default: from config)
 
         Returns:

@@ -291,9 +291,8 @@ class TestEndToEndIntegration:
             patch("src.metadata.fetch_metadata") as mock_fetch,
         ):
             # Mock needs to return different values for different payloads
-            # Use side_effect to handle concurrent calls properly and match the
-            # real function's signature flexibly
-            def _mock_fetch_metadata(*args, **kwargs):
+            # Use async side_effect to match the real async function signature
+            async def _mock_fetch_metadata(*args, **kwargs):
                 # Extract payload from args or kwargs
                 payload = args[0] if args else kwargs.get("payload", {})
                 if isinstance(payload, dict):
