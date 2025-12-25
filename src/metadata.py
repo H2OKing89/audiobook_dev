@@ -282,6 +282,8 @@ class Audnexus:
     def __init__(self, client: AsyncHttpClient | None = None) -> None:
         import warnings
 
+        # Show deprecation warning only once per call site to avoid log noise
+        warnings.simplefilter("once", DeprecationWarning)
         warnings.warn(
             "Audnexus is deprecated, use AudnexMetadata from src.audnex_metadata instead",
             DeprecationWarning,

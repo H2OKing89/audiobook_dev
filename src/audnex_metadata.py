@@ -102,19 +102,19 @@ class AudnexMetadata:
             Normalized uppercase ASIN if valid, None otherwise
         """
         if not asin:
-            log.error(f"audnex.{context}.invalid_asin", asin=asin, reason="empty")
+            log.error("audnex.invalid_asin", context=context, asin=asin, reason="empty")
             return None
 
         # ASINs are typically 10 characters, but allow some flexibility
         # Amazon ASINs are alphanumeric (B followed by 9 alphanumeric chars for books)
         asin = asin.strip().upper()
         if len(asin) != 10:
-            log.error(f"audnex.{context}.invalid_asin", asin=asin, reason="wrong_length")
+            log.error("audnex.invalid_asin", context=context, asin=asin, reason="wrong_length")
             return None
 
         # Basic alphanumeric check
         if not asin.isalnum():
-            log.error(f"audnex.{context}.invalid_asin", asin=asin, reason="non_alphanumeric")
+            log.error("audnex.invalid_asin", context=context, asin=asin, reason="non_alphanumeric")
             return None
 
         return asin
@@ -692,7 +692,7 @@ async def async_main():
                     print(f"  Runtime: {chapters.get('runtimeLengthMin', 0)} minutes")
                     print(f"  Accurate: {chapters.get('isAccurate', False)}")
                     for i, ch in enumerate(chapters.get("chapters", [])[:5]):
-                        print(f"    {i+1}. {ch.get('title')} ({ch.get('lengthSec', 0)}s)")
+                        print(f"    {i + 1}. {ch.get('title')} ({ch.get('lengthSec', 0)}s)")
                     if len(chapters.get("chapters", [])) > 5:
                         print(f"    ... and {len(chapters.get('chapters', [])) - 5} more chapters")
         else:

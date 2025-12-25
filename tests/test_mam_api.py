@@ -695,9 +695,6 @@ class TestMAMApiAdapter:
     def test_adapter_init_without_mam_id_from_env(self):
         """Test adapter initialization without mam_id (checks env var)."""
         with patch.dict(os.environ, {}, clear=True):
-            # Clear MAM_ID from env
-            if "MAM_ID" in os.environ:
-                del os.environ["MAM_ID"]
             adapter = MAMApiAdapter()
             assert adapter.mam_id is None
 

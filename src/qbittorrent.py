@@ -166,18 +166,6 @@ def extract_info_hash(torrent_data: bytes) -> str | None:
     """
     try:
         # Simple bencode parser for extracting info dict
-        def decode_int(data: bytes, start: int) -> tuple[int, int]:
-            """Decode bencode integer: i<number>e"""
-            end = data.index(b"e", start)
-            return int(data[start + 1 : end]), end + 1
-
-        def decode_string(data: bytes, start: int) -> tuple[bytes, int]:
-            """Decode bencode string: <length>:<content>"""
-            colon = data.index(b":", start)
-            length = int(data[start:colon])
-            content_start = colon + 1
-            return data[content_start : content_start + length], content_start + length
-
         def find_info_bounds(data: bytes) -> tuple[int, int] | None:
             """Find start and end positions of 'info' dict in torrent."""
             # Look for '4:info' key in the root dict
@@ -924,6 +912,8 @@ def add_torrent_file_with_cookie(
             log.exception("qbittorrent.torrent.add.failed", name=name)
             return False
         except Exception:
+            # Catch-all for unexpected errors during torrent download/addition
+            # (e.g., network issues, parsing errors, filesystem issues)
             log.exception("qbittorrent.torrent.add.unexpected_error", name=name)
             return False
 
@@ -938,5 +928,7 @@ def add_torrent_file_with_cookie(
         log.exception("qbittorrent.torrent.add.failed", name=name)
         return False
     except Exception:
+        # Catch-all for unexpected errors during standard torrent addition
+        # (e.g., network issues, API errors, filesystem issues)
         log.exception("qbittorrent.torrent.add.unexpected_error", name=name)
         return False

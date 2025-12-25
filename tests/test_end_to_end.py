@@ -291,8 +291,16 @@ class TestEndToEndIntegration:
             patch("src.metadata.fetch_metadata") as mock_fetch,
         ):
             # Mock needs to return different values for different payloads
-            # Use side_effect to handle concurrent calls properly
-            mock_fetch.side_effect = lambda p: {"title": p.get("name", "Unknown")}
+            # Use side_effect to handle concurrent calls properly and match the
+            # real function's signature flexibly
+            def _mock_fetch_metadata(*args, **kwargs):
+                # Extract payload from args or kwargs
+                payload = args[0] if args else kwargs.get("payload", {})
+                if isinstance(payload, dict):
+                    return {"title": payload.get("name", "Unknown")}
+                return {"title": "Unknown"}
+
+            mock_fetch.side_effect = _mock_fetch_metadata
 
             # Process webhooks concurrently
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
