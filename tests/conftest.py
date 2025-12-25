@@ -202,12 +202,17 @@ def reset_rate_limits():
 
 
 @pytest.fixture(autouse=True)
-def mock_external_apis():
+def mock_external_apis(request):
     """Automatically mock all external API calls to prevent real network requests.
 
     This ensures tests are fast and don't depend on external services.
-    Tests that need real network calls should use @pytest.mark.allow_network.
+    Tests that need to test the actual implementation should use @pytest.mark.no_mock_external_apis.
     """
+    # Allow tests to opt-out of auto-mocking with a marker
+    if request.node.get_closest_marker("no_mock_external_apis"):
+        yield None
+        return
+
     # Patch the metadata coordinator's method which orchestrates all external calls
     # Also patch chapter fetching to prevent network calls
     # Use AsyncMock since these methods are now async
@@ -236,6 +241,10 @@ def pytest_configure(config):
     # Register markers for test organization
     config.addinivalue_line("markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')")
     config.addinivalue_line("markers", "allow_network: allow real network calls (disables mock_external_apis)")
+    config.addinivalue_line(
+        "markers",
+        "no_mock_external_apis: disable autouse mock_external_apis fixture for testing actual implementations",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)

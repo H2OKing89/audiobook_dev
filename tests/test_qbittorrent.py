@@ -10,9 +10,36 @@ from src.qbittorrent import (
     TorrentAddOptions,
     add_torrent,
     add_torrent_file_with_cookie,
+    extract_info_hash,
     get_client,
     qbittorrent_session,
 )
+
+
+class TestExtractInfoHash:
+    def test_extract_valid_torrent(self):
+        """Test extracting info hash from valid bencode torrent data."""
+        # Minimal valid torrent: d4:infod4:name4:test6:lengthi1024eee
+        torrent_data = b"d4:infod4:name4:test6:lengthi1024eee"
+        result = extract_info_hash(torrent_data)
+        # Should return a 40-char hex string (SHA1 hash)
+        assert result is not None
+        assert len(result) == 40
+        assert all(c in "0123456789abcdef" for c in result)
+
+    def test_extract_invalid_data(self):
+        """Test that invalid data returns None."""
+        assert extract_info_hash(b"not valid torrent") is None
+        assert extract_info_hash(b"") is None
+        assert extract_info_hash(b"d4:name4:teste") is None  # No info dict
+
+    def test_extract_real_torrent_structure(self):
+        """Test with a more realistic torrent structure."""
+        # More complete torrent: d8:announce3:url4:infod4:name4:test6:lengthi1024eee
+        torrent_data = b"d8:announce3:url4:infod4:name4:test6:lengthi1024eee"
+        result = extract_info_hash(torrent_data)
+        assert result is not None
+        assert len(result) == 40
 
 
 class TestQBittorrentConfig:
@@ -248,16 +275,33 @@ class TestQbittorrentClient:
         assert result is False
 
     def test_add_torrent_file_with_cookie_success(self, monkeypatch):
-        """Test adding torrent with cookie using the native library support."""
+        """Test adding torrent with cookie - downloads file then adds to qBittorrent."""
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
 
-        with patch("src.qbittorrent.Client") as mock_client_class:
+        # Mock torrent data (starts with 'd' for bencoded dict)
+        fake_torrent_data = b"d8:announce3:url4:infod4:name4:teste"
+
+        with (
+            patch("src.qbittorrent.Client") as mock_client_class,
+            patch("src.qbittorrent.httpx.Client") as mock_httpx_class,
+        ):
+            # Mock qBittorrent client
             mock_client = MagicMock()
             mock_client.app_version.return_value = "4.5.0"
             mock_client.torrents_add.return_value = "Ok."
             mock_client_class.return_value = mock_client
+
+            # Mock httpx client for downloading the torrent file
+            mock_response = MagicMock()
+            mock_response.content = fake_torrent_data
+            mock_response.headers = {"content-type": "application/x-bittorrent"}
+            mock_httpx = MagicMock()
+            mock_httpx.get.return_value = mock_response
+            mock_httpx.__enter__ = MagicMock(return_value=mock_httpx)
+            mock_httpx.__exit__ = MagicMock(return_value=False)
+            mock_httpx_class.return_value = mock_httpx
 
             result = add_torrent_file_with_cookie(
                 download_url="http://example.com/test.torrent",
@@ -267,9 +311,13 @@ class TestQbittorrentClient:
             )
 
             assert result is True
-            # Verify the cookie was passed to torrents_add
+            # Verify httpx was called with the cookie header
+            mock_httpx.get.assert_called_once()
+            call_args = mock_httpx.get.call_args
+            assert call_args[1]["headers"]["Cookie"] == "session=abc123"
+            # Verify torrents_add was called with the downloaded data
             call_kwargs = mock_client.torrents_add.call_args.kwargs
-            assert call_kwargs.get("cookie") == "session=abc123"
+            assert call_kwargs.get("torrent_files") == fake_torrent_data
             assert call_kwargs.get("category") == "audiobooks"
 
     def test_add_torrent_file_invalid_url(self, monkeypatch):
@@ -285,6 +333,36 @@ class TestQbittorrentClient:
         # Unsupported scheme
         result = add_torrent_file_with_cookie(download_url="ftp://example.com/file.torrent", name="FTP")
         assert result is False
+
+    def test_add_torrent_data_already_exists(self, monkeypatch):
+        """Test that adding a duplicate torrent returns True instead of failing."""
+        monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
+        monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
+        monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
+
+        # Create a valid bencode torrent structure with info dict
+        # This is a minimal valid torrent: d4:infod4:name4:test6:lengthi1024eee
+        fake_torrent_data = b"d4:infod4:name4:test6:lengthi1024eee"
+
+        with patch("src.qbittorrent.Client") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client.app_version.return_value = "4.5.0"
+            # Simulate qBittorrent returning "Fails." for duplicate
+            mock_client.torrents_add.return_value = "Fails."
+            # Simulate the torrent already existing in qBittorrent
+            mock_client.torrents_info.return_value = [{"name": "test", "hash": "abc123", "state": "downloading"}]
+            mock_client_class.return_value = mock_client
+
+            from src.qbittorrent import QBittorrentManager
+
+            # Reset singleton for test
+            QBittorrentManager._instance = None
+
+            manager = QBittorrentManager()
+            result = manager.add_torrent_data(fake_torrent_data)
+
+            # Should return True because torrent already exists
+            assert result is True
 
 
 class TestQbittorrentSession:

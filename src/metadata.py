@@ -258,13 +258,35 @@ class Audnexus:
     """
     Async Audnexus API client using shared HTTP client.
 
+    .. deprecated::
+        This class is deprecated. Use :class:`src.audnex_metadata.AudnexMetadata` instead,
+        which provides enhanced functionality including:
+        - Parallel region fetching
+        - seed_authors and update parameters
+        - Input validation and cleaning
+        - Config-based defaults
+
     Example usage:
+        # Preferred: Use AudnexMetadata instead
+        from src.audnex_metadata import AudnexMetadata
+        async with AudnexMetadata() as audnex:
+            author = await audnex.search_author_by_name("Brandon Sanderson")
+            chapters = await audnex.get_chapters_by_asin("B08G9PRS1K")
+
+        # Legacy (deprecated):
         async with Audnexus() as audnexus:
             author = await audnexus.find_author_by_name("Brandon Sanderson")
             chapters = await audnexus.get_chapters_by_asin("B08G9PRS1K")
     """
 
     def __init__(self, client: AsyncHttpClient | None = None) -> None:
+        import warnings
+
+        warnings.warn(
+            "Audnexus is deprecated, use AudnexMetadata from src.audnex_metadata instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._client = client
         self.base_url = "https://api.audnex.us"
 

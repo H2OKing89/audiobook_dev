@@ -44,8 +44,10 @@ ignore = [
 [lint.per-file-ignores]
 "tests/**/*.py" = [
     "ARG001",  # unused function argument
+    "ARG002",  # unused method argument (common in test mocks)
     "S101",    # use of assert
     "PLR2004", # magic values in tests
+    "SIM117",  # nested with statements (clearer in test fixtures)
 ]
 "__init__.py" = ["F401"]
 
