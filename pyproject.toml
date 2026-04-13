@@ -44,7 +44,7 @@ dependencies = [
     "PyYAML",
     # Structured logging
     "structlog>=24.4.0",
-    "orjson>=3.10.0",
+    "orjson>=3.11.8",
 ]
 
 [project.optional-dependencies]
