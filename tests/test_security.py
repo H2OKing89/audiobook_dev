@@ -1,18 +1,19 @@
 import time
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
+import pytest
 
-from src.main import app
 from src.token_gen import generate_token
 from src.utils import strip_html_tags
 
 
-client = TestClient(app)
-
-
 class TestSecurity:
     """Test security and input validation"""
+
+    @pytest.fixture(autouse=True)
+    def setup_client(self, test_client):
+        """Use the managed FastAPI client so lifespan state is initialized."""
+        self.client = test_client
 
     def test_sql_injection_attempts(self):
         """Test protection against SQL injection"""
@@ -33,9 +34,12 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": "Safe Title"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": "Safe Title"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -75,9 +79,12 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": f"Title {xss_payload}"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": f"Title {xss_payload}"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -91,7 +98,7 @@ class TestSecurity:
 
         failure_count = 0
         for token in invalid_tokens:
-            resp = client.get(f"/approve/{token}")
+            resp = self.client.get(f"/approve/{token}")
             # Application returns 410 for invalid/expired tokens
             if resp.status_code in [404, 410]:
                 failure_count += 1
@@ -102,7 +109,7 @@ class TestSecurity:
         # Test rate limiting (if implemented)
         rapid_requests = []
         for _i in range(20):
-            resp = client.post(
+            resp = self.client.post(
                 "/webhook/audiobook-requests", json={"name": "test"}, headers={"X-Autobrr-Token": "invalid_token"}
             )
             rapid_requests.append(resp.status_code)
@@ -121,7 +128,7 @@ class TestSecurity:
         }
 
         with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
-            resp = client.post(
+            resp = self.client.post(
                 "/webhook/audiobook-requests", json=large_payload, headers={"X-Autobrr-Token": "test_token"}
             )
 
@@ -140,12 +147,12 @@ class TestSecurity:
 
         for malicious_path in path_traversal_attempts:
             # Test in various fields
-            resp = client.get(f"/approve/{malicious_path}")
+            resp = self.client.get(f"/approve/{malicious_path}")
             # Should not expose file system - app returns 410 for invalid tokens
             assert resp.status_code in [404, 400, 422, 410]
 
             # Test as URL parameter
-            resp = client.get(f"/?file={malicious_path}")
+            resp = self.client.get(f"/?file={malicious_path}")
             assert resp.status_code in [200, 404, 400]  # Should not crash
 
     def test_header_injection_prevention(self):
@@ -165,7 +172,9 @@ class TestSecurity:
 
         with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
             for header_name, header_value in malicious_headers.items():
-                resp = client.post("/webhook/audiobook-requests", json=payload, headers={header_name: header_value})
+                resp = self.client.post(
+                    "/webhook/audiobook-requests", json=payload, headers={header_name: header_value}
+                )
 
                 # Should handle malicious headers safely
                 assert resp.status_code in [200, 400, 401, 422]
@@ -191,7 +200,7 @@ class TestSecurity:
         with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
             for malicious_json in malicious_jsons:
                 try:
-                    resp = client.post(
+                    resp = self.client.post(
                         "/webhook/audiobook-requests", json=malicious_json, headers={"X-Autobrr-Token": "test_token"}
                     )
 
@@ -220,10 +229,13 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": "Safe Title"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": "Safe Title"},
+                ),
             ):
                 try:
-                    resp = client.post(
+                    resp = self.client.post(
                         "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                     )
 
@@ -255,9 +267,12 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": "Safe Title"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": "Safe Title"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -277,9 +292,12 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": "Safe Title"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": "Safe Title"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -306,9 +324,12 @@ class TestSecurity:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": "Safe Title"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": "Safe Title"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 
@@ -328,7 +349,7 @@ class TestSecurity:
         }
 
         # Request without Origin header should be treated carefully
-        resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+        resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
         # Should still work for API endpoints, but web endpoints should be protected
         assert resp.status_code in [200, 401, 403]
@@ -350,7 +371,7 @@ class TestSecurity:
             payload[field_name] = long_value
 
             with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 

@@ -1,14 +1,14 @@
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
-
-from src.main import app
-
-
-client = TestClient(app)
+import pytest
 
 
 class TestMainAppIntegration:
+    @pytest.fixture(autouse=True)
+    def setup_client(self, test_client):
+        """Use the managed FastAPI client so lifespan state is initialized."""
+        self.client = test_client
+
     @patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"})
     def test_webhook_endpoint_valid_token(self):
         # Test the main webhook endpoint with valid token
@@ -21,7 +21,7 @@ class TestMainAppIntegration:
         }
 
         with (
-            patch("src.metadata.fetch_metadata") as mock_fetch,
+            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_fetch,
             patch("src.notify.pushover.send_pushover") as mock_pushover,
             patch("src.notify.discord.send_discord") as mock_discord,
         ):
@@ -37,7 +37,9 @@ class TestMainAppIntegration:
             mock_pushover.return_value = (200, {"status": 1})
             mock_discord.return_value = (204, {})
 
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             assert resp.status_code == 200
             response_data = resp.json()
@@ -56,7 +58,9 @@ class TestMainAppIntegration:
             "download_url": "http://example.com/download.torrent",
         }
 
-        resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "invalid_token"})
+        resp = self.client.post(
+            "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "invalid_token"}
+        )
 
         assert resp.status_code == 401
 
@@ -68,7 +72,7 @@ class TestMainAppIntegration:
             "download_url": "http://example.com/download.torrent",
         }
 
-        resp = client.post("/webhook/audiobook-requests", json=payload)
+        resp = self.client.post("/webhook/audiobook-requests", json=payload)
 
         assert resp.status_code == 401
 
@@ -80,7 +84,7 @@ class TestMainAppIntegration:
             # Missing url and download_url
         }
 
-        resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+        resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
 
         assert resp.status_code == 400
 
@@ -94,7 +98,10 @@ class TestMainAppIntegration:
         }
 
         with (
-            patch("src.metadata.fetch_metadata", side_effect=Exception("Metadata service down")),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                side_effect=Exception("Metadata service down"),
+            ),
             patch("src.notify.pushover.send_pushover") as mock_pushover,
             patch("src.notify.discord.send_discord") as mock_discord,
         ):
@@ -102,7 +109,9 @@ class TestMainAppIntegration:
             mock_pushover.return_value = (200, {"status": 1})
             mock_discord.return_value = (204, {})
 
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             # Should still succeed but with empty metadata
             assert resp.status_code == 200
@@ -119,20 +128,22 @@ class TestMainAppIntegration:
         }
 
         with (
-            patch("src.metadata.fetch_metadata") as mock_fetch,
+            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_fetch,
             patch("src.notify.pushover.send_pushover", side_effect=Exception("Pushover down")),
             patch("src.notify.discord.send_discord", side_effect=Exception("Discord down")),
         ):
             mock_fetch.return_value = {"title": "Test Book"}
 
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             # Should still succeed despite notification failures
             assert resp.status_code == 200
 
     def test_request_id_logging(self):
         # Test that request IDs are generated and logged
-        resp = client.get("/")
+        resp = self.client.get("/")
         assert resp.status_code == 200
         # Should have generated a request ID and returned it in headers
         assert "X-Request-ID" in resp.headers
@@ -140,13 +151,13 @@ class TestMainAppIntegration:
     def test_client_ip_logging(self):
         # Test that client IPs are captured via X-Forwarded-For header
         # IP logging happens in request_id_middleware which is tested separately
-        resp = client.get("/", headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
+        resp = self.client.get("/", headers={"X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
         assert resp.status_code == 200
         # Verify the request was processed successfully with the forwarded IP header
         assert "X-Request-ID" in resp.headers
 
     def test_cors_headers(self):
         # Test CORS headers if enabled
-        resp = client.options("/")
+        resp = self.client.options("/")
         # Should handle OPTIONS request
         assert resp.status_code in (200, 405)  # 405 if CORS not enabled

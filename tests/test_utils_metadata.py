@@ -1,6 +1,4 @@
-import pytest
-
-from src.metadata import clean_metadata, fetch_metadata
+from src.metadata import clean_metadata
 from src.utils import build_notification_message, clean_author_list, strip_html_tags, validate_payload
 
 
@@ -57,9 +55,3 @@ def test_build_notification_message(sample_item, sample_payload):
     assert "Summary paragraph." in msg
     # Approve link present
     assert "/approve/token123" in msg
-
-
-@pytest.mark.asyncio
-async def test_fetch_metadata_invalid():
-    with pytest.raises(ValueError, match="Payload missing required keys"):
-        await fetch_metadata({})

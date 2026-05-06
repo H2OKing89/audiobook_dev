@@ -354,7 +354,7 @@ logging:
 
 - **Type:** Boolean
 - **Default:** `true`
-- **Description:** Enable Audible scraping for metadata
+- **Description:** Enable authenticated Audible lookups for metadata
 
 ### `metadata.cache_expiry_hours`
 
@@ -520,7 +520,7 @@ The system validates configuration on startup:
 
 Configuration errors are reported clearly:
 
-```
+```text
 Configuration Error: notifications.discord.webhook_url is required when Discord is enabled
 Configuration Error: server.port must be between 1 and 65535
 Configuration Error: security.token_expiry_hours cannot exceed 168 (1 week)

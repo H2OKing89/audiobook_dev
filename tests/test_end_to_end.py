@@ -1,5 +1,6 @@
 import concurrent.futures
 import time
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -28,7 +29,6 @@ class TestEndToEndIntegration:
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
             patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_coord,
-            patch("src.metadata.fetch_metadata") as mock_fetch,
             patch("src.notify.pushover.send_pushover") as mock_pushover,
             patch("src.notify.discord.send_discord") as mock_discord,
             patch("src.config.load_config") as mock_config,
@@ -38,13 +38,6 @@ class TestEndToEndIntegration:
 
             # Mock metadata response - override autouse fixture
             mock_coord.return_value = {
-                "title": "E2E Test Book",
-                "author": "Test Author",
-                "series": "Test Series",
-                "cover_url": "http://example.com/cover.jpg",
-                "asin": "B123456789",
-            }
-            mock_fetch.return_value = {
                 "title": "E2E Test Book",
                 "author": "Test Author",
                 "series": "Test Series",
@@ -101,7 +94,10 @@ class TestEndToEndIntegration:
 
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", return_value={"title": "Rejection Book"}),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                return_value={"title": "Rejection Book"},
+            ),
         ):
             resp = self.client.post(
                 "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -129,7 +125,12 @@ class TestEndToEndIntegration:
         }
 
         # Track all notification calls
-        notification_calls = {"pushover": [], "discord": [], "gotify": [], "ntfy": []}
+        notification_calls: dict[str, list[tuple[tuple[Any, ...], dict[str, Any]]]] = {
+            "pushover": [],
+            "discord": [],
+            "gotify": [],
+            "ntfy": [],
+        }
 
         def track_pushover(*args, **kwargs):
             notification_calls["pushover"].append((args, kwargs))
@@ -158,7 +159,7 @@ class TestEndToEndIntegration:
                     "DISABLE_WEBHOOK_NOTIFICATIONS": "0",  # Enable notifications for this test
                 },
             ),
-            patch("src.metadata.fetch_metadata") as mock_fetch,
+            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_coord,
             patch("src.notify.pushover.send_pushover", side_effect=track_pushover),
             patch("src.notify.discord.send_discord", side_effect=track_discord),
             patch("src.notify.gotify.send_gotify", side_effect=track_gotify),
@@ -176,7 +177,7 @@ class TestEndToEndIntegration:
                 "payload": {"required_keys": ["name"]},
             }
 
-            mock_fetch.return_value = {"title": "Pipeline Book", "author": "Pipeline Author"}
+            mock_coord.return_value = {"title": "Pipeline Book", "author": "Pipeline Author"}
 
             resp = self.client.post(
                 "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -210,7 +211,6 @@ class TestEndToEndIntegration:
             patch(
                 "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", return_value=expected_metadata
             ),
-            patch("src.metadata.fetch_metadata", return_value=expected_metadata),
         ):
             resp = self.client.post(
                 "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -239,7 +239,10 @@ class TestEndToEndIntegration:
 
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", return_value={"title": "Lifecycle Book"}),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                return_value={"title": "Lifecycle Book"},
+            ),
         ):
             # Step 1: Create token via webhook
             resp = self.client.post(
@@ -288,13 +291,15 @@ class TestEndToEndIntegration:
         # Move patching outside concurrent execution to avoid thread-safety issues
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata") as mock_fetch,
+            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_fetch,
         ):
             # Mock needs to return different values for different payloads
             # Use async side_effect to match the real async function signature
             async def _mock_fetch_metadata(*args, **kwargs):
-                # Extract payload from args or kwargs
-                payload = args[0] if args else kwargs.get("payload", {})
+                # Extract payload from the last positional argument or kwargs.
+                payload = kwargs.get("webhook_payload") or kwargs.get("payload", {})
+                if not payload and args and isinstance(args[-1], dict):
+                    payload = args[-1]
                 if isinstance(payload, dict):
                     return {"title": payload.get("name", "Unknown")}
                 return {"title": "Unknown"}
@@ -325,7 +330,10 @@ class TestEndToEndIntegration:
         # Test with metadata fetch failure
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", side_effect=Exception("Metadata failed")),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                side_effect=Exception("Metadata failed"),
+            ),
         ):
             resp = self.client.post(
                 "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -354,7 +362,10 @@ class TestEndToEndIntegration:
 
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", return_value={"title": "Test Book"}),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                return_value={"title": "Test Book"},
+            ),
             patch("src.notify.pushover.send_pushover", side_effect=Exception("Pushover failed")),
             patch("src.notify.discord.send_discord", side_effect=Exception("Discord failed")),
         ):
@@ -388,7 +399,6 @@ class TestEndToEndIntegration:
                 "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
                 return_value={"title": "qBittorrent Book"},
             ),
-            patch("src.metadata.fetch_metadata", return_value={"title": "qBittorrent Book"}),
             patch("src.config.load_config") as mock_config,
         ):
             mock_config.return_value = {"qbittorrent": {"enabled": True}}
@@ -435,7 +445,10 @@ class TestEndToEndIntegration:
         with (
             patch("src.db._get_ttl", return_value=1),
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", return_value={"title": "Expiration Book"}),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                return_value={"title": "Expiration Book"},
+            ),
         ):
             # Save with current time
             monkeypatch.setattr(time, "time", lambda: current_time)
@@ -469,7 +482,10 @@ class TestEndToEndIntegration:
         for i, payload in enumerate(malformed_payloads):
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", return_value={"title": f"Malformed {i}"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    return_value={"title": f"Malformed {i}"},
+                ),
             ):
                 resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
@@ -488,7 +504,7 @@ class TestEndToEndIntegration:
 
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata") as mock_fetch,
+            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_fetch,
         ):
             mock_fetch.return_value = {"title": "測試書籍 📚", "author": "тест автор"}
 

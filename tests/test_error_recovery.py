@@ -3,24 +3,38 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from fastapi.testclient import TestClient
 
 import src.main
 from src.db import save_request
-from src.main import app
-from src.metadata import fetch_metadata
+from src.metadata_coordinator import MetadataCoordinator
 from src.notify import pushover
-
-
-client = TestClient(app)
 
 
 class TestErrorRecovery:
     """Test error recovery and resilience scenarios"""
 
+    @pytest.fixture(autouse=True)
+    def setup_client(self, test_client):
+        """Use the managed test client so FastAPI lifespan state is initialized."""
+        self.client = test_client
+
+    @pytest.fixture
+    def coordinator(self):
+        with (
+            patch("src.metadata_coordinator.load_config", return_value={}),
+            patch("src.metadata_coordinator.MAMApiAdapter") as mock_mam,
+            patch("src.metadata_coordinator.AudnexMetadata") as mock_audnex,
+            patch("src.metadata_coordinator.AudibleScraper") as mock_audible,
+        ):
+            coord = MetadataCoordinator()
+            coord.mam_adapter = mock_mam.return_value
+            coord.audnex = mock_audnex.return_value
+            coord.audible = mock_audible.return_value
+            yield coord
+
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    async def test_network_timeout_recovery(self, mock_coord):
+    @pytest.mark.no_mock_external_apis
+    async def test_network_timeout_recovery(self, coordinator):
         """Test recovery from network timeouts during metadata fetch"""
         payload = {
             "name": "Test Book [B123456789]",
@@ -28,16 +42,13 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Configure coordinator to raise ValueError to simulate metadata fetch failure
-        mock_coord.side_effect = ValueError("Could not fetch metadata")
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=httpx.ConnectTimeout("Network timeout"))
 
-        with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}):
-            # Should handle timeout gracefully - metadata service wraps all errors
-            with pytest.raises(ValueError) as exc_info:
-                await fetch_metadata(payload)
+        with pytest.raises(ValueError) as exc_info:
+            await coordinator.get_metadata_from_webhook(payload)
 
-            # Should be a controlled ValueError, not a crash
-            assert "could not fetch metadata" in str(exc_info.value).lower()
+        # Should be a controlled ValueError, not a crash
+        assert "could not fetch metadata" in str(exc_info.value).lower()
 
     def test_partial_notification_failure_recovery(self):
         """Test handling when some notifications fail but others succeed"""
@@ -49,11 +60,15 @@ class TestErrorRecovery:
 
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata.fetch_metadata", new_callable=AsyncMock) as mock_fetch,
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+            ) as mock_coord,
         ):
-            mock_fetch.return_value = {"title": "Test Book"}
+            mock_coord.return_value = {"title": "Test Book"}
 
-            resp = client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
 
             # Should return 200 - notifications are mocked/disabled in tests
             assert resp.status_code == 200
@@ -88,8 +103,8 @@ class TestErrorRecovery:
                 assert "space" in str(e).lower()
 
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    async def test_api_rate_limit_handling(self, mock_coord):
+    @pytest.mark.no_mock_external_apis
+    async def test_api_rate_limit_handling(self, coordinator):
         """Test handling of API rate limits"""
         payload = {
             "name": "Test Book [B123456789]",
@@ -97,41 +112,30 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Override autouse mock to raise ValueError (simulating rate limit error)
-        mock_coord.side_effect = ValueError("Could not fetch metadata")
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=ValueError("429 Too Many Requests"))
 
-        with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}):
-            # Should handle rate limits gracefully - metadata service wraps all errors
-            with pytest.raises(ValueError) as exc_info:
-                await fetch_metadata(payload)
+        with pytest.raises(ValueError) as exc_info:
+            await coordinator.get_metadata_from_webhook(payload)
 
-            # Should be a controlled ValueError
-            assert "could not fetch metadata" in str(exc_info.value).lower()
+        # Should be a controlled ValueError
+        assert "could not fetch metadata" in str(exc_info.value).lower()
 
     @pytest.mark.asyncio
-    async def test_service_unavailable_fallback(self):
-        """Test fallback when external services are unavailable"""
+    @pytest.mark.no_mock_external_apis
+    async def test_service_unavailable_recovery(self, coordinator):
+        """Test controlled failure when external services are unavailable."""
         payload = {
             "name": "Test Book [B123456789]",
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent",
         }
 
-        with (
-            patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}),
-            patch("src.metadata.get_cached_metadata") as mock_cached,
-        ):
-            # All API calls fail
-            mock_cached.side_effect = httpx.ConnectError("Service unavailable")
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=httpx.ConnectError("Service unavailable"))
 
-            # Should handle service unavailability
-            try:
-                result = await fetch_metadata(payload)
-                # Should return minimal data or handle gracefully
-                assert isinstance(result, dict)
-            except Exception as e:
-                # Should be a controlled exception, not a crash
-                assert "connection" in str(e).lower() or "unavailable" in str(e).lower()
+        with pytest.raises(ValueError) as exc_info:
+            await coordinator.get_metadata_from_webhook(payload)
+
+        assert "could not fetch metadata" in str(exc_info.value).lower()
 
     def test_concurrent_error_handling(self):
         """Test error handling under concurrent load"""
@@ -146,7 +150,7 @@ class TestErrorRecovery:
             responses = []
             for _i in range(5):
                 try:
-                    resp = client.post(
+                    resp = self.client.post(
                         "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                     )
                     responses.append(resp.status_code)
@@ -160,8 +164,8 @@ class TestErrorRecovery:
             assert len(successful_responses) > 0
 
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    async def test_malformed_response_handling(self, mock_coord):
+    @pytest.mark.no_mock_external_apis
+    async def test_malformed_response_handling(self, coordinator):
         """Test handling of malformed API responses"""
         payload = {
             "name": "Test Book [B123456789]",
@@ -169,16 +173,13 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Override autouse mock to raise ValueError (simulating malformed response)
-        mock_coord.side_effect = ValueError("Could not fetch metadata")
+        coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=ValueError("Malformed response"))
 
-        with patch.dict("os.environ", {"DISABLE_EXTERNAL_API": "0"}):
-            # Should handle malformed responses gracefully - metadata service wraps all errors
-            with pytest.raises(ValueError) as exc_info:
-                await fetch_metadata(payload)
+        with pytest.raises(ValueError) as exc_info:
+            await coordinator.get_metadata_from_webhook(payload)
 
-            # Should be a controlled ValueError
-            assert "could not fetch metadata" in str(exc_info.value).lower()
+        # Should be a controlled ValueError
+        assert "could not fetch metadata" in str(exc_info.value).lower()
 
     def test_memory_pressure_handling(self):
         """Test behavior under memory pressure"""
@@ -198,9 +199,13 @@ class TestErrorRecovery:
 
             with (
                 patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-                patch("src.metadata.fetch_metadata", new_callable=AsyncMock, return_value={"title": "Test"}),
+                patch(
+                    "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                    new_callable=AsyncMock,
+                    return_value={"title": "Test"},
+                ),
             ):
-                resp = client.post(
+                resp = self.client.post(
                     "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
                 )
 

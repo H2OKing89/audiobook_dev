@@ -1,11 +1,15 @@
 # Makefile for audiobook-dev project
 
-.PHONY: help install install-dev test test-fast test-integration lint lint-fix format format-check type-check clean run pre-commit ci
+.PHONY: help install install-dev install-audible test test-fast test-integration lint lint-fix format format-check type-check clean run pre-commit ci
+
+AUDIBLE_GIT_REF := 458131b4702cca48a8a6eb68c19c21b91b276d37
+AUDIBLE_PIP_SPEC := git+https://github.com/mkb79/Audible.git@$(AUDIBLE_GIT_REF)
 
 help:
 	@echo "Available commands:"
 	@echo "  make install        - Install production dependencies"
 	@echo "  make install-dev    - Install development dependencies"
+	@echo "  make install-audible - Install mkb79/Audible from GitHub"
 	@echo "  make test           - Run tests with coverage"
 	@echo "  make test-fast      - Run tests without coverage"
 	@echo "  make test-integration - Run integration tests only"
@@ -19,11 +23,16 @@ help:
 
 install:
 	pip install -r requirements.txt
+	$(MAKE) install-audible
 
 install-dev:
 	pip install -r requirements.txt
+	$(MAKE) install-audible
 	pip install -e ".[dev]"
 	pre-commit install
+
+install-audible:
+	pip install --force-reinstall --no-deps --ignore-requires-python "$(AUDIBLE_PIP_SPEC)"
 
 test:
 	pytest --cov=src --cov-branch --cov-report=term-missing --cov-report=html --cov-fail-under=50 -v

@@ -59,7 +59,9 @@ metadata:
       timeout_seconds: 10
     audible:
       enabled: true
-      timeout_seconds: 15
+      base_url: "https://api.audible.com"
+      search_endpoint: "/1.0/catalog/products"
+      auth_file: "secrets/audible-auth.json"  # Optional encrypted auth file for mkb79/Audible
 ```
 
 ### Notifications
@@ -94,6 +96,10 @@ NTFY_URL=https://ntfy.sh/your-topic
 
 # MAM API auth (optional, required for MAM metadata lookups)
 MAM_ID=your-mam-session-cookie-value
+
+# Authenticated Audible backend
+# AUDIBLE_AUTH_FILE=secrets/audible-auth.json
+# AUDIBLE_AUTH_FILE_PASSWORD=your-audible-auth-file-password
 ```
 
 ## 🔍 MAM API Configuration (Optional)
@@ -107,6 +113,16 @@ MAM_ID=your-mam-session-cookie-value
 ```
 
 Security note: `MAM_ID` is a session token. Keep it only in `.env`, never commit it, and rotate it if it is shared or exposed.
+
+## 🎧 Authenticated Audible Integration
+
+The Audible backend now uses `mkb79/Audible`. Configure both `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` so the app can decrypt the stored auth JSON and authenticate requests.
+
+The encrypted auth file format used by `Authenticator.from_file(...)` matches the `salt` / `iv` / `ciphertext` JSON envelope already used by this project.
+
+`AUDIBLE_AUTH_FILE_PASSWORD` is the decryption password for the auth file. It is not your Audible or Amazon login password.
+
+Installation note: this repo installs `mkb79/Audible` directly from GitHub because the PyPI release is behind upstream. The project Makefile includes the required `pip` flags for the current Python 3.14 environment.
 
 ## 🎯 Configuration Examples
 
@@ -177,6 +193,7 @@ cp config/config.yaml.example config/config.yaml
 - [ ] `config/config.yaml` created and configured
 - [ ] `.env` file created with required tokens
 - [ ] `MAM_ID` set in `.env` (if using MAM)
+- [ ] `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` set
 - [ ] Configuration validated with test scripts
 - [ ] Notification services tested (if enabled)
 - [ ] Rate limiting configured appropriately

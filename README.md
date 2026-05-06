@@ -11,7 +11,7 @@ A modern, secure, and delightfully over-engineered FastAPI microservice for auto
 ## ✨ Features
 
 - **🔒 Secure Webhook Endpoint** - Token-validated integration with Autobrr/MAM
-- **📖 Metadata Enrichment** - Audnex API and Audible scraping for rich book data
+- **📖 Metadata Enrichment** - Audnex API and authenticated Audible lookups for rich book data
 - **💾 Persistent Storage** - SQLite database with comprehensive audit trails
 - **⏰ Time-Limited Tokens** - Cryptographically secure, single-use approval tokens
 - **📱 Multi-Platform Notifications** - Pushover, Discord, Gotify, and Ntfy support
@@ -66,7 +66,7 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+make install-dev
 
 # Configure the system
 cp config/config.yaml.example config/config.yaml
@@ -87,7 +87,7 @@ For detailed setup instructions, see the [Getting Started Guide](docs/user-guide
 
 ## 🏗️ Project Structure
 
-```
+```text
 audiobook_dev/
 ├── docs/                    # 📚 Comprehensive documentation
 │   ├── user-guide/         # User documentation and guides
@@ -145,8 +145,10 @@ audiobook_dev/
 3. **Install dependencies**
 
    ```bash
-   pip install -r requirements.txt
+   make install-dev
    ```
+
+   This installs the upstream `mkb79/Audible` package from GitHub for the authenticated Audible backend.
 
 4. **Copy and edit config**
    - Edit `config/config.yaml` for your environment (API URLs, notification settings, etc).
@@ -179,7 +181,7 @@ Configure each in `config/config.yaml` and `.env`.
 ## Metadata
 
 - Uses Audnex API for fast, reliable metadata.
-- Falls back to Audible scraping if needed.
+- Uses `mkb79/Audible` with an encrypted auth file for Audible-backed search.
 - Cleans and normalizes author, narrator, series, and description fields.
 - Caches lookups with LRU cache for efficiency.
 

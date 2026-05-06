@@ -143,7 +143,7 @@ Most Round 3 review comments re-flagged issues already resolved in Round 2:
 - **File**: [src/audible_scraper.py](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642782765)
 - **Lines**: 260, 272
 - **Issue**: Catching broad `Exception` instead of specific exceptions
-- **Note**: Deferred - requires deeper analysis of Audible scraping error modes
+- **Note**: Deferred - requires deeper analysis of authenticated Audible backend error modes
 - **Status**: ⏳ Future Enhancement
 
 ### 8. ✅ Missing Cleanup - `alpine-components.js` Loading Screen (FIXED)

@@ -146,7 +146,9 @@ def mock_metadata():
     Returns the mock object so callers can customize the return value:
         mock_metadata.return_value = {"title": "Custom Title"}
     """
-    with patch("src.metadata.fetch_metadata", new_callable=AsyncMock) as mock:
+    with patch(
+        "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = {
             "title": "Test Book",
             "author": "Test Author",
