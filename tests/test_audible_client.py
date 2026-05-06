@@ -9,6 +9,21 @@ import pytest
 from src.audible_client import AudibleClientProvider
 
 
+def test_explicit_auth_settings_skip_config_load(tmp_path: Path) -> None:
+    """Explicit auth settings should not require config/config.yaml to exist."""
+    auth_file = tmp_path / "audible-auth.json"
+    auth_file.write_text("{}")
+
+    with patch("src.audible_client.load_config", side_effect=AssertionError("load_config should not be called")):
+        provider = AudibleClientProvider(
+            auth_file=str(auth_file),
+            auth_file_password="test-password",
+        )
+
+    assert provider.auth_file == str(auth_file)
+    assert provider.auth_file_password == "test-password"
+
+
 @pytest.mark.asyncio
 async def test_get_client_loads_auth_file_and_caches_by_region(tmp_path: Path) -> None:
     """Load the encrypted auth file once and reuse the same region client."""

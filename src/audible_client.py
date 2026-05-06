@@ -37,11 +37,15 @@ class AudibleClientProvider:
         auth_file: str | None = None,
         auth_file_password: str | None = None,
     ) -> None:
-        config = load_config()
-        audible_config = config.get("metadata", {}).get("audible", {})
+        env_auth_file = os.getenv("AUDIBLE_AUTH_FILE")
+        env_auth_file_password = os.getenv("AUDIBLE_AUTH_FILE_PASSWORD")
+        audible_config: dict[str, str] = {}
+        if auth_file is None and env_auth_file is None:
+            config = load_config()
+            audible_config = config.get("metadata", {}).get("audible", {})
 
-        self.auth_file = auth_file or os.getenv("AUDIBLE_AUTH_FILE") or audible_config.get("auth_file")
-        self.auth_file_password = auth_file_password or os.getenv("AUDIBLE_AUTH_FILE_PASSWORD")
+        self.auth_file = auth_file or env_auth_file or audible_config.get("auth_file")
+        self.auth_file_password = auth_file_password or env_auth_file_password
 
         self._auth: audible.Authenticator | None = None
         self._clients: dict[str, audible.AsyncClient] = {}
