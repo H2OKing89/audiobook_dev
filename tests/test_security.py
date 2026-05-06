@@ -199,16 +199,12 @@ class TestSecurity:
 
         with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
             for malicious_json in malicious_jsons:
-                try:
-                    resp = self.client.post(
-                        "/webhook/audiobook-requests", json=malicious_json, headers={"X-Autobrr-Token": "test_token"}
-                    )
+                resp = self.client.post(
+                    "/webhook/audiobook-requests", json=malicious_json, headers={"X-Autobrr-Token": "test_token"}
+                )
 
-                    # Should handle malicious JSON safely
-                    assert resp.status_code in [200, 400, 422, 500]
-                except Exception as e:
-                    # Should not cause unhandled exceptions
-                    assert "json" in str(e).lower() or "decode" in str(e).lower()
+                # Should handle malicious JSON safely without server errors
+                assert resp.status_code in [200, 400, 422]
 
     def test_unicode_security(self):
         """Test handling of dangerous Unicode characters"""
@@ -348,11 +344,16 @@ class TestSecurity:
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Request without Origin header should be treated carefully
-        resp = self.client.post("/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"})
+        with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
+            matching_resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
+            mismatched_resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "wrong-token"}
+            )
 
-        # Should still work for API endpoints, but web endpoints should be protected
-        assert resp.status_code in [200, 401, 403]
+        assert matching_resp.status_code == 200
+        assert mismatched_resp.status_code == 401
 
     def test_input_length_validation(self):
         """Test validation of input field lengths"""

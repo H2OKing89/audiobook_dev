@@ -2,9 +2,12 @@
 
 A modern, secure, and delightfully over-engineered FastAPI microservice for automated audiobook approval workflows. Built by Quentin with maximum automation and minimum manual intervention in mind.
 
-## 🛡️ Security Status: ✅ VERIFIED
+## Security and CI
 
-**Last Audit**: June 16, 2025 | **Status**: 13/13 Security Tests Passing | **UI**: Cyberpunk Theme Secured
+[![CI](https://github.com/H2OKing89/audiobook_dev/actions/workflows/ci.yml/badge.svg)](https://github.com/H2OKing89/audiobook_dev/actions/workflows/ci.yml)
+[![Dependency Review](https://github.com/H2OKing89/audiobook_dev/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/H2OKing89/audiobook_dev/actions/workflows/dependency-review.yml)
+
+Current security and test status is tracked in GitHub Actions.
 
 ---
 
@@ -58,8 +61,8 @@ Complete documentation is available in the [`docs/`](docs/) directory:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kingpaging/audiobook-automation.git
-cd audiobook-automation
+git clone https://github.com/H2OKing89/audiobook_dev.git
+cd audiobook_dev
 
 # Set up virtual environment
 python -m venv .venv

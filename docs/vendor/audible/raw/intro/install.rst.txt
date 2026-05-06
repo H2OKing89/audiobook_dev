@@ -172,7 +172,7 @@ You can also use Git to clone the repository from GitHub to install the latest
 development version::
 
     git clone https://github.com/mkb79/audible.git
-    cd Audible
+    cd audible
     pip install .
 
 With optional dependencies::

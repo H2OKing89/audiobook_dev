@@ -1,9 +1,9 @@
-==================
-Asynchron requests
-==================
+====================
+Asynchronous requests
+====================
 
-This app supports asynchronous request using the httpx module.
-You can instantiate a async Client with::
+This app supports asynchronous requests using the httpx module.
+You can instantiate an async client with::
 
    async with audible.AsyncClient(auth=...) as client:
        ...

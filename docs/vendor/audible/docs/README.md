@@ -2,7 +2,7 @@
 
 Welcome to the comprehensive documentation for the Audiobook Automation System! This documentation is organized to help both users and developers understand, use, and contribute to the system.
 
-## � Quick Start
+## Quick Start
 
 New to the system? Start here:
 
@@ -10,7 +10,7 @@ New to the system? Start here:
 2. [Configuration](user-guide/configuration.md) - Configure the system for your needs
 3. [Web Interface](user-guide/web-interface.md) - Using the web UI
 
-## �📖 Documentation Structure
+## Documentation Structure
 
 ### 🎯 User Guide (`user-guide/`)
 
@@ -74,7 +74,7 @@ Historical development documentation and implementation logs are stored in `arch
 
 ---
 
-**Last Updated**: June 2025
+**Last Updated**: May 6, 2026
 **System Version**: Production v1.0
 
 - [Database Schema](api/database.md) - Database structure
@@ -106,11 +106,5 @@ All documentation in this project follows these standards:
 - **Up-to-date** - Regularly maintained and current
 - **Accessible** - Written for both beginners and experts
 - **Searchable** - Well-indexed with consistent terminology
-
-## 🔄 Last Updated
-
-This documentation was last updated on **June 16, 2025**.
-
----
 
 **Need help?** Check the [troubleshooting guide](user-guide/troubleshooting.md) or open an issue on GitHub!

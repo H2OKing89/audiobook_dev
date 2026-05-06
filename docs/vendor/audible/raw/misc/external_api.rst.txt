@@ -191,7 +191,7 @@ Categories
    :query image_sizes:
    :query image_variants:
    :query products_in_plan_timestamp:
-   :quers products_not_in_plan_timestamp:
+   :query products_not_in_plan_timestamp:
    :query int products_num_results:
    :query products_plan: [Enterprise, RodizioFreeBasic, AyceRomance, AllYouCanEat, AmazonEnglish, ComplimentaryOriginalMemberBenefit, Radio, SpecialBenefit, Rodizio]
    :query products_sort_by: [-ReleaseDate, ContentLevel, -Title, AmazonEnglish, AvgRating, BestSellers, -RuntimeLength, ReleaseDate, ProductSiteLaunchDate, -ContentLevel, Title, Relevance, RuntimeLength]
@@ -466,7 +466,7 @@ Content
    :<json string drm_type: "FairPlay"
    :>json string license: The encrypted license
 
-.. http:get:: 1.0/content/FairPlay/certificate
+.. http:get:: /1.0/content/FairPlay/certificate
 
    :>json string certificate: The base64 encoded FairPlay certificate
 

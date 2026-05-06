@@ -146,12 +146,12 @@ To handle the login with a external browser or program logic you can do the foll
    auth = audible.Authenticator.from_login_external(locale=COUNTRY_CODE)
 
 By default, this code prints out the login url for the selected country code.
-Paste this url into a web browser or use it programatically to authorize yourself.
+Paste this url into a web browser or use it programmatically to authorize yourself.
 You have to enter your credentials two times (because of missing init cookies).
 First time, the password can be a random one.
 Second time, you have to solve a captcha before you can submit the login form and
 you must use your correct password.
-After loggin in, you will end in an error page (not found). This is correct.
+After logging in, you will end in an error page (not found). This is correct.
 Copy the url from the address bar from your browser and paste the url into the input
 field of the python code. It will look something like
 "https://www.amazon.{domain}/ap/maplanding?...&openid.oa2.authorization_code=..."
@@ -163,14 +163,14 @@ field of the python code. It will look something like
 
 .. note::
 
-   If you are using MacOS and have trouble insert the login result url, simply import the
+   If you are using macOS and have trouble inserting the login result url, simply import the
    readline module in your script. See
    `#34 <https://github.com/mkb79/Audible/issues/34#issuecomment-766408640>`_.
 
 Custom callback
 ---------------
 
-A custom callback can be provided (for example open the url in a webbrowser directly), like so::
+A custom callback can be provided (for example open the url in a web browser directly), like so::
 
    def custom_login_url_callback(login_url):
 

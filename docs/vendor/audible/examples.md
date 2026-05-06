@@ -9,6 +9,7 @@ Source URL:
 ```python
 import audible
 
+filename = "path/to/credentials.json"
 auth = audible.Authenticator.from_file(filename)
 client = audible.Client(auth)
 country_codes = ["de", "us", "ca", "uk", "au", "fr", "jp", "it", "in"]

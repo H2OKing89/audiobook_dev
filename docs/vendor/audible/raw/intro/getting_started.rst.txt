@@ -16,7 +16,7 @@ Before you can communicate with the non-public Audible Api, you need to
 authorize (login) yourself to Amazon (or Audible) and register a new "virtual"
 Audible device. Please make sure to select the correct Audible marketplace.
 An overview about all known Audible marketplaces and associated country codes
-be found at :ref:`country_codes`.
+can be found at :ref:`country_codes`.
 
 .. code-block::
 
@@ -78,7 +78,7 @@ your first API call. To fetch and print out all books from your Audible library
 .. note::
 
    The information returned by the API depends on the requested `response_groups`.
-   The response for the example above are very minimized. Please take a look at
+   The response for the example above is minimal. Please take a look at
    :http:get:`/1.0/library` for all known `response_groups` and other parameter
    for the library endpoint.
 

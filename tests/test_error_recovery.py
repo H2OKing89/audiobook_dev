@@ -1,4 +1,7 @@
+import asyncio
+import concurrent.futures
 import sqlite3
+import threading
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -130,23 +133,42 @@ class TestErrorRecovery:
             "download_url": "http://example.com/download.torrent",
         }
 
-        with patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}):
-            # Send multiple concurrent requests with some failing
-            responses = []
-            for _i in range(5):
-                try:
-                    resp = self.client.post(
-                        "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
-                    )
-                    responses.append(resp.status_code)
-                except Exception as e:
-                    responses.append(str(e))
+        in_flight = 0
+        max_in_flight = 0
+        counter_lock = threading.Lock()
 
-            # At least some requests should succeed or fail gracefully
-            assert len(responses) == 5
-            # Should not have any unhandled exceptions (would be strings)
-            successful_responses = [r for r in responses if isinstance(r, int)]
-            assert len(successful_responses) > 0
+        async def slow_metadata_handler(_payload):
+            nonlocal in_flight, max_in_flight
+            with counter_lock:
+                in_flight += 1
+                max_in_flight = max(max_in_flight, in_flight)
+            try:
+                await asyncio.sleep(0.05)
+                return {"title": "Test Book"}
+            finally:
+                with counter_lock:
+                    in_flight -= 1
+
+        def send_request() -> int:
+            resp = self.client.post(
+                "/webhook/audiobook-requests", json=payload, headers={"X-Autobrr-Token": "test_token"}
+            )
+            return int(resp.status_code)
+
+        with (
+            patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook",
+                new_callable=AsyncMock,
+                side_effect=slow_metadata_handler,
+            ),
+        ):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                responses = list(executor.map(lambda _unused: send_request(), range(5)))
+
+        assert len(responses) == 5
+        assert all(status_code == 200 for status_code in responses)
+        assert max_in_flight >= 2
 
     @pytest.mark.asyncio
     @pytest.mark.no_mock_external_apis

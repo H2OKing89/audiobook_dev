@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from src.audible_client import AudibleClientProvider
 from src.audible_scraper import AudibleScraper
 
 
@@ -38,8 +39,12 @@ async def test_search_by_title_author_uses_audible_library_backend(tmp_path: Pat
 
     with patch.dict(os.environ, {"AUDIBLE_AUTH_FILE_PASSWORD": "test-password"}, clear=False):
         with patch("src.audible_scraper.load_config", return_value=mock_config):
-            with patch("src.audible_client.audible.Authenticator.from_file", return_value=mock_auth) as mock_from_file:
-                with patch("src.audible_client.audible.AsyncClient", return_value=mock_client) as mock_async_client:
+            with patch(
+                "src.audible_client._audible_mod.Authenticator.from_file", return_value=mock_auth
+            ) as mock_from_file:
+                with patch(
+                    "src.audible_client._audible_mod.AsyncClient", return_value=mock_client
+                ) as mock_async_client:
                     scraper = AudibleScraper()
                     results = await scraper.search_by_title_author("The Hobbit", "J.R.R. Tolkien")
 
@@ -80,3 +85,30 @@ async def test_search_by_title_author_returns_empty_without_auth_config() -> Non
             results = await scraper.search_by_title_author("The Hobbit", "J.R.R. Tolkien")
 
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_shared_injected_provider_is_not_closed_on_scraper_exit() -> None:
+    """Injected Audible providers should remain usable after one scraper exits."""
+    mock_config = {"metadata": {"audible": {"search_endpoint": "/1.0/catalog/products"}}}
+    product = {"asin": "B0TEST1234", "title": "Shared Provider Book", "language": "english"}
+
+    shared_provider = MagicMock(spec=AudibleClientProvider)
+    shared_provider.get_client = AsyncMock()
+    shared_provider.aclose = AsyncMock()
+
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(return_value={"products": [product]})
+    shared_provider.get_client.return_value = mock_client
+
+    with patch("src.audible_scraper.load_config", return_value=mock_config):
+        async with AudibleScraper(audible_client_provider=shared_provider) as first_scraper:
+            first_results = await first_scraper.search_by_title_author("Shared Provider Book")
+
+        shared_provider.aclose.assert_not_awaited()
+
+        async with AudibleScraper(audible_client_provider=shared_provider) as second_scraper:
+            second_results = await second_scraper.search_by_title_author("Shared Provider Book")
+
+    assert first_results[0]["asin"] == "B0TEST1234"
+    assert second_results[0]["asin"] == "B0TEST1234"

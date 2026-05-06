@@ -236,10 +236,10 @@ curl -X POST -H "Content-Type: application/json" \
 
 ```bash
 # Check .env file
-grep DISCORD_WEBHOOK_URL .env
+if grep -q '^DISCORD_WEBHOOK_URL=' .env; then echo 'DISCORD_WEBHOOK_URL set'; else echo 'DISCORD_WEBHOOK_URL unset'; fi
 
 # Test notification system
-python -c "from src.notify.discord import DiscordNotifier; DiscordNotifier().test()"
+python -c "import os; print('DISCORD_WEBHOOK_URL set' if os.environ.get('DISCORD_WEBHOOK_URL') else 'DISCORD_WEBHOOK_URL unset')"
 ```
 
 ### Pushover Not Working
@@ -280,17 +280,19 @@ curl -s -F "token=YOUR_API_TOKEN" \
 lsof db.sqlite
 ```
 
-2. **Restart application:**
+1. **Restart application:**
 
 ```bash
-# Stop all Python processes
-pkill -f python
+# Stop only the audiobook service process
+pkill -f "src/main.py"
 
 # Start fresh
 python src/main.py
 ```
 
-3. **Backup and recreate:**
+If `pkill` is too broad for your environment, use the specific PID you identified earlier with `kill <PID>` or stop the relevant service/container instead.
+
+1. **Backup and recreate:**
 
 ```bash
 # Backup database
@@ -312,7 +314,7 @@ rm -f db.sqlite-shm db.sqlite-wal
 sqlite3 db.sqlite "PRAGMA integrity_check;"
 ```
 
-2. **Restore from backup:**
+1. **Restore from backup:**
 
 ```bash
 # Find latest backup
@@ -322,7 +324,7 @@ ls -la db.sqlite*
 cp db.sqlite.backup db.sqlite
 ```
 
-3. **Recreate database:**
+1. **Recreate database:**
 
 ```bash
 # Last resort: recreate (loses data)
@@ -344,14 +346,14 @@ python src/db.py  # Recreates tables
 docker logs audiobook-automation
 ```
 
-2. **Verify volume mounts:**
+1. **Verify volume mounts:**
 
 ```bash
 # Check config files exist
 ls -la config/
 ```
 
-3. **Test without Docker:**
+1. **Test without Docker:**
 
 ```bash
 # Run directly to see errors
@@ -370,7 +372,7 @@ python src/main.py
 docker ps  # Verify ports are mapped
 ```
 
-2. **Test container networking:**
+1. **Test container networking:**
 
 ```bash
 # Access from within container
@@ -441,7 +443,7 @@ uname -a
 pip freeze | grep -E "(fastapi|httpx|pydantic)"
 ```
 
-2. **Configuration (sanitized):**
+1. **Configuration (sanitized):**
 
 ```bash
 # Remove sensitive data before sharing
@@ -449,7 +451,7 @@ cp config/config.yaml config/config-debug.yaml
 # Edit config-debug.yaml to remove secrets
 ```
 
-3. **Log Excerpts:**
+1. **Log Excerpts:**
 
 ```bash
 # Last 50 lines of relevant logs
@@ -457,7 +459,7 @@ tail -50 logs/audiobook_requests.log
 tail -50 logs/metadata_coordinator.log
 ```
 
-4. **Error Messages:**
+1. **Error Messages:**
    - Full error text
    - Steps to reproduce
    - Expected vs actual behavior

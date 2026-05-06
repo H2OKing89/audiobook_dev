@@ -53,7 +53,7 @@ server:
   port: 8000
   reload: true
   base_url: "https://your-domain.com"  # Replace with your domain
-  autobrr_webhook_endpoint: "/webhook/audiobook-requests" # autobrr webook token location .env "AUTOBRR_TOKEN"
+  autobrr_webhook_endpoint: "/webhook/audiobook-requests" # autobrr webhook token location .env "AUTOBRR_TOKEN"
   reply_token_ttl: 3600 # 1 hour in seconds
   # approve_success_autoclose: 10 # seconds to auto-close success page
   # reject_autoclose: 10 # seconds to auto-close rejection page

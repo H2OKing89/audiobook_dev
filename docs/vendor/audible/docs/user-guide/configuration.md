@@ -153,7 +153,7 @@ Test your configuration:
 
 ```bash
 # Test main config
-python -c "from src.config import load_config; print('✅ Config valid')"
+python -c "from src.config import load_config; load_config(); print('✅ Config valid')"
 
 # Test MAM API auth (if configured)
 pytest tests/test_mam_api.py -k Integration --no-cov

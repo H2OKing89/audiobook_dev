@@ -43,8 +43,8 @@ merge them as a dict to the `params` keyword. So both terms are equal::
    resp = client.get(
        "library",
        params={
-           "response_groups"="...",
-           "num_results"=20
+            "response_groups": "...",
+            "num_results": 20
        }
    )
 
@@ -204,7 +204,7 @@ The activation blob can be saved to file too::
 .. attention::
 
    Please only use this for gaining full access to your own audiobooks for
-   archiving / converson / convenience. DeDRMed audiobooks should not be uploaded
+   archiving / conversion / convenience. DeDRMed audiobooks should not be uploaded
    to open servers, torrents, or other methods of mass distribution. No help
    will be given to people doing such things. Authors, retailers, and
    publishers all need to make a living, so that they can continue to produce
@@ -240,13 +240,13 @@ To decrypt the license response you can do::
    from audible.aescipher import decrypt_voucher_from_licenserequest
 
    auth = YOUR_AUTH_INSTANCE
-   lr = RESPONSE_FROM_LICENSEREQUEST_ENPOINT
+   lr = RESPONSE_FROM_LICENSEREQUEST_ENDPOINT
    dlr = decrypt_voucher_from_licenserequest(auth, lr)
 
 .. attention::
 
    Please only use this for gaining full access to your own audiobooks for
-   archiving / converson / convenience. DeDRMed audiobooks should not be uploaded
+   archiving / conversion / convenience. DeDRMed audiobooks should not be uploaded
    to open servers, torrents, or other methods of mass distribution. No help
    will be given to people doing such things. Authors, retailers, and
    publishers all need to make a living, so that they can continue to produce

@@ -314,6 +314,9 @@ def coordinator():
         coord.mam_adapter = mock_mam.return_value
         coord.audnex = mock_audnex.return_value
         coord.audible = mock_audible.return_value
+        coord.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)  # type: ignore[method-assign]
+        coord.audnex.get_book_by_asin = AsyncMock(return_value=None)  # type: ignore[method-assign]
+        coord.audible.search_from_webhook_name = AsyncMock(return_value=[])  # type: ignore[method-assign]
         yield coord
 
 

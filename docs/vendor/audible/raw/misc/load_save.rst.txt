@@ -113,11 +113,11 @@ different hash function module via the `hashmod` argument. The module must
 adhere to the Python API for Cryptographic Hash Functions (PEP 247).
 
 PBKDF2 uses a number of iterations of the hash function to derive the key,
-which can be set via the `kdf_iterations` keyword argumeent. The default number
+which can be set via the `kdf_iterations` keyword argument. The default number
 is 1000 and the maximum 65535.
 
 The header and the salt are written to the first block of the encrypted output
-(bytes mode) or written as key/value pairs (dict mode). The header consist of
+(bytes mode) or written as key/value pairs (dict mode). The header consists of
 the number of KDF iterations encoded as a big-endian word bytes wrapped by
 `salt_marker` on both sides. With the default value of `salt_marker = b'$'`,
 the header size is thus 4 and the salt 12 bytes. The salt marker must be a

@@ -45,10 +45,15 @@ class AudibleScraper:
         self.config = load_config()
         self.audible_config = self.config.get("metadata", {}).get("audible", {})
         self.search_endpoint = self.audible_config.get("search_endpoint", "/1.0/catalog/products")
-        self._audible_client_provider = audible_client_provider or AudibleClientProvider(
-            auth_file=os.getenv("AUDIBLE_AUTH_FILE") or self.audible_config.get("auth_file"),
-            auth_file_password=os.getenv("AUDIBLE_AUTH_FILE_PASSWORD"),
-        )
+        if audible_client_provider is None:
+            self._audible_client_provider = AudibleClientProvider(
+                auth_file=os.getenv("AUDIBLE_AUTH_FILE") or self.audible_config.get("auth_file"),
+                auth_file_password=os.getenv("AUDIBLE_AUTH_FILE_PASSWORD"),
+            )
+            self._owns_audible_provider = True
+        else:
+            self._audible_client_provider = audible_client_provider
+            self._owns_audible_provider = False
 
         # Use shared region map from http_client
         self.region_map = REGION_MAP
@@ -84,7 +89,8 @@ class AudibleScraper:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
-        await self._audible_client_provider.aclose()
+        if self._owns_audible_provider:
+            await self._audible_client_provider.aclose()
 
     async def _get_audible_library_client(self, region: str) -> Any | None:
         """Create or reuse an authenticated mkb79/Audible client for a region."""

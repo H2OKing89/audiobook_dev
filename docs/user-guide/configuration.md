@@ -61,7 +61,7 @@ metadata:
       enabled: true
       base_url: "https://api.audible.com"
       search_endpoint: "/1.0/catalog/products"
-      auth_file: "secrets/audible-auth.json"  # Optional encrypted auth file for mkb79/Audible
+      auth_file: "secrets/audible-auth.json"  # Optional - required only for authenticated Audible lookups
 ```
 
 ### Notifications
@@ -116,7 +116,7 @@ Security note: `MAM_ID` is a session token. Keep it only in `.env`, never commit
 
 ## 🎧 Authenticated Audible Integration
 
-The Audible backend now uses `mkb79/Audible`. Configure both `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` so the app can decrypt the stored auth JSON and authenticate requests.
+The Audible backend now uses `mkb79/Audible`. Configure `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` only when you want authenticated Audible lookups so the app can decrypt the stored auth JSON and authenticate requests.
 
 The encrypted auth file format used by `Authenticator.from_file(...)` matches the `salt` / `iv` / `ciphertext` JSON envelope already used by this project.
 
@@ -193,7 +193,7 @@ cp config/config.yaml.example config/config.yaml
 - [ ] `config/config.yaml` created and configured
 - [ ] `.env` file created with required tokens
 - [ ] `MAM_ID` set in `.env` (if using MAM)
-- [ ] `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` set
+- [ ] `AUDIBLE_AUTH_FILE` and `AUDIBLE_AUTH_FILE_PASSWORD` set if using authenticated Audible lookups
 - [ ] Configuration validated with test scripts
 - [ ] Notification services tested (if enabled)
 - [ ] Rate limiting configured appropriately

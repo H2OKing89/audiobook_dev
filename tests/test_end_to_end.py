@@ -1,7 +1,7 @@
 import concurrent.futures
 import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -291,18 +291,13 @@ class TestEndToEndIntegration:
         # Move patching outside concurrent execution to avoid thread-safety issues
         with (
             patch.dict("os.environ", {"AUTOBRR_TOKEN": "test_token"}),
-            patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook") as mock_fetch,
+            patch(
+                "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+            ) as mock_fetch,
         ):
             # Mock needs to return different values for different payloads
-            # Use async side_effect to match the real async function signature
-            async def _mock_fetch_metadata(*args, **kwargs):
-                # Extract payload from the last positional argument or kwargs.
-                payload = kwargs.get("webhook_payload") or kwargs.get("payload", {})
-                if not payload and args and isinstance(args[-1], dict):
-                    payload = args[-1]
-                if isinstance(payload, dict):
-                    return {"title": payload.get("name", "Unknown")}
-                return {"title": "Unknown"}
+            async def _mock_fetch_metadata(webhook_payload: dict[str, Any]) -> dict[str, str]:
+                return {"title": webhook_payload.get("name", "Unknown")}
 
             mock_fetch.side_effect = _mock_fetch_metadata
 

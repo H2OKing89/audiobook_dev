@@ -23,14 +23,16 @@ async def test_get_client_loads_auth_file_and_caches_by_region(tmp_path: Path) -
         auth_file_password="test-password",
     )
 
-    with patch("src.audible_client.audible.Authenticator.from_file", return_value=mock_auth) as mock_from_file:
-        with patch("src.audible_client.audible.AsyncClient", return_value=mock_client) as mock_async_client:
+    with patch("src.audible_client._audible_mod.Authenticator.from_file", return_value=mock_auth) as mock_from_file:
+        with patch("src.audible_client._audible_mod.AsyncClient", return_value=mock_client) as mock_async_client:
             first = await provider.get_client("us")
             second = await provider.get_client("us")
 
     assert first is mock_client
     assert second is mock_client
-    mock_from_file.assert_called_once_with(auth_file, password="test-password")
+    called_path = Path(mock_from_file.call_args.args[0])
+    assert called_path == auth_file
+    assert mock_from_file.call_args.kwargs["password"] == "test-password"
     mock_async_client.assert_called_once_with(auth=mock_auth, country_code="us")
 
 
@@ -63,8 +65,8 @@ async def test_aclose_closes_cached_clients(tmp_path: Path) -> None:
         auth_file_password="test-password",
     )
 
-    with patch("src.audible_client.audible.Authenticator.from_file", return_value=MagicMock()):
-        with patch("src.audible_client.audible.AsyncClient", side_effect=[first_client, second_client]):
+    with patch("src.audible_client._audible_mod.Authenticator.from_file", return_value=MagicMock()):
+        with patch("src.audible_client._audible_mod.AsyncClient", side_effect=[first_client, second_client]):
             await provider.get_client("us")
             await provider.get_client("ca")
 

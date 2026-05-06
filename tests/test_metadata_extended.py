@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.metadata import clean_metadata, get_audible_asin, levenshtein_distance
+from src.metadata import clean_metadata, clean_series_sequence, get_audible_asin, levenshtein_distance
 
 
 class TestMetadataModule:
@@ -40,6 +40,17 @@ class TestMetadataModule:
         assert result["author"] is None
         assert result["series"] == ""
         assert result["narrators"] == []
+
+    def test_clean_metadata_scalar_author_fallback(self):
+        item = {"title": "Minimal Book", "author": "Brandon Sanderson"}
+
+        result = clean_metadata(item)
+
+        assert result["author"] == "Brandon Sanderson"
+
+    def test_clean_series_sequence_numeric_inputs(self):
+        assert clean_series_sequence("Test Series", 1) == "1"
+        assert clean_series_sequence("Test Series", 1.5) == "1.5"
 
     def test_clean_metadata_genres_and_tags(self):
         item = {
@@ -121,6 +132,8 @@ class TestMetadataModule:
             "download_url": "http://example.com/download.torrent",
         }
 
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(
             return_value=[{"title": "Resolved Book", "asin": "B987654321"}]
         )
@@ -141,6 +154,8 @@ class TestMetadataModule:
             "download_url": "http://example.com/download.torrent",
         }
 
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[])
 
         result = await coordinator.get_metadata_from_webhook(payload)

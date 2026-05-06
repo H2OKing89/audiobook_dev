@@ -9,7 +9,7 @@
 - **Modular Architecture**: Refactored metadata workflow into separate, focused modules
   - `mam_api/` - MAM JSON API client, models, and metadata adapter
   - `audnex_metadata.py` - Comprehensive metadata cleaning and enrichment
-  - `audible_scraper.py` - Authenticated Audible metadata backend
+  - `src/audible_scraper.py` - Authenticated Audible metadata backend
   - `metadata_coordinator.py` - Orchestrates the entire workflow
 
 ### ⚡ **Async & Concurrency**

@@ -42,10 +42,12 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     return dp[len2]
 
 
-def clean_series_sequence(series_name: str, sequence: str) -> str:
+def clean_series_sequence(series_name: str, sequence: Any) -> str:
     """Normalize series numbering like "Book 1" to a plain numeric value."""
     if not sequence:
         return ""
+
+    sequence = str(sequence)
 
     match = re.search(r"\.\d+|\d+(?:\.\d+)?", sequence)
     updated_sequence = match.group(0) if match else sequence
@@ -357,7 +359,7 @@ def clean_metadata(item: dict[str, Any]) -> dict[str, Any]:
     authors_raw = item.get("authors") or []
     filtered_authors = clean_author_list(authors_raw)
     result["authors_raw"] = authors_raw
-    result["author"] = filtered_authors[0] if filtered_authors else None
+    result["author"] = filtered_authors[0] if filtered_authors else base.get("author") or item.get("author")
 
     # Narrators as list and narrator string
     narrator_raw = base.get("narrator")
