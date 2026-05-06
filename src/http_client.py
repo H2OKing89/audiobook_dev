@@ -81,7 +81,7 @@ class HttpClientConfig:
 
     # Region configuration
     default_region: str = "us"
-    regions: list[str] = field(default_factory=lambda: DEFAULT_REGIONS.copy())
+    regions: list[str] = field(default_factory=DEFAULT_REGIONS.copy)
     max_regions_to_try: int = 10
 
     @classmethod

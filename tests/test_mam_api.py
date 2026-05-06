@@ -421,7 +421,7 @@ class TestMamClient:
         response = httpx.Response(200, content=b"<html>not a torrent</html>", request=request)
 
         with patch.object(client._client, "get", return_value=response):
-            with pytest.raises(MamApiError, match="valid .torrent"):
+            with pytest.raises(MamApiError, match=r"valid \.torrent"):
                 client.download_torrent_by_dl("token")
 
         client.close()

@@ -27,7 +27,7 @@ def format_release_date(date_str: str) -> str:
     if not date_str:
         return ""
     if "T" in date_str:
-        return date_str.split("T")[0]
+        return date_str.split("T", maxsplit=1)[0]
     return date_str
 
 
