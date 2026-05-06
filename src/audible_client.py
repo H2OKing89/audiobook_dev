@@ -46,6 +46,7 @@ class AudibleClientProvider:
         self._auth: audible.Authenticator | None = None
         self._clients: dict[str, audible.AsyncClient] = {}
         self._init_lock = asyncio.Lock()
+        self._shutting_down = False
 
     @property
     def configured(self) -> bool:
@@ -66,15 +67,16 @@ class AudibleClientProvider:
             log.warning("audible.library.no_auth_file_password")
             return None
 
-        if region in self._clients:
-            return self._clients[region]
-
         auth_path = Path(self.auth_file).expanduser()
         if not auth_path.exists():
             log.warning("audible.library.auth_file_missing", auth_file=self.auth_file)
             return None
 
         async with self._init_lock:
+            if self._shutting_down:
+                log.warning("audible.library.shutting_down", region=region)
+                return None
+
             # Re-check inside the lock in case another coroutine already initialised this region.
             if region in self._clients:
                 return self._clients[region]
@@ -96,12 +98,14 @@ class AudibleClientProvider:
 
     async def _close_all_clients(self) -> None:
         """Close cached Audible clients without aborting on the first failure."""
-        for client in list(self._clients.values()):
-            try:
-                await client.close()
-            except Exception as close_exc:
-                log.warning("audible.client.close_error", error=str(close_exc))
-        self._clients.clear()
+        async with self._init_lock:
+            self._shutting_down = True
+            for client in list(self._clients.values()):
+                try:
+                    await client.close()
+                except Exception as close_exc:
+                    log.warning("audible.client.close_error", error=str(close_exc))
+            self._clients.clear()
 
     async def aclose(self) -> None:
         """Close any cached Audible async clients."""

@@ -151,8 +151,15 @@ def normalize_book_result(item: dict[str, Any]) -> dict[str, Any]:
         tags_value = ", ".join(tags_filtered) if tags_filtered else None
 
     duration = 0
-    if runtime_length_min is not None and str(runtime_length_min).isdigit():
-        duration = int(runtime_length_min)
+    if runtime_length_min is not None:
+        try:
+            duration = int(float(runtime_length_min))
+        except (TypeError, ValueError):
+            duration = 0
+
+    published_year = item.get("publishedYear") or None
+    if isinstance(release_date, str) and release_date:
+        published_year = release_date.split("-")[0]
 
     return {
         "title": title,
@@ -160,7 +167,7 @@ def normalize_book_result(item: dict[str, Any]) -> dict[str, Any]:
         "author": ", ".join(authors) if authors else item.get("author") or None,
         "narrator": ", ".join(narrators) if narrators else item.get("narrator") or None,
         "publisher": publisher_name,
-        "publishedYear": release_date.split("-")[0] if release_date else item.get("publishedYear") or None,
+        "publishedYear": published_year,
         "description": summary or None,
         "cover": image,
         "asin": asin,

@@ -57,8 +57,8 @@ in JSON style to the API. You can send them like so::
        body={"asin": ASIN_OF_BOOK_TO_ADD}
    )
 
-The Audible API responses are in JSON format. The client converts them to a
-and output them as a Python dict.
+The Audible API responses are in JSON format. The client converts API JSON
+responses into Python dicts and returns them.
 
 .. note::
 

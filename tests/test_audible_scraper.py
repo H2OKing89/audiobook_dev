@@ -29,7 +29,7 @@ async def test_search_by_title_author_uses_audible_library_backend(tmp_path: Pat
         "title": "The Hobbit",
         "authors": [{"name": "J.R.R. Tolkien"}],
         "narrators": [{"name": "Andy Serkis"}],
-        "language": "english",
+        "language": "en",
     }
 
     mock_auth = MagicMock()
@@ -85,6 +85,44 @@ async def test_search_by_title_author_returns_empty_without_auth_config() -> Non
             results = await scraper.search_by_title_author("The Hobbit", "J.R.R. Tolkien")
 
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_search_by_asin_uses_catalog_params(tmp_path: Path) -> None:
+    """ASIN lookup should use the catalog search endpoint with params."""
+    auth_file = tmp_path / "audible-auth.json"
+    auth_file.write_text("{}")
+
+    mock_config = {
+        "metadata": {
+            "audible": {
+                "auth_file": str(auth_file),
+                "search_endpoint": "/1.0/catalog/products",
+            }
+        }
+    }
+    product = {"asin": "B0TEST1234", "title": "The Hobbit", "language": "en"}
+
+    mock_client = MagicMock()
+    mock_client.get = AsyncMock(return_value={"products": [product]})
+    mock_client.close = AsyncMock()
+
+    with patch.dict(os.environ, {"AUDIBLE_AUTH_FILE_PASSWORD": "test-password"}, clear=False):
+        with patch("src.audible_scraper.load_config", return_value=mock_config):
+            with patch("src.audible_client._audible_mod.Authenticator.from_file", return_value=MagicMock()):
+                with patch("src.audible_client._audible_mod.AsyncClient", return_value=mock_client):
+                    scraper = AudibleScraper()
+                    result = await scraper.search_by_asin("B0TEST1234")
+
+    assert result is not None
+    assert result["asin"] == "B0TEST1234"
+    mock_client.get.assert_awaited_once_with(
+        "/1.0/catalog/products",
+        params={
+            "asin": "B0TEST1234",
+            "response_groups": "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,series,rating,category_ladders",
+        },
+    )
 
 
 @pytest.mark.asyncio

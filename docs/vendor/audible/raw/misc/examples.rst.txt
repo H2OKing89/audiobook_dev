@@ -9,6 +9,7 @@ Print number of books for every marketplace::
 
    import audible
 
+    filename = "path/to/credentials.json"
    auth = audible.Authenticator.from_file(filename)
    client = audible.Client(auth)
    country_codes = ["de", "us", "ca", "uk", "au", "fr", "jp", "it", "in"]
@@ -24,6 +25,7 @@ Get listening statistics aggregated month-over-month from 2021-03 to 2021-06::
 
    import audible
 
+    filename = "path/to/credentials.json"
    auth = audible.Authenticator.from_file(filename)
    with audible.Client(auth=auth) as client:
         stats = client.get(

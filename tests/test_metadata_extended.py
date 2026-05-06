@@ -2,7 +2,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.metadata import clean_metadata, clean_series_sequence, get_audible_asin, levenshtein_distance
+from src.metadata import (
+    clean_metadata,
+    clean_series_sequence,
+    get_audible_asin,
+    levenshtein_distance,
+    normalize_book_result,
+)
 
 
 class TestMetadataModule:
@@ -51,6 +57,16 @@ class TestMetadataModule:
     def test_clean_series_sequence_numeric_inputs(self):
         assert clean_series_sequence("Test Series", 1) == "1"
         assert clean_series_sequence("Test Series", 1.5) == "1.5"
+
+    def test_normalize_book_result_accepts_decimal_runtime_values(self):
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": 360})["duration"] == 360
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": "360.5"})["duration"] == 360
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": 360.5})["duration"] == 360
+
+    def test_normalize_book_result_handles_non_string_release_date(self):
+        result = normalize_book_result({"title": "Test Book", "releaseDate": 1700000000, "publishedYear": "2024"})
+
+        assert result["publishedYear"] == "2024"
 
     def test_clean_metadata_genres_and_tags(self):
         item = {

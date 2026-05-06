@@ -444,7 +444,7 @@ Content
            "spatial": false
        }
 
-   For a succesful request, returns JSON body with `content_url`.
+   For a successful request, returns JSON body with `content_url`.
 
 .. http:get:: /1.0/content/(string:asin)/metadata
 
@@ -588,7 +588,6 @@ Misc
 
 .. http:get:: /1.0/recommendations
 
-   :query category_image_variants:
    :query category_image_variants:
    :query image_dpi:
    :query image_sizes:

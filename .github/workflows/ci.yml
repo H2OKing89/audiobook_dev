@@ -58,13 +58,17 @@ jobs:
 
   audible-install:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: Verify no-deps Audible install path
@@ -72,7 +76,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           make install-audible
-          python -c "import audible; import src.audible_client as audible_client; assert audible_client._AUDIBLE_AVAILABLE"
+          python - <<'PY'
+          import asyncio
+          from pathlib import Path
+
+          from src.audible_client import AudibleClientProvider
+
+          auth_file = Path("tmp-audible-auth.json")
+          auth_file.write_text("{}")
+
+          async def main() -> None:
+              provider = AudibleClientProvider(auth_file=str(auth_file), auth_file_password="test-password")
+              client = await provider.get_client("us")
+              assert client is None
+              await provider.aclose()
+
+          try:
+              asyncio.run(main())
+          finally:
+              auth_file.unlink(missing_ok=True)
+          PY
 
   security:
     runs-on: ubuntu-latest

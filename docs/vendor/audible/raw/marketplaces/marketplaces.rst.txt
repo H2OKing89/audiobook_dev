@@ -83,5 +83,5 @@ are asked for a `locale` then provide a country code from above.
 .. note::
 
    The country code for the Brazilian marketplace needs Audible > 0.8.2.
-   How to use these marketplace with a previous version read
+  To use this marketplace with an earlier Audible version, see
    `this comment <https://github.com/mkb79/Audible/issues/194#issuecomment-1728896926>`_.

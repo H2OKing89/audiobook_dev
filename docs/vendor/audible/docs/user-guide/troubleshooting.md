@@ -67,8 +67,11 @@ pip install -r requirements.txt
 3. Test token manually:
 
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8080/webhook/test
+read -rsp "AUTOBRR_TOKEN: " AUTOBRR_TOKEN && echo
+curl -H "X-Autobrr-Token: $AUTOBRR_TOKEN" http://localhost:8080/webhook/test
 ```
+
+Run the command after exporting or reading `AUTOBRR_TOKEN` so you can verify the request without printing the token.
 
 ### CSRF Token Issues
 
@@ -96,13 +99,13 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8080/webhook/test
 ps aux | grep python
 ```
 
-2. **Check logs:**
+1. **Check logs:**
 
 ```bash
 tail -f logs/audiobook_requests.log
 ```
 
-3. **Test direct access:**
+1. **Test direct access:**
 
 ```bash
 curl http://localhost:8080
@@ -149,7 +152,7 @@ test -n "$MAM_ID" && echo "MAM_ID is set"
 pytest tests/test_mam_api.py -k Integration --no-cov
 ```
 
-2. **Refresh the cookie value:**
+1. **Refresh the cookie value:**
 
 Verify the account is active, log in to MAM in your browser, copy the current `mam_id` cookie value into `.env` as `MAM_ID`, and restart the app so the environment reloads.
 
@@ -175,7 +178,7 @@ Verify the account is active, log in to MAM in your browser, copy the current `m
 curl https://api.audnex.us/books/health
 ```
 
-2. **Increase timeout:**
+1. **Increase timeout:**
 
 ```yaml
 # In config.yaml
@@ -185,7 +188,7 @@ metadata:
       timeout_seconds: 30  # Increase from 10
 ```
 
-3. **Check network connectivity:**
+1. **Check network connectivity:**
 
 ```bash
 ping api.audnex.us
@@ -205,7 +208,7 @@ metadata:
   rate_limit_seconds: 30  # Instead of 120
 ```
 
-2. **Check last API call time:**
+1. **Check last API call time:**
 
 ```bash
 # View coordinator logs
@@ -228,11 +231,11 @@ curl -X POST -H "Content-Type: application/json" \
   YOUR_DISCORD_WEBHOOK_URL
 ```
 
-2. **Check webhook permissions:**
+1. **Check webhook permissions:**
    - Verify webhook has send message permissions
    - Check channel permissions
 
-3. **Verify configuration:**
+1. **Verify configuration:**
 
 ```bash
 # Check .env file

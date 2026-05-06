@@ -2,7 +2,7 @@
 
 This directory mirrors the raw `View page source` text files from the Audible ReadTheDocs site.
 
-Use [manifest.json](docs/vendor/audible/raw/manifest.json) to see the synced source URLs and local file paths.
+Use [manifest.json](manifest.json) to see the synced source URLs and local file paths.
 
 Refresh the mirror with:
 

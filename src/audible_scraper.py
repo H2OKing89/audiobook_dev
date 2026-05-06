@@ -96,6 +96,13 @@ class AudibleScraper:
         """Create or reuse an authenticated mkb79/Audible client for a region."""
         return await self._audible_client_provider.get_client(region)
 
+    @staticmethod
+    def _is_english_language(language: str | None) -> bool:
+        """Accept common English language codes returned by Audible/Audnex."""
+        if not isinstance(language, str):
+            return False
+        return language.strip().lower() in {"english", "en", "en-us", "en-gb"}
+
     def _is_valid_asin(self, asin: str) -> bool:
         """Validate ASIN format (10 characters, alphanumeric)."""
         if not asin or not isinstance(asin, str):
@@ -281,8 +288,8 @@ class AudibleScraper:
 
         for product in products:
             # Only include English books
-            language = product.get("language", "").lower()
-            if language and language != "english":
+            language = product.get("language")
+            if language and not self._is_english_language(language):
                 log.debug("audible.search.skip_non_english", language=language)
                 continue
 
@@ -304,7 +311,7 @@ class AudibleScraper:
             # Fallback: try Audnex for detailed metadata
             try:
                 metadata = await audnex.get_book_by_asin(asin, region=region)
-                if metadata and metadata.get("language", "").lower() == "english":
+                if metadata and self._is_english_language(metadata.get("language")):
                     audnex_book = self._product_to_book(metadata)
                     if audnex_book:
                         detailed_results.append(audnex_book)
@@ -344,10 +351,14 @@ class AudibleScraper:
         if audible_client is not None:
             try:
                 data = await audible_client.get(
-                    f"1.0/catalog/products/{asin}",
-                    response_groups="contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,series,rating,category_ladders",
+                    self.search_endpoint,
+                    params={
+                        "asin": asin,
+                        "response_groups": "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,series,rating,category_ladders",
+                    },
                 )
-                product = data.get("product", {}) if isinstance(data, dict) else {}
+                products = data.get("products", []) if isinstance(data, dict) else []
+                product = products[0] if products else data.get("product", {}) if isinstance(data, dict) else {}
                 if product:
                     book = self._product_to_book(product)
                     if book.get("title"):

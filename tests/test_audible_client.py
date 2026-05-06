@@ -1,5 +1,6 @@
 """Tests for the authenticated Audible client provider."""
 
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -74,3 +75,39 @@ async def test_aclose_closes_cached_clients(tmp_path: Path) -> None:
 
     first_client.close.assert_awaited_once()
     second_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_aclose_blocks_get_client_during_shutdown(tmp_path: Path) -> None:
+    """Do not hand out cached clients while shutdown is in progress."""
+    auth_file = tmp_path / "audible-auth.json"
+    auth_file.write_text("{}")
+
+    provider = AudibleClientProvider(
+        auth_file=str(auth_file),
+        auth_file_password="test-password",
+    )
+
+    close_started = asyncio.Event()
+    allow_close = asyncio.Event()
+
+    async def _close_side_effect() -> None:
+        close_started.set()
+        await allow_close.wait()
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock(side_effect=_close_side_effect)
+    provider._clients["us"] = mock_client
+
+    close_task = asyncio.create_task(provider.aclose())
+    await close_started.wait()
+
+    get_task = asyncio.create_task(provider.get_client("us"))
+    await asyncio.sleep(0)
+    allow_close.set()
+
+    get_result = await get_task
+    await close_task
+
+    assert get_result is None
+    assert provider._clients == {}

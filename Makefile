@@ -32,7 +32,7 @@ install-dev:
 	pre-commit install
 
 install-audible:
-	pip install --force-reinstall --no-deps --ignore-requires-python "$(AUDIBLE_PIP_SPEC)"
+	pip install --force-reinstall --no-deps "$(AUDIBLE_PIP_SPEC)"
 
 test:
 	pytest --cov=src --cov-branch --cov-report=term-missing --cov-report=html --cov-fail-under=50 -v
