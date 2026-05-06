@@ -747,6 +747,7 @@ class TestIntegration:
 
     These are skipped if MAM_ID is not set in the environment.
     Run with: MAM_ID=your_cookie_value pytest tests/test_mam_api.py -k Integration
+    Set MAM_TEST_TID to also run the real torrent download check.
     """
 
     @pytest.fixture
@@ -757,6 +758,17 @@ class TestIntegration:
             pytest.skip("MAM_ID not set - skipping integration test")
         return mam_id
 
+    @pytest.fixture
+    def mam_test_tid(self):
+        """Get optional MAM_TEST_TID from environment or skip download test."""
+        tid = os.getenv("MAM_TEST_TID")
+        if not tid:
+            pytest.skip("MAM_TEST_TID not set - skipping torrent download integration test")
+        try:
+            return int(tid)
+        except ValueError:
+            pytest.skip("MAM_TEST_TID must be an integer torrent ID")
+
     @pytest.mark.asyncio
     async def test_real_search(self, mam_id):
         """Test real search against MAM API."""
@@ -765,5 +777,16 @@ class TestIntegration:
             results = await client.search(tor={"text": "harry potter"}, perpage=5)
             assert len(results.data) > 0
             assert results.data[0].title is not None
+        finally:
+            await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_real_download_torrent_by_tid(self, mam_id, mam_test_tid):
+        """Test real .torrent download against MAM API when MAM_TEST_TID is set."""
+        client = MamAsyncClient(mam_id=mam_id)
+        try:
+            torrent_bytes = await client.download_torrent_by_tid(mam_test_tid)
+            assert torrent_bytes.startswith(b"d")
+            assert b"4:info" in torrent_bytes
         finally:
             await client.aclose()
