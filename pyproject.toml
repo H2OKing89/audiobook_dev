@@ -193,6 +193,9 @@ module = "tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
 
+[tool.bandit]
+exclude_dirs = ["tests"]
+
 [tool.black]
 line-length = 120
 target-version = ['py311', 'py312', 'py313']

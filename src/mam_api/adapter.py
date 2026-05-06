@@ -1,45 +1,40 @@
-"""
-MAM API Adapter
-
-Provides backward-compatible interface for existing code that used MAMScraper.
-This adapter uses the new MAM JSON API instead of Playwright HTML scraping.
-
-Usage:
-    # Drop-in replacement for MAMScraper
-    from src.mam_api.adapter import MAMApiAdapter
-
-    adapter = MAMApiAdapter()
-    asin = await adapter.scrape_asin_from_url(url)
-"""
+"""MAM API adapter for torrent metadata lookups."""
 
 import asyncio
 import os
 import re
 import time
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 import httpx
 from pydantic import ValidationError
 
 from src.logging_setup import get_logger
 
-from .client import MamApiError, MamAsyncClient
+from .client import MAM_AUTH_ERROR_MESSAGE, MamApiError, MamAsyncClient
 from .models import MamTorrentRaw
 
 
 log = get_logger(__name__)
 
 
+def _sanitize_url_for_log(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+
+
+def _is_mam_auth_error(exc: MamApiError) -> bool:
+    message = str(exc)
+    return MAM_AUTH_ERROR_MESSAGE in message or "MAM_ID not configured" in message
+
+
 class MAMApiAdapter:
     """
-    Backward-compatible adapter that provides the same interface as MAMScraper
-    but uses the MAM JSON API instead of Playwright.
+    Adapter that retrieves MAM metadata through the JSON API.
 
-    Key differences from MAMScraper:
-    - No browser automation (faster, lighter)
-    - Uses mam_id from environment instead of mam_config.json
-    - Gets more data than just ASIN (author, narrator, series, etc.)
+    Auth uses the MAM_ID environment variable, which should contain the
+    mam_id session cookie value.
     """
 
     def __init__(self, mam_id: str | None = None, rate_limit_seconds: float = 2.0) -> None:
@@ -94,7 +89,7 @@ class MAMApiAdapter:
         self._last_api_call_time = time.time()
 
     @staticmethod
-    def extract_tid_from_url(url: str) -> int | None:
+    def extract_tid_from_url(url: str | None) -> int | None:
         """
         Extract torrent ID (tid) from MAM URL.
 
@@ -132,7 +127,8 @@ class MAMApiAdapter:
                 except (ValueError, IndexError):
                     pass
 
-        log.warning("mam.adapter.tid_extract_failed", url=url)
+        safe_url = _sanitize_url_for_log(url)
+        log.warning("mam.adapter.tid_extract_failed", url=safe_url)
         return None
 
     async def get_torrent_data(self, url: str) -> MamTorrentRaw | None:
@@ -164,7 +160,11 @@ class MAMApiAdapter:
                 log.warning("mam.adapter.torrent_not_found", tid=tid)
                 return None
 
-        except MamApiError:
+        except MamApiError as exc:
+            if _is_mam_auth_error(exc):
+                log.exception("mam.adapter.auth_error", tid=tid)
+                raise
+
             log.exception("mam.adapter.api_error", tid=tid)
             return None
         except httpx.HTTPError:
@@ -174,23 +174,16 @@ class MAMApiAdapter:
             log.exception("mam.adapter.validation_error", tid=tid)
             return None
 
-    async def scrape_asin_from_url(self, url: str, force_login: bool = False) -> str | None:
+    async def get_asin_from_url(self, url: str) -> str | None:
         """
         Get ASIN from MAM URL using the JSON API.
 
-        This method provides backward compatibility with MAMScraper.scrape_asin_from_url().
-        The force_login parameter is ignored since we use cookie-based auth.
-
         Args:
             url: MAM torrent URL
-            force_login: Ignored (kept for backward compatibility)
 
         Returns:
             ASIN string if found, None otherwise
         """
-        if force_login:
-            log.debug("mam.adapter.force_login_ignored")
-
         torrent = await self.get_torrent_data(url)
         if not torrent:
             return None
@@ -209,7 +202,7 @@ class MAMApiAdapter:
         """
         Get full metadata from MAM URL.
 
-        This is an enhanced method that returns more data than scrape_asin_from_url().
+        This is an enhanced method that returns more data than get_asin_from_url().
 
         Args:
             url: MAM torrent URL
@@ -255,8 +248,3 @@ class MAMApiAdapter:
             "mam_id": normalized.tid,
             "source": "mam_api",
         }
-
-
-# For backward compatibility, also expose as MAMScraper alias
-# This allows gradual migration without changing all imports at once
-MAMScraper = MAMApiAdapter

@@ -1,9 +1,9 @@
 # MAM (MyAnonamouse) API Migration
 
-**Status**: ✅ Ready for Testing
-**Branch**: `mam-api-migration`
+**Status**: ✅ API Search and Download Verified
+**Branch**: `refact/mam_api`
 **Created**: December 23, 2025
-**Last Updated**: December 23, 2025
+**Last Updated**: May 5, 2026
 
 ## Overview
 
@@ -19,7 +19,7 @@ This document tracks the migration from HTML scraping to MAM's JSON API for torr
 ### What's Changing
 
 | Before | After |
-|--------|-------|
+| -------- | ------- |
 | HTML scraping via Playwright | JSON API via httpx (HTTP/2) |
 | `mam_config.json` with credentials | `MAM_ID` cookie from `.env` |
 | Complex browser session management | Simple cookie-based auth |
@@ -108,25 +108,26 @@ Several fields are JSON-encoded strings that must be parsed:
 
 ### Phase 3: Integration ✅
 
-- [x] Create `src/mam_api/adapter.py` - backward-compatible adapter
-- [x] Add `MAMApiAdapter` with same interface as `MAMScraper`
-- [x] Export `MAMScraper` alias for drop-in replacement
+- [x] Create `src/mam_api/adapter.py` - API metadata adapter
+- [x] Add `MAMApiAdapter` for ASIN and full metadata lookups
+- [x] Remove old `MAMScraper` compatibility alias
 - [x] Update `metadata_coordinator.py` import to use new adapter
-- [ ] Test with real MAM data
+- [x] Test with real MAM data
 
 ### Phase 4: Cleanup ✅
 
-- [x] Remove `config/mam_config.json` (contains sensitive data!)
+- [x] Remove `config/mam_config.json.example`
 - [x] Remove `src/mam_login_only.py` (no longer needed)
-- [x] Archive old `src/mam_scraper.py` (keep for reference)
+- [x] Remove archived Playwright scraper login code
 - [x] Update remaining documentation
 
 ### Phase 5: Testing ✅
 
 - [x] Add unit tests for Pydantic models
 - [x] Add integration tests for API client
-- [x] Add adapter tests (40 tests total, all passing)
-- [ ] Verify torrent download functionality (requires real MAM_ID)
+- [x] Add adapter and client tests
+- [x] Add optional skipped-by-default torrent download integration test
+- [x] Verify torrent download functionality (requires real MAM_ID and MAM_TEST_TID)
 
 ---
 
@@ -137,7 +138,7 @@ Several fields are JSON-encoded strings that must be parsed:
 - `src/mam_api/__init__.py` ✅
 - `src/mam_api/models.py` - Pydantic models for API responses ✅
 - `src/mam_api/client.py` - httpx HTTP/2 client ✅
-- `src/mam_api/adapter.py` - Backward-compatible adapter ✅
+- `src/mam_api/adapter.py` - API metadata adapter ✅
 
 ### Modified Files
 
@@ -146,12 +147,9 @@ Several fields are JSON-encoded strings that must be parsed:
 
 ### Files Removed ✅
 
-- `config/mam_config.json` - Sensitive! Contains credentials ✅
+- `config/mam_config.json.example` - Old web-login credential template ✅
 - `src/mam_login_only.py` - No longer needed ✅
-
-### Files Archived ✅
-
-- `src/mam_scraper.py` → `src/archive/mam_scraper.py.old` ✅
+- `src/archive/mam_scraper.py.old` - Old Playwright login scraper ✅
 
 ---
 
@@ -189,6 +187,14 @@ with MamClient(mam_id=os.getenv("MAM_ID")) as mam:
     torrent_bytes = mam.download_torrent_by_tid(tid)
 ```
 
+### Optional Download Integration Test
+
+The real download test is skipped by default. To run it, set `MAM_ID` and a known safe torrent ID:
+
+```bash
+MAM_ID=your_cookie_value MAM_TEST_TID=1207719 pytest tests/test_mam_api.py -k real_download --no-cov
+```
+
 ---
 
 ## Progress Log
@@ -199,3 +205,10 @@ with MamClient(mam_id=os.getenv("MAM_ID")) as mam:
 - Created migration documentation
 - Implemented core Pydantic models
 - Implemented httpx client (sync + async)
+
+### May 5, 2026
+
+- Removed old web portal login/scraper code and Playwright dependency
+- Verified real MAM API search with refreshed `MAM_ID`
+- Added optional `MAM_TEST_TID` integration test for real `.torrent` download verification
+- Verified real `.torrent` download with `MAM_TEST_TID=1234567` (replace with actual safe torrent ID)

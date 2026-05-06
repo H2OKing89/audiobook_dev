@@ -180,9 +180,9 @@ def main():
 
     logging.info("")
     logging.info("📝 To get the full workflow working:")
-    logging.info("1. Run: python setup_mam_config.py")
-    logging.info("2. Add your MAM credentials")
-    logging.info("3. Test with: python test_mam_asin.py")
+    logging.info("1. Set MAM_ID in .env from your mam_id browser cookie")
+    logging.info("2. Restart the app or shell so the environment reloads")
+    logging.info("3. Test with: pytest tests/test_mam_api.py -k Integration --no-cov")
 
 
 if __name__ == "__main__":

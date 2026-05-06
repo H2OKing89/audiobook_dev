@@ -25,6 +25,8 @@ log = get_logger(__name__)
 MAM_BASE_URL = "https://www.myanonamouse.net"
 MAM_SEARCH_PATH = "/tor/js/loadSearchJSONbasic.php"
 MAM_DOWNLOAD_PATH = "/tor/download.php"
+MAM_LOGIN_PATHS = ("/login.php", "/loggedin.php")
+MAM_AUTH_ERROR_MESSAGE = "MAM API authentication failed; update MAM_ID"
 
 # Regex to extract tid from MAM URLs like /t/1207719
 _TID_RE = re.compile(r"(?:https?://www\.myanonamouse\.net)?/t/(\d+)")
@@ -46,6 +48,45 @@ def extract_tid_from_irc(line: str) -> int | None:
         return int(m.group(1))
     except ValueError:
         return None
+
+
+def _url_path_looks_like_login(url: str | None) -> bool:
+    if not url:
+        return False
+
+    path = str(httpx.URL(url).path)
+    return path.endswith(MAM_LOGIN_PATHS)
+
+
+def _raise_for_api_response(response: httpx.Response) -> None:
+    if response.status_code in (401, 403):
+        raise MamApiError(MAM_AUTH_ERROR_MESSAGE)
+
+    if response.is_redirect and _url_path_looks_like_login(response.headers.get("location")):
+        raise MamApiError(MAM_AUTH_ERROR_MESSAGE)
+
+    if _url_path_looks_like_login(str(response.url)):
+        raise MamApiError(MAM_AUTH_ERROR_MESSAGE)
+
+    response.raise_for_status()
+
+
+def _api_response_json(response: httpx.Response) -> Any:
+    _raise_for_api_response(response)
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        content_type = response.headers.get("content-type", "")
+        if "html" in content_type.lower():
+            raise MamApiError(MAM_AUTH_ERROR_MESSAGE) from exc
+        raise MamApiError("MAM API returned invalid JSON") from exc
+
+
+def _validated_torrent_content(content: bytes) -> bytes:
+    if not content.startswith(b"d") or b"4:info" not in content:
+        raise MamApiError("MAM download did not return a valid .torrent file")
+    return content
 
 
 class MamApiError(RuntimeError):
@@ -82,7 +123,7 @@ class MamClient:
             timeout=httpx.Timeout(timeout),
             headers={"User-Agent": user_agent},
             cookies={"mam_id": mam_id},
-            follow_redirects=True,
+            follow_redirects=False,
         )
         # Log initialization without exposing cookie value
         log.debug("mam.client.init", base_url=base_url, http2=http2)
@@ -149,9 +190,7 @@ class MamClient:
         )
 
         r = self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
-        r.raise_for_status()
-
-        data = r.json()
+        data = _api_response_json(r)
         response = MamSearchResponseRaw.model_validate(data)
 
         log.debug("mam.search.response", results=len(response.data), found=response.found)
@@ -224,10 +263,11 @@ class MamClient:
             Raw bytes of the .torrent file
         """
         log.info("mam.download.tid", tid=tid)
-        r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
-        r.raise_for_status()
-        log.debug("mam.download.complete", tid=tid, size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)}, follow_redirects=True)
+        _raise_for_api_response(r)
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.download.complete", tid=tid, size=len(content))
+        return content
 
     def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """
@@ -244,10 +284,11 @@ class MamClient:
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         log.info("mam.download.dl_token")
-        r = self._client.get(path)
-        r.raise_for_status()
-        log.debug("mam.download.dl_complete", size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        r = self._client.get(path, follow_redirects=True)
+        _raise_for_api_response(r)
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.download.dl_complete", size=len(content))
+        return content
 
 
 class MamAsyncClient:
@@ -278,7 +319,7 @@ class MamAsyncClient:
             timeout=httpx.Timeout(timeout),
             headers={"User-Agent": user_agent},
             cookies={"mam_id": mam_id},
-            follow_redirects=True,
+            follow_redirects=False,
         )
         log.debug("mam.async_client.init", base_url=base_url, http2=http2)
 
@@ -345,9 +386,8 @@ class MamAsyncClient:
         )
 
         r = await self._client.post(MAM_SEARCH_PATH, json=payload, params={"perpage": str(perpage)})
-        r.raise_for_status()
 
-        response = MamSearchResponseRaw.model_validate(r.json())
+        response = MamSearchResponseRaw.model_validate(_api_response_json(r))
         log.debug("mam.async_search.response", results=len(response.data))
         return response  # type: ignore[no-any-return]
 
@@ -397,10 +437,11 @@ class MamAsyncClient:
     async def download_torrent_by_tid(self, tid: int) -> bytes:
         """Download .torrent file using session cookie (async)."""
         log.info("mam.async_download.tid", tid=tid)
-        r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
-        r.raise_for_status()
-        log.debug("mam.async_download.complete", tid=tid, size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)}, follow_redirects=True)
+        _raise_for_api_response(r)
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.async_download.complete", tid=tid, size=len(content))
+        return content
 
     async def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """Download .torrent using dl token (async)."""
@@ -409,7 +450,8 @@ class MamAsyncClient:
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         log.info("mam.async_download.dl_token")
-        r = await self._client.get(path)
-        r.raise_for_status()
-        log.debug("mam.async_download.dl_complete", size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        r = await self._client.get(path, follow_redirects=True)
+        _raise_for_api_response(r)
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.async_download.dl_complete", size=len(content))
+        return content
