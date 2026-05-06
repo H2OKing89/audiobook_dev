@@ -78,7 +78,7 @@ python tests/test_metadata_workflow.py
 python tests/test_mam_integration.py
 
 # Run specific tests
-python test_mam_login.py
+pytest tests/test_mam_api.py -k Integration --no-cov
 python test_audnex_direct.py
 ```
 
@@ -206,7 +206,7 @@ python tests/test_metadata_workflow.py
 python tests/test_mam_integration.py
 
 # Run development/debug tests
-python test_mam_login.py
+pytest tests/test_mam_api.py -k Integration --no-cov
 python test_audnex_direct.py
 
 # Run with pytest (if configured)

@@ -816,7 +816,7 @@ if __name__ == "__main__":
     server_config = load_config().get("server", {})
     uvicorn.run(
         "src.main:app",
-        host=server_config.get("host", "0.0.0.0"),
+        host=server_config.get("host", "0.0.0.0"),  # nosec B104
         port=server_config.get("port", 8000),
         reload=server_config.get("reload", True),
     )

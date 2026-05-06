@@ -7,7 +7,7 @@
 ### 🔧 **Core System Refactoring**
 
 - **Modular Architecture**: Refactored metadata workflow into separate, focused modules
-  - `mam_scraper.py` - Async Playwright-based MAM scraping
+  - `mam_api/` - MAM JSON API client, models, and metadata adapter
   - `audnex_metadata.py` - Comprehensive metadata cleaning and enrichment
   - `audible_scraper.py` - Audible fallback scraping
   - `metadata_coordinator.py` - Orchestrates the entire workflow
@@ -17,7 +17,7 @@
 - **Global Queue System**: Implemented `asyncio.Queue` for safe, sequential webhook processing
 - **Background Worker**: Persistent worker thread processes requests without blocking
 - **Rate Limiting**: Global rate limiting across all metadata sources
-- **Playwright Fix**: Converted all MAM scraping to async to resolve API conflicts
+- **MAM API Client**: Uses MAM's JSON API through httpx instead of browser automation
 
 ### 📊 **Monitoring & Health**
 
@@ -62,7 +62,7 @@
 
 - `src/main.py` - FastAPI app with queue system and endpoints
 - `src/metadata_coordinator.py` - Async metadata orchestration
-- `src/mam_scraper.py` - Async MAM scraping
+- `src/mam_api/` - MAM JSON API integration
 - `src/audnex_metadata.py` - Comprehensive metadata cleaning
 - `src/utils.py` - Enhanced notification field extraction
 

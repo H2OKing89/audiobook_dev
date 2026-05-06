@@ -51,9 +51,9 @@ config/config.yaml
 !config/config.yaml.example
 config/mam_config.json
 mam_cookies.json
-!config/mam_config.json.example
 logs/
 db.sqlite
+*.sqlite-journal
 tests/__pycache__/
 .pytest_cache/
 db.sqlite
@@ -79,3 +79,6 @@ logs/*_debug_*.html
 coverage.xml
 .coverage
 *.coverage
+
+# Ignore secrets directory (contains sensitive information, not to be committed)
+secrets/

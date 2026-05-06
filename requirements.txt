@@ -18,7 +18,6 @@ itsdangerous
 idna
 cryptography
 PyYAML
-playwright
 
 # Structured logging
 structlog>=24.4.0

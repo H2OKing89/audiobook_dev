@@ -266,9 +266,9 @@ def _get_version() -> str:
     """Get application version (git sha or package version)."""
     # Try git first
     try:
-        import subprocess
+        import subprocess  # nosec B404
 
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603, B607
             ["git", "rev-parse", "--short", "HEAD"],
             capture_output=True,
             text=True,
@@ -279,10 +279,14 @@ def _get_version() -> str:
         if result.returncode == 0:
             return result.stdout.strip()
     except Exception:
-        # Git command failed or not in a git repo, silently fall through to package version
-        pass
+        return _get_package_version()
 
-    # Fall back to package version
+    return _get_package_version()
+
+
+def _get_package_version() -> str:
+    """Get installed package version or development fallback."""
+
     try:
         from importlib.metadata import version
 

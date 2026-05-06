@@ -6,12 +6,10 @@ This guide covers all configuration options for the Audiobook Automation System.
 
 All configuration files are located in the `config/` directory:
 
-```
+```text
 config/
 ├── config.yaml                    # Main application configuration
-├── config.yaml.example           # Template for main config
-├── mam_config.json               # MAM credentials (optional)
-└── mam_config.json.example       # Template for MAM config
+└── config.yaml.example           # Template for main config
 ```
 
 ## 🔧 Main Configuration (`config.yaml`)
@@ -93,40 +91,22 @@ PUSHOVER_API_TOKEN=your-pushover-api-token
 GOTIFY_URL=https://gotify.example.com
 GOTIFY_TOKEN=your-gotify-token
 NTFY_URL=https://ntfy.sh/your-topic
+
+# MAM API auth (optional, required for MAM metadata lookups)
+MAM_ID=your-mam-session-cookie-value
 ```
 
-## 🔍 MAM Configuration (Optional)
+## 🔍 MAM API Configuration (Optional)
 
-For full MAM integration with ASIN extraction:
+For full MAM integration with ASIN extraction, set `MAM_ID` in `.env` to the value of your MAM `mam_id` browser cookie. The application uses MAM's JSON API directly and does not log in through the website.
 
-### 1. Setup MAM Config
+### Find the Cookie Value
 
 ```bash
-# Copy the example
-cp config/mam_config.json.example config/mam_config.json
-
-# Or use the setup helper
-python setup_mam_config.py
+MAM_ID=your-mam-session-cookie-value
 ```
 
-### 2. Configure MAM Credentials
-
-Edit `config/mam_config.json`:
-
-```json
-{
-  "email": "your-mam-email@example.com",
-  "password": "your-mam-password",
-  "base_url": "https://www.myanonamouse.net",
-  "timeout_seconds": 30,
-  "browser_settings": {
-    "headless": true,
-    "user_agent": "Mozilla/5.0 (compatible; AudiobookBot/1.0)"
-  }
-}
-```
-
-⚠️ **Security Note**: `mam_config.json` is excluded from git for security.
+Security note: `MAM_ID` is a session token. Keep it only in `.env`, never commit it, and rotate it if it is shared or exposed.
 
 ## 🎯 Configuration Examples
 
@@ -159,8 +139,8 @@ Test your configuration:
 # Test main config
 python -c "from src.config import load_config; print('✅ Config valid')"
 
-# Test MAM config (if configured)
-python test_mam_login.py
+# Test MAM API auth (if configured)
+pytest tests/test_mam_api.py -k Integration --no-cov
 
 # Test metadata workflow
 python tests/test_metadata_workflow.py
@@ -176,11 +156,11 @@ python tests/test_metadata_workflow.py
 cp config/config.yaml.example config/config.yaml
 ```
 
-**MAM login fails:**
+**MAM API auth fails:**
 
-- Verify credentials in `config/mam_config.json`
-- Check if MAM requires 2FA (not currently supported)
-- Test login manually on MAM website
+- Verify `MAM_ID` in `.env` is the current `mam_id` cookie value
+- Log in to MAM in your browser and refresh the cookie value if the API reports authentication failure
+- Make sure the value is not URL-encoded twice or surrounded by quotes
 
 **Rate limiting too slow:**
 
@@ -196,7 +176,7 @@ cp config/config.yaml.example config/config.yaml
 
 - [ ] `config/config.yaml` created and configured
 - [ ] `.env` file created with required tokens
-- [ ] `config/mam_config.json` created (if using MAM)
+- [ ] `MAM_ID` set in `.env` (if using MAM)
 - [ ] Configuration validated with test scripts
 - [ ] Notification services tested (if enabled)
 - [ ] Rate limiting configured appropriately

@@ -80,13 +80,8 @@ class QBittorrentConfig:
         password = os.getenv("QBITTORRENT_PASSWORD")
         verify = os.getenv("QBITTORRENT_VERIFY_SSL", "true").lower() == "true"
 
-        if not all([host, username, password]):
+        if not host or not username or not password:
             raise ValueError("QBITTORRENT_URL, QBITTORRENT_USERNAME, and QBITTORRENT_PASSWORD must be set")
-
-        # Type narrowing: all() check above ensures these are not None
-        assert isinstance(host, str), f"host must be a str, got {type(host)}"
-        assert isinstance(username, str), f"username must be a str, got {type(username)}"
-        assert isinstance(password, str), f"password must be a str, got {type(password)}"
 
         return cls(
             host=host,
@@ -215,8 +210,8 @@ def extract_info_hash(torrent_data: bytes) -> str | None:
         info_start, info_end = bounds
         info_bytes = torrent_data[info_start:info_end]
 
-        # SHA1 hash of the info dict is the torrent's info hash
-        return hashlib.sha1(info_bytes).hexdigest().lower()
+        # SHA1 is required by the BitTorrent v1 info-hash specification.
+        return hashlib.sha1(info_bytes, usedforsecurity=False).hexdigest().lower()
 
     except (ValueError, IndexError):
         return None
@@ -315,21 +310,23 @@ class QBittorrentManager:
             if self._config is None:
                 self.configure()
 
-            assert self._config is not None
+            config = self._config
+            if config is None:
+                raise QBittorrentConnectionError("qBittorrent configuration unavailable")
 
             log.debug(
                 "qbittorrent.client.init",
-                host=self._config.host,
-                username=self._config.username,
+                host=config.host,
+                username=config.username,
             )
 
             try:
                 self._client = Client(
-                    host=self._config.host,
-                    username=self._config.username,
-                    password=self._config.password,
-                    VERIFY_WEBUI_CERTIFICATE=self._config.verify_certificate,
-                    REQUESTS_ARGS={"timeout": self._config.timeout},
+                    host=config.host,
+                    username=config.username,
+                    password=config.password,
+                    VERIFY_WEBUI_CERTIFICATE=config.verify_certificate,
+                    REQUESTS_ARGS={"timeout": config.timeout},
                     DISABLE_LOGGING_DEBUG_OUTPUT=True,
                 )
                 # Verify connection works by fetching version

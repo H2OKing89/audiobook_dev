@@ -22,7 +22,7 @@ from src.audible_scraper import AudibleScraper
 from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 from src.logging_setup import get_logger
-from src.mam_api import MAMApiAdapter  # New API-based adapter (was MAMScraper)
+from src.mam_api import MAMApiAdapter, MamApiError
 
 
 log = get_logger(__name__)
@@ -31,7 +31,7 @@ log = get_logger(__name__)
 class MetadataCoordinator:
     def __init__(self):
         self.config = load_config()
-        self.mam_scraper = MAMApiAdapter()  # New API-based adapter
+        self.mam_adapter = MAMApiAdapter()
         self.audnex = AudnexMetadata()
         self.audible = AudibleScraper()
 
@@ -62,11 +62,14 @@ class MetadataCoordinator:
         if url and "myanonamouse.net" in url:
             log.info("coordinator.step1.mam_extract")
             try:
-                asin = await self.mam_scraper.scrape_asin_from_url(url)
+                asin = await self.mam_adapter.get_asin_from_url(url)
                 if asin:
                     log.info("coordinator.step1.asin_found", asin=asin)
                 else:
                     log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
+            except MamApiError:
+                log.exception("coordinator.step1.mam_auth_error")
+                raise
             except httpx.RequestError:
                 log.exception("coordinator.step1.network_error")
             except ValueError:

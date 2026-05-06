@@ -210,7 +210,7 @@ Most Round 3 review comments re-flagged issues already resolved in Round 2:
 
 - **File**: [requirements.txt](https://github.com/H2OKing89/audiobook_dev/pull/1#discussion_r2642728717)
 - **Lines**: 7, 21-22
-- **Issue**: jinja2, PyYAML, playwright not pinned to specific versions
+- **Issue**: jinja2 and PyYAML not pinned to specific versions
 - **Note**: Deferred - requires testing across version ranges
 - **Status**: ⏳ Future Enhancement
 
