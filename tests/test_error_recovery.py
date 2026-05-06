@@ -6,7 +6,6 @@ import pytest
 
 import src.main
 from src.db import save_request
-from src.metadata_coordinator import MetadataCoordinator
 from src.notify import pushover
 
 
@@ -17,20 +16,6 @@ class TestErrorRecovery:
     def setup_client(self, test_client):
         """Use the managed test client so FastAPI lifespan state is initialized."""
         self.client = test_client
-
-    @pytest.fixture
-    def coordinator(self):
-        with (
-            patch("src.metadata_coordinator.load_config", return_value={}),
-            patch("src.metadata_coordinator.MAMApiAdapter") as mock_mam,
-            patch("src.metadata_coordinator.AudnexMetadata") as mock_audnex,
-            patch("src.metadata_coordinator.AudibleScraper") as mock_audible,
-        ):
-            coord = MetadataCoordinator()
-            coord.mam_adapter = mock_mam.return_value
-            coord.audnex = mock_audnex.return_value
-            coord.audible = mock_audible.return_value
-            yield coord
 
     @pytest.mark.asyncio
     @pytest.mark.no_mock_external_apis

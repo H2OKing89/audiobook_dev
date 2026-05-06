@@ -329,11 +329,12 @@ async def get_audible_asin(title: str, author: str = "") -> str | None:
     """Try to extract an ASIN using the package-backed Audible search backend."""
 
     try:
-        results = await AudibleScraper().search(title=title, author=author)
-        for result in results:
-            asin = result.get("asin")
-            if isinstance(asin, str) and is_valid_asin(asin.upper()):
-                return asin.upper()
+        async with AudibleScraper() as scraper:
+            results = await scraper.search(title=title, author=author)
+            for result in results:
+                asin = result.get("asin")
+                if isinstance(asin, str) and is_valid_asin(asin.upper()):
+                    return asin.upper()
         return None
     except Exception as e:
         log.debug("metadata.get_audible_asin.failed", error=str(e))

@@ -3,22 +3,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.metadata import clean_metadata, get_audible_asin, levenshtein_distance
-from src.metadata_coordinator import MetadataCoordinator
-
-
-@pytest.fixture
-def coordinator():
-    with (
-        patch("src.metadata_coordinator.load_config", return_value={}),
-        patch("src.metadata_coordinator.MAMApiAdapter") as mock_mam,
-        patch("src.metadata_coordinator.AudnexMetadata") as mock_audnex,
-        patch("src.metadata_coordinator.AudibleScraper") as mock_audible,
-    ):
-        coord = MetadataCoordinator()
-        coord.mam_adapter = mock_mam.return_value
-        coord.audnex = mock_audnex.return_value
-        coord.audible = mock_audible.return_value
-        yield coord
 
 
 class TestMetadataModule:
@@ -76,6 +60,8 @@ class TestMetadataModule:
     @patch("src.metadata.AudibleScraper")
     async def test_get_audible_asin_success(self, mock_scraper_cls):
         mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
         mock_scraper.search = AsyncMock(return_value=[{"asin": "B123456789"}])
         mock_scraper_cls.return_value = mock_scraper
 
@@ -86,6 +72,8 @@ class TestMetadataModule:
     @patch("src.metadata.AudibleScraper")
     async def test_get_audible_asin_not_found(self, mock_scraper_cls):
         mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
         mock_scraper.search = AsyncMock(return_value=[{"title": "Unknown Title"}])
         mock_scraper_cls.return_value = mock_scraper
 
@@ -96,6 +84,8 @@ class TestMetadataModule:
     @patch("src.metadata.AudibleScraper")
     async def test_get_audible_asin_search_error(self, mock_scraper_cls):
         mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
         mock_scraper.search = AsyncMock(side_effect=RuntimeError("search failed"))
         mock_scraper_cls.return_value = mock_scraper
 

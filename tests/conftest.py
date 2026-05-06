@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.db import delete_request, save_request
 from src.main import app
+from src.metadata_coordinator import MetadataCoordinator
 from src.qbittorrent import QBittorrentManager
 from src.security import reset_rate_limit_buckets
 from src.token_gen import generate_token
@@ -298,6 +299,22 @@ def sample_html():
 @pytest.fixture
 def sample_authors():
     return [{"name": "John Doe"}, {"name": "Jane Translator"}, {"name": "Alice Illustrator"}]
+
+
+@pytest.fixture
+def coordinator():
+    """Pre-wired MetadataCoordinator with all external adapters replaced by mocks."""
+    with (
+        patch("src.metadata_coordinator.load_config", return_value={}),
+        patch("src.metadata_coordinator.MAMApiAdapter") as mock_mam,
+        patch("src.metadata_coordinator.AudnexMetadata") as mock_audnex,
+        patch("src.metadata_coordinator.AudibleScraper") as mock_audible,
+    ):
+        coord = MetadataCoordinator()
+        coord.mam_adapter = mock_mam.return_value
+        coord.audnex = mock_audnex.return_value
+        coord.audible = mock_audible.return_value
+        yield coord
 
 
 @pytest.fixture

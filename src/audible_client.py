@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 
@@ -33,6 +34,7 @@ class AudibleClientProvider:
 
         self._auth: audible.Authenticator | None = None
         self._clients: dict[str, audible.AsyncClient] = {}
+        self._init_lock = asyncio.Lock()
 
     @property
     def configured(self) -> bool:
@@ -57,23 +59,45 @@ class AudibleClientProvider:
             log.warning("audible.library.auth_file_missing", auth_file=self.auth_file)
             return None
 
-        try:
-            if self._auth is None:
-                self._auth = audible.Authenticator.from_file(
-                    auth_path,
-                    password=self.auth_file_password,
-                )
+        async with self._init_lock:
+            # Re-check inside the lock in case another coroutine already initialised this region.
+            if region in self._clients:
+                return self._clients[region]
 
-            client = audible.AsyncClient(auth=self._auth, country_code=region)
-        except Exception as exc:
-            log.warning("audible.library.auth_failed", error=str(exc))
-            return None
+            try:
+                if self._auth is None:
+                    self._auth = audible.Authenticator.from_file(
+                        auth_path,
+                        password=self.auth_file_password,
+                    )
 
-        self._clients[region] = client
-        return client
+                client = audible.AsyncClient(auth=self._auth, country_code=region)
+            except Exception as exc:
+                log.warning("audible.library.auth_failed", error=str(exc))
+                return None
+
+            self._clients[region] = client
+            return client
 
     async def aclose(self) -> None:
         """Close any cached Audible async clients."""
         for client in self._clients.values():
             await client.close()
+        self._clients.clear()
+
+    async def __aenter__(self) -> AudibleClientProvider:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object,
+    ) -> None:
+        """Close all cached clients on context-manager exit."""
+        for client in list(self._clients.values()):
+            try:
+                await client.close()
+            except Exception as close_exc:
+                log.warning("audible.client.close_error", error=str(close_exc))
         self._clients.clear()

@@ -74,9 +74,9 @@ async def test_search_by_title_author_returns_empty_without_auth_config() -> Non
         }
     }
 
-    with patch.dict(os.environ, {}, clear=True):
+    with patch.dict(os.environ, {"AUDIBLE_AUTH_FILE_PASSWORD": "", "AUDIBLE_AUTH_FILE": ""}):
         with patch("src.audible_scraper.load_config", return_value=mock_config):
             scraper = AudibleScraper()
-        results = await scraper.search_by_title_author("The Hobbit", "J.R.R. Tolkien")
+            results = await scraper.search_by_title_author("The Hobbit", "J.R.R. Tolkien")
 
     assert results == []
