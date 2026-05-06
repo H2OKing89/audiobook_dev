@@ -32,7 +32,6 @@ jobs:
       - name: Create config files for testing
         run: |
           cp config/config.yaml.example config/config.yaml
-          cp config/mam_config.json.example config/mam_config.json
 
       - name: Lint with ruff
         run: |

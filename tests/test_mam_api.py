@@ -5,7 +5,7 @@ These tests cover:
 - Pydantic model parsing (including JSON-inside-string fields)
 - URL parsing and torrent ID extraction
 - API client functionality (mocked)
-- Adapter backward compatibility
+- API adapter behavior
 """
 
 import inspect
@@ -18,7 +18,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.mam_api.adapter import MAMApiAdapter
-from src.mam_api.client import MamAsyncClient, MamClient, extract_tid_from_irc
+from src.mam_api.client import MamApiError, MamAsyncClient, MamClient, extract_tid_from_irc
 from src.mam_api.models import (
     MamMediaInfo,
     MamSearchResponseRaw,
@@ -361,12 +361,42 @@ class TestMamClient:
         # Client init should succeed with valid mam_id (no network call during init)
         client = MamClient(mam_id="test_id")
         assert client._client is not None
+        assert client._client.follow_redirects is False
         client.close()
 
     def test_client_no_mam_id(self):
         """Test client raises error without mam_id."""
         with pytest.raises(ValueError, match="mam_id"):
             MamClient(mam_id="")  # Empty string is falsy
+
+    def test_search_login_redirect_raises_auth_error(self):
+        """Test stale mam_id redirects are treated as API auth failures."""
+        client = MamClient(mam_id="test_id")
+        request = httpx.Request("POST", "https://www.myanonamouse.net/tor/js/loadSearchJSONbasic.php")
+        response = httpx.Response(302, headers={"Location": "/login.php"}, request=request)
+
+        with patch.object(client._client, "post", return_value=response):
+            with pytest.raises(MamApiError, match="MAM API authentication failed"):
+                client.search(tor={"text": "test"}, perpage=5)
+
+        client.close()
+
+    def test_search_html_response_raises_auth_error(self):
+        """Test login HTML from the API endpoint is reported as auth failure."""
+        client = MamClient(mam_id="test_id")
+        request = httpx.Request("POST", "https://www.myanonamouse.net/tor/js/loadSearchJSONbasic.php")
+        response = httpx.Response(
+            200,
+            headers={"Content-Type": "text/html; charset=utf-8"},
+            content=b"<html><form action='/login.php'></form></html>",
+            request=request,
+        )
+
+        with patch.object(client._client, "post", return_value=response):
+            with pytest.raises(MamApiError, match="MAM API authentication failed"):
+                client.search(tor={"text": "test"}, perpage=5)
+
+        client.close()
 
 
 class TestMamAsyncClient:
@@ -378,6 +408,21 @@ class TestMamAsyncClient:
         # Async client init should succeed with valid mam_id (no network call during init)
         client = MamAsyncClient(mam_id="test_id")
         assert client._client is not None
+        assert client._client.follow_redirects is False
+        await client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_async_search_login_redirect_raises_auth_error(self):
+        """Test async client treats login redirects as auth failures."""
+        client = MamAsyncClient(mam_id="test_id")
+        request = httpx.Request("POST", "https://www.myanonamouse.net/tor/js/loadSearchJSONbasic.php")
+        response = httpx.Response(302, headers={"Location": "/login.php"}, request=request)
+
+        with patch.object(client._client, "post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = response
+            with pytest.raises(MamApiError, match="MAM API authentication failed"):
+                await client.search(tor={"text": "test"}, perpage=5)
+
         await client.aclose()
 
     @pytest.mark.asyncio
@@ -401,7 +446,7 @@ class TestMamAsyncClient:
 
 
 class TestMAMApiAdapter:
-    """Test backward-compatible adapter."""
+    """Test MAM API adapter."""
 
     def test_extract_tid_from_url_t_format(self):
         """Test extracting tid from /t/ URL format."""
@@ -445,8 +490,8 @@ class TestMAMApiAdapter:
         assert tid is None
 
     @pytest.mark.asyncio
-    async def test_scrape_asin_backward_compat(self):
-        """Test that scrape_asin_from_url maintains interface."""
+    async def test_get_asin_from_url(self):
+        """Test ASIN lookup from MAM API torrent data."""
         adapter = MAMApiAdapter(mam_id="test_id")
 
         # Create a real MamTorrentRaw object with isbn field
@@ -456,28 +501,25 @@ class TestMAMApiAdapter:
         with patch.object(adapter, "get_torrent_data", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_torrent
 
-            asin = await adapter.scrape_asin_from_url(
-                "https://www.myanonamouse.net/t/12345",
-                force_login=True,  # Should be ignored but shouldn't error
-            )
+            asin = await adapter.get_asin_from_url("https://www.myanonamouse.net/t/12345")
 
             assert asin == "B0TESTMOCK"
 
     @pytest.mark.asyncio
-    async def test_scrape_asin_no_torrent(self):
-        """Test scrape_asin_from_url when no torrent found."""
+    async def test_get_asin_from_url_no_torrent(self):
+        """Test ASIN lookup when no torrent found."""
         adapter = MAMApiAdapter(mam_id="test_id")
 
         with patch.object(adapter, "get_torrent_data", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = None
 
-            asin = await adapter.scrape_asin_from_url("https://www.myanonamouse.net/t/12345")
+            asin = await adapter.get_asin_from_url("https://www.myanonamouse.net/t/12345")
 
             assert asin is None
 
     @pytest.mark.asyncio
-    async def test_scrape_asin_torrent_no_asin(self):
-        """Test scrape_asin_from_url when torrent has no ASIN."""
+    async def test_get_asin_from_url_torrent_no_asin(self):
+        """Test ASIN lookup when torrent has no ASIN."""
         adapter = MAMApiAdapter(mam_id="test_id")
 
         # Create a torrent without ASIN
@@ -486,7 +528,7 @@ class TestMAMApiAdapter:
         with patch.object(adapter, "get_torrent_data", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_torrent
 
-            asin = await adapter.scrape_asin_from_url("https://www.myanonamouse.net/t/12345")
+            asin = await adapter.get_asin_from_url("https://www.myanonamouse.net/t/12345")
 
             assert asin is None
 
@@ -585,8 +627,6 @@ class TestMAMApiAdapter:
             adapter = MAMApiAdapter(mam_id=None)
             adapter.mam_id = None  # Explicitly set to None
 
-            from src.mam_api.client import MamApiError
-
             with pytest.raises(MamApiError, match="MAM_ID not configured"):
                 await adapter._get_client()
 
@@ -653,8 +693,6 @@ class TestMAMApiAdapter:
         """Test get_torrent_data handles MamApiError."""
         adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
 
-        from src.mam_api.client import MamApiError
-
         with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
             mock_client = MagicMock()
             mock_client.get_torrent = AsyncMock(side_effect=MamApiError("API error"))
@@ -697,13 +735,6 @@ class TestMAMApiAdapter:
         with patch.dict(os.environ, {}, clear=True):
             adapter = MAMApiAdapter()
             assert adapter.mam_id is None
-
-    def test_adapter_alias_mam_scraper(self):
-        """Test that MAMScraper is an alias for MAMApiAdapter."""
-        from src.mam_api.adapter import MAMScraper
-
-        assert MAMScraper is MAMApiAdapter
-
 
 # =============================================================================
 # Integration Tests (require MAM_ID)

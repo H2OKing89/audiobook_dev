@@ -64,7 +64,7 @@ def coordinator(mock_config):
 
                     coord = MetadataCoordinator()
                     # Ensure our mock instances are assigned
-                    coord.mam_scraper = mock_mam_instance
+                    coord.mam_adapter = mock_mam_instance
                     coord.audnex = mock_audnex_instance
                     coord.audible = mock_audible_instance
 
@@ -183,7 +183,7 @@ class TestGetMetadataFromWebhook:
     async def test_webhook_mam_url_success(self, coordinator, sample_webhook_payload, sample_audnex_metadata):
         """Test successful ASIN extraction from MAM URL."""
         # MAM returns ASIN
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         # Audnex returns metadata
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
 
@@ -193,7 +193,7 @@ class TestGetMetadataFromWebhook:
         assert result["asin"] == "B0TEST1234"
         assert result["source"] == "audnex"
         assert result["asin_source"] == "mam"
-        coordinator.mam_scraper.scrape_asin_from_url.assert_called_once()
+        coordinator.mam_adapter.get_asin_from_url.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_webhook_mam_no_asin_falls_back_to_audible(
@@ -201,7 +201,7 @@ class TestGetMetadataFromWebhook:
     ):
         """Test fallback to Audible search when MAM returns no ASIN."""
         # MAM returns no ASIN
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         # Audible search returns results
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
@@ -226,7 +226,7 @@ class TestGetMetadataFromWebhook:
         assert result is not None
         assert result["source"] == "audible"
         # MAM should not be called for non-MAM URLs
-        coordinator.mam_scraper.scrape_asin_from_url.assert_not_called()
+        coordinator.mam_adapter.get_asin_from_url.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_webhook_audnex_failure_falls_back_to_audible(
@@ -234,7 +234,7 @@ class TestGetMetadataFromWebhook:
     ):
         """Test Audnex failure falls back to Audible."""
         # MAM returns ASIN
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         # Audnex fails
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         # Audible search succeeds
@@ -248,7 +248,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_all_sources_fail(self, coordinator, sample_webhook_payload):
         """Test when all metadata sources fail."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=None)
 
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -258,7 +258,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_mam_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM network error is handled gracefully."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=httpx.RequestError("Network error"))
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=httpx.RequestError("Network error"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -270,7 +270,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audnex_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex network error falls back to Audible."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=httpx.RequestError("Network error"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
@@ -282,7 +282,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audnex_value_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex ValueError (malformed response) falls back."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=ValueError("Malformed response"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
@@ -294,7 +294,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audnex_unexpected_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test Audnex unexpected error is handled."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(side_effect=RuntimeError("Unexpected"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
@@ -306,7 +306,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audible_network_error_raises(self, coordinator, sample_webhook_payload):
         """Test Audible network error raises ValueError."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=httpx.RequestError("Network error"))
 
         with pytest.raises(ValueError, match="Could not fetch metadata"):
@@ -315,7 +315,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audible_value_error_raises(self, coordinator, sample_webhook_payload):
         """Test Audible ValueError raises."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=ValueError("Malformed response"))
 
         with pytest.raises(ValueError, match="Could not fetch metadata"):
@@ -324,7 +324,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_audible_unexpected_error_returns_none(self, coordinator, sample_webhook_payload):
         """Test Audible unexpected error returns None."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(side_effect=RuntimeError("Unexpected"))
 
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -338,7 +338,7 @@ class TestGetMetadataFromWebhook:
         """Test that seed_authors and update params are passed to Audnex."""
         coordinator.seed_authors = True
         coordinator.force_update = True
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
 
         await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -356,7 +356,7 @@ class TestGetMetadataFromWebhook:
             "name": "",
             "url": "https://www.myanonamouse.net/t/12345",
         }
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
         result = await coordinator.get_metadata_from_webhook(payload)
@@ -367,7 +367,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_mam_value_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM ValueError (malformed response) continues to Audible."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=ValueError("Malformed response"))
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=ValueError("Malformed response"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -378,7 +378,7 @@ class TestGetMetadataFromWebhook:
     @pytest.mark.asyncio
     async def test_webhook_mam_unexpected_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
         """Test MAM unexpected error continues to Audible."""
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=RuntimeError("Unexpected"))
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=RuntimeError("Unexpected"))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
         result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
@@ -916,7 +916,7 @@ class TestIntegrationScenarios:
     ):
         """Test complete workflow: webhook → MAM → Audnex → chapters."""
         # Setup mocks
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(return_value="B0TEST1234")
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B0TEST1234")
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
         coordinator.audnex.get_chapters_by_asin = AsyncMock(return_value=sample_chapters)
 
@@ -936,7 +936,7 @@ class TestIntegrationScenarios:
     ):
         """Test workflow with fallback: MAM fails → Audnex fails → Audible succeeds."""
         # MAM fails
-        coordinator.mam_scraper.scrape_asin_from_url = AsyncMock(side_effect=httpx.RequestError("MAM down"))
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=httpx.RequestError("MAM down"))
         # Audible succeeds
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 

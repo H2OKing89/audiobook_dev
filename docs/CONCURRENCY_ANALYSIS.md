@@ -38,9 +38,9 @@ class MetadataCoordinator:
 
 ### ⚠️ **Resource Contention**
 
-- Multiple Playwright browser instances
-- Concurrent MAM logins/cookie sharing conflicts
-- Browser memory usage spikes
+- Multiple HTTP clients and open connections
+- Concurrent MAM API calls sharing the same session cookie
+- Connection pool pressure during bursts
 
 ### ⚠️ **API Overload**
 

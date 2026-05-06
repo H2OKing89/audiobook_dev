@@ -134,33 +134,24 @@ curl http://localhost:8080
 
 ## 📊 Metadata Workflow Issues
 
-### MAM Login Failed
+### MAM API Auth Failed
 
-**Error:** `MAM login failed` or `Not logged in`
+**Error:** `MAM API authentication failed; update MAM_ID`
 
 **Solutions:**
 
-1. **Check credentials:**
+1. **Check API cookie:**
 
 ```bash
-# Verify MAM config exists
-ls -la config/mam_config.json
+# Confirm MAM_ID is present without printing the value
+test -n "$MAM_ID" && echo "MAM_ID is set"
 
-# Test MAM login
-python test_mam_login.py
+pytest tests/test_mam_api.py -k Integration --no-cov
 ```
 
-2. **Update credentials:**
+1. **Refresh the cookie value:**
 
-```bash
-# Recreate MAM config
-python setup_mam_config.py
-```
-
-3. **Check for MAM issues:**
-   - Verify account is active
-   - Check if 2FA is enabled (not supported)
-   - Try logging in manually on MAM website
+Verify the account is active, log in to MAM in your browser, copy the current `mam_id` cookie value into `.env` as `MAM_ID`, and restart the app so the environment reloads.
 
 ### ASIN Not Found
 
@@ -408,8 +399,8 @@ tail -f logs/audiobook_requests.log
 # Metadata workflow
 tail -f logs/metadata_coordinator.log
 
-# MAM scraper
-tail -f logs/mam_scraper.log
+# MAM API client
+tail -f logs/audiobook_requests.log
 
 # Notifications
 tail -f logs/notifications.log
@@ -447,7 +438,7 @@ python --version
 uname -a
 
 # Package versions
-pip freeze | grep -E "(flask|requests|playwright)"
+pip freeze | grep -E "(fastapi|httpx|pydantic)"
 ```
 
 2. **Configuration (sanitized):**

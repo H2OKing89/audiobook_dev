@@ -108,17 +108,17 @@ Several fields are JSON-encoded strings that must be parsed:
 
 ### Phase 3: Integration ✅
 
-- [x] Create `src/mam_api/adapter.py` - backward-compatible adapter
-- [x] Add `MAMApiAdapter` with same interface as `MAMScraper`
-- [x] Export `MAMScraper` alias for drop-in replacement
+- [x] Create `src/mam_api/adapter.py` - API metadata adapter
+- [x] Add `MAMApiAdapter` for ASIN and full metadata lookups
+- [x] Remove old `MAMScraper` compatibility alias
 - [x] Update `metadata_coordinator.py` import to use new adapter
 - [ ] Test with real MAM data
 
 ### Phase 4: Cleanup ✅
 
-- [x] Remove `config/mam_config.json` (contains sensitive data!)
+- [x] Remove `config/mam_config.json.example`
 - [x] Remove `src/mam_login_only.py` (no longer needed)
-- [x] Archive old `src/mam_scraper.py` (keep for reference)
+- [x] Remove archived Playwright scraper login code
 - [x] Update remaining documentation
 
 ### Phase 5: Testing ✅
@@ -137,7 +137,7 @@ Several fields are JSON-encoded strings that must be parsed:
 - `src/mam_api/__init__.py` ✅
 - `src/mam_api/models.py` - Pydantic models for API responses ✅
 - `src/mam_api/client.py` - httpx HTTP/2 client ✅
-- `src/mam_api/adapter.py` - Backward-compatible adapter ✅
+- `src/mam_api/adapter.py` - API metadata adapter ✅
 
 ### Modified Files
 
@@ -146,12 +146,9 @@ Several fields are JSON-encoded strings that must be parsed:
 
 ### Files Removed ✅
 
-- `config/mam_config.json` - Sensitive! Contains credentials ✅
+- `config/mam_config.json.example` - Old web-login credential template ✅
 - `src/mam_login_only.py` - No longer needed ✅
-
-### Files Archived ✅
-
-- `src/mam_scraper.py` → `src/archive/mam_scraper.py.old` ✅
+- `src/archive/mam_scraper.py.old` - Old Playwright login scraper ✅
 
 ---
 
