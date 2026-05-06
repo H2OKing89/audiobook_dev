@@ -54,7 +54,7 @@ def _url_path_looks_like_login(url: str | None) -> bool:
     if not url:
         return False
 
-    path = httpx.URL(url).path
+    path = str(httpx.URL(url).path)
     return path.endswith(MAM_LOGIN_PATHS)
 
 

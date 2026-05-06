@@ -736,6 +736,7 @@ class TestMAMApiAdapter:
             adapter = MAMApiAdapter()
             assert adapter.mam_id is None
 
+
 # =============================================================================
 # Integration Tests (require MAM_ID)
 # =============================================================================
