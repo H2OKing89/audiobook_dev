@@ -145,7 +145,7 @@ class AudibleScraper:
         cover_url = None
         if product.get("product_images"):
             # Get the highest resolution image available
-            for size in ["500", "300", "200", "100"]:
+            for size in ["500", "408", "360", "252"]:
                 if product["product_images"].get(size):
                     cover_url = product["product_images"][size]
                     break
@@ -243,10 +243,10 @@ class AudibleScraper:
 
         # Request enough groups to build user-facing metadata directly from Audible.
         params = {
-            "num_results": "10",
+            "num_results": 10,
             "products_sort_by": "Relevance",
             "keywords": title,
-            "response_groups": "product_desc,media,contributors,series",
+            "response_groups": "product_desc,product_attrs,product_extended_attrs,media,contributors,series,rating",
         }
         if author:
             params["author"] = author
@@ -333,7 +333,25 @@ class AudibleScraper:
 
         log.info("audible.asin_search.start", asin=asin, region=region)
 
-        # Use Audnex for ASIN lookups as it's still the stronger book-detail source.
+        # Try the authenticated Audible catalog endpoint first — richer data than Audnex.
+        audible_client = await self._get_audible_library_client(region)
+        if audible_client is not None:
+            try:
+                data = await audible_client.get(
+                    f"1.0/catalog/products/{asin}",
+                    response_groups="contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,series,rating,category_ladders",
+                )
+                product = data.get("product", {}) if isinstance(data, dict) else {}
+                if product:
+                    book = self._product_to_book(product)
+                    if book.get("title"):
+                        log.info("audible.asin_search.found", asin=asin, source="audible_catalog")
+                        return book
+            except Exception as exc:
+                log.warning("audible.asin_search.api_failed", asin=asin, error=str(exc))
+
+        # Fall back to Audnex when the Audible client is unavailable or the call failed.
+        log.info("audible.asin_search.audnex_fallback", asin=asin)
         audnex = await self._get_audnex()
         return await audnex.get_book_by_asin(asin, region=region)
 

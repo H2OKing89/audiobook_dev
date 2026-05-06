@@ -54,10 +54,10 @@ async def test_search_by_title_author_uses_audible_library_backend(tmp_path: Pat
     mock_client.get.assert_awaited_once_with(
         "/1.0/catalog/products",
         params={
-            "num_results": "10",
+            "num_results": 10,
             "products_sort_by": "Relevance",
             "keywords": "The Hobbit",
-            "response_groups": "product_desc,media,contributors,series",
+            "response_groups": "product_desc,product_attrs,product_extended_attrs,media,contributors,series,rating",
             "author": "J.R.R. Tolkien",
         },
     )
