@@ -5,18 +5,28 @@ import os
 import re
 import time
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 import httpx
 from pydantic import ValidationError
 
 from src.logging_setup import get_logger
 
-from .client import MamApiError, MamAsyncClient
+from .client import MAM_AUTH_ERROR_MESSAGE, MamApiError, MamAsyncClient
 from .models import MamTorrentRaw
 
 
 log = get_logger(__name__)
+
+
+def _sanitize_url_for_log(url: str) -> str:
+    parsed = urlparse(url)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+
+
+def _is_mam_auth_error(exc: MamApiError) -> bool:
+    message = str(exc)
+    return MAM_AUTH_ERROR_MESSAGE in message or "MAM_ID not configured" in message
 
 
 class MAMApiAdapter:
@@ -117,7 +127,8 @@ class MAMApiAdapter:
                 except (ValueError, IndexError):
                     pass
 
-        log.warning("mam.adapter.tid_extract_failed", url=url)
+        safe_url = _sanitize_url_for_log(url)
+        log.warning("mam.adapter.tid_extract_failed", url=safe_url)
         return None
 
     async def get_torrent_data(self, url: str) -> MamTorrentRaw | None:
@@ -149,7 +160,11 @@ class MAMApiAdapter:
                 log.warning("mam.adapter.torrent_not_found", tid=tid)
                 return None
 
-        except MamApiError:
+        except MamApiError as exc:
+            if _is_mam_auth_error(exc):
+                log.exception("mam.adapter.auth_error", tid=tid)
+                raise
+
             log.exception("mam.adapter.api_error", tid=tid)
             return None
         except httpx.HTTPError:

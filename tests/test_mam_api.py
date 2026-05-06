@@ -31,6 +31,9 @@ from src.mam_api.models import (
 )
 
 
+TORRENT_BYTES = b"d8:announce13:http://test4:infod4:name4:teste"
+
+
 # =============================================================================
 # Test Data / Fixtures
 # =============================================================================
@@ -398,6 +401,31 @@ class TestMamClient:
 
         client.close()
 
+    def test_download_torrent_by_tid_follows_redirects_and_validates(self):
+        """Test tid download follows valid redirects and returns torrent bytes."""
+        client = MamClient(mam_id="test_id")
+        request = httpx.Request("GET", "https://www.myanonamouse.net/tor/download.php?tid=123")
+        response = httpx.Response(200, content=TORRENT_BYTES, request=request)
+
+        with patch.object(client._client, "get", return_value=response) as mock_get:
+            content = client.download_torrent_by_tid(123)
+
+        assert content == TORRENT_BYTES
+        mock_get.assert_called_once_with("/tor/download.php", params={"tid": "123"}, follow_redirects=True)
+        client.close()
+
+    def test_download_torrent_by_dl_rejects_html_response(self):
+        """Test dl-token download rejects non-torrent content."""
+        client = MamClient(mam_id="test_id")
+        request = httpx.Request("GET", "https://www.myanonamouse.net/tor/download.php/token")
+        response = httpx.Response(200, content=b"<html>not a torrent</html>", request=request)
+
+        with patch.object(client._client, "get", return_value=response):
+            with pytest.raises(MamApiError, match="valid .torrent"):
+                client.download_torrent_by_dl("token")
+
+        client.close()
+
 
 class TestMamAsyncClient:
     """Test async MAM client."""
@@ -439,6 +467,21 @@ class TestMamAsyncClient:
 
         await client.aclose()
 
+    @pytest.mark.asyncio
+    async def test_async_download_torrent_by_tid_follows_redirects_and_validates(self):
+        """Test async tid download follows valid redirects and validates content."""
+        client = MamAsyncClient(mam_id="test_id")
+        request = httpx.Request("GET", "https://www.myanonamouse.net/tor/download.php?tid=123")
+        response = httpx.Response(200, content=TORRENT_BYTES, request=request)
+
+        with patch.object(client._client, "get", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = response
+            content = await client.download_torrent_by_tid(123)
+
+        assert content == TORRENT_BYTES
+        mock_get.assert_called_once_with("/tor/download.php", params={"tid": "123"}, follow_redirects=True)
+        await client.aclose()
+
 
 # =============================================================================
 # Adapter Tests
@@ -471,6 +514,18 @@ class TestMAMApiAdapter:
         url = "https://example.com/not-mam"
         tid = MAMApiAdapter.extract_tid_from_url(url)
         assert tid is None
+
+    def test_extract_tid_from_url_warning_strips_query_and_fragment(self):
+        """Test failed tid extraction logs a URL without sensitive query data."""
+        url = "https://example.com/not-mam?token=secret-value#fragment"
+
+        with patch("src.mam_api.adapter.log.warning") as mock_warning:
+            tid = MAMApiAdapter.extract_tid_from_url(url)
+
+        assert tid is None
+        mock_warning.assert_called_once()
+        assert mock_warning.call_args.kwargs["url"] == "https://example.com/not-mam"
+        assert "secret-value" not in str(mock_warning.call_args)
 
     def test_extract_tid_from_url_empty(self):
         """Test extracting tid from empty/None URL."""
@@ -701,6 +756,19 @@ class TestMAMApiAdapter:
             result = await adapter.get_torrent_data("https://www.myanonamouse.net/t/12345")
 
             assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_torrent_data_auth_error_raises(self):
+        """Test get_torrent_data surfaces MAM auth failures."""
+        adapter = MAMApiAdapter(mam_id="test_id", rate_limit_seconds=0)
+
+        with patch.object(adapter, "_get_client", new_callable=AsyncMock) as mock_get_client:
+            mock_client = MagicMock()
+            mock_client.get_torrent = AsyncMock(side_effect=MamApiError("MAM API authentication failed; update MAM_ID"))
+            mock_get_client.return_value = mock_client
+
+            with pytest.raises(MamApiError, match="MAM API authentication failed"):
+                await adapter.get_torrent_data("https://www.myanonamouse.net/t/12345")
 
     @pytest.mark.asyncio
     async def test_get_torrent_data_http_error(self):

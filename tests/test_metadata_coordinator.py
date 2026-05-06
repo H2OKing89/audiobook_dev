@@ -17,6 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from src.mam_api import MamApiError
 from src.metadata_coordinator import MetadataCoordinator, main
 
 
@@ -266,6 +267,17 @@ class TestGetMetadataFromWebhook:
         # Should fall back to Audible
         assert result is not None
         assert result["source"] == "audible"
+
+    @pytest.mark.asyncio
+    async def test_webhook_mam_auth_error_raises(self, coordinator, sample_webhook_payload):
+        """Test MAM auth errors are surfaced instead of falling back to Audible."""
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=MamApiError("Auth failed"))
+        coordinator.audible.search_from_webhook_name = AsyncMock()
+
+        with pytest.raises(MamApiError, match="Auth failed"):
+            await coordinator.get_metadata_from_webhook(sample_webhook_payload)
+
+        coordinator.audible.search_from_webhook_name.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_webhook_audnex_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):

@@ -22,7 +22,7 @@ from src.audible_scraper import AudibleScraper
 from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 from src.logging_setup import get_logger
-from src.mam_api import MAMApiAdapter
+from src.mam_api import MAMApiAdapter, MamApiError
 
 
 log = get_logger(__name__)
@@ -67,6 +67,9 @@ class MetadataCoordinator:
                     log.info("coordinator.step1.asin_found", asin=asin)
                 else:
                     log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
+            except MamApiError:
+                log.exception("coordinator.step1.mam_auth_error")
+                raise
             except httpx.RequestError:
                 log.exception("coordinator.step1.network_error")
             except ValueError:

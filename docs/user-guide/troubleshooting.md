@@ -149,7 +149,7 @@ test -n "$MAM_ID" && echo "MAM_ID is set"
 pytest tests/test_mam_api.py -k Integration --no-cov
 ```
 
-1. **Refresh the cookie value:**
+2. **Refresh the cookie value:**
 
 Verify the account is active, log in to MAM in your browser, copy the current `mam_id` cookie value into `.env` as `MAM_ID`, and restart the app so the environment reloads.
 

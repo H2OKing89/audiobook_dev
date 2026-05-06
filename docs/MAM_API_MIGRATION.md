@@ -192,7 +192,7 @@ with MamClient(mam_id=os.getenv("MAM_ID")) as mam:
 The real download test is skipped by default. To run it, set `MAM_ID` and a known safe torrent ID:
 
 ```bash
-MAM_TEST_TID=1207719 pytest tests/test_mam_api.py -k real_download --no-cov
+MAM_ID=your_cookie_value MAM_TEST_TID=1207719 pytest tests/test_mam_api.py -k real_download --no-cov
 ```
 
 ---

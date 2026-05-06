@@ -83,6 +83,12 @@ def _api_response_json(response: httpx.Response) -> Any:
         raise MamApiError("MAM API returned invalid JSON") from exc
 
 
+def _validated_torrent_content(content: bytes) -> bytes:
+    if not content.startswith(b"d") or b"4:info" not in content:
+        raise MamApiError("MAM download did not return a valid .torrent file")
+    return content
+
+
 class MamApiError(RuntimeError):
     """Error from MAM API operations."""
 
@@ -257,10 +263,11 @@ class MamClient:
             Raw bytes of the .torrent file
         """
         log.info("mam.download.tid", tid=tid)
-        r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
+        r = self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)}, follow_redirects=True)
         _raise_for_api_response(r)
-        log.debug("mam.download.complete", tid=tid, size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.download.complete", tid=tid, size=len(content))
+        return content
 
     def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """
@@ -277,10 +284,11 @@ class MamClient:
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         log.info("mam.download.dl_token")
-        r = self._client.get(path)
+        r = self._client.get(path, follow_redirects=True)
         _raise_for_api_response(r)
-        log.debug("mam.download.dl_complete", size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.download.dl_complete", size=len(content))
+        return content
 
 
 class MamAsyncClient:
@@ -429,10 +437,11 @@ class MamAsyncClient:
     async def download_torrent_by_tid(self, tid: int) -> bytes:
         """Download .torrent file using session cookie (async)."""
         log.info("mam.async_download.tid", tid=tid)
-        r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)})
+        r = await self._client.get(MAM_DOWNLOAD_PATH, params={"tid": str(tid)}, follow_redirects=True)
         _raise_for_api_response(r)
-        log.debug("mam.async_download.complete", tid=tid, size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.async_download.complete", tid=tid, size=len(content))
+        return content
 
     async def download_torrent_by_dl(self, dl_token: str) -> bytes:
         """Download .torrent using dl token (async)."""
@@ -441,7 +450,8 @@ class MamAsyncClient:
 
         path = f"{MAM_DOWNLOAD_PATH}/{dl_token}"
         log.info("mam.async_download.dl_token")
-        r = await self._client.get(path)
+        r = await self._client.get(path, follow_redirects=True)
         _raise_for_api_response(r)
-        log.debug("mam.async_download.dl_complete", size=len(r.content))
-        return r.content  # type: ignore[no-any-return]
+        content = _validated_torrent_content(r.content)
+        log.debug("mam.async_download.dl_complete", size=len(content))
+        return content
