@@ -58,11 +58,35 @@ async def test_get_client_returns_none_without_decrypt_password(tmp_path: Path) 
     auth_file = tmp_path / "audible-auth.json"
     auth_file.write_text("{}")
 
-    provider = AudibleClientProvider(auth_file=str(auth_file))
+    with patch.dict("os.environ", {"AUDIBLE_AUTH_FILE_PASSWORD": "", "AUDIBLE_AUTH_FILE": ""}, clear=False):
+        provider = AudibleClientProvider(auth_file=str(auth_file))
 
-    client = await provider.get_client("us")
+        with patch("src.audible_client._audible_mod.Authenticator.from_file") as mock_from_file:
+            with patch("src.audible_client._audible_mod.AsyncClient") as mock_async_client:
+                client = await provider.get_client("us")
 
     assert client is None
+    mock_from_file.assert_not_called()
+    mock_async_client.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_client_redacts_missing_auth_file_path(tmp_path: Path) -> None:
+    """Missing-file warnings should avoid logging the full auth path."""
+    missing_auth_file = tmp_path / "nested" / "audible-auth.json"
+    provider = AudibleClientProvider(
+        auth_file=str(missing_auth_file),
+        auth_file_password="test-password",
+    )
+
+    with patch("src.audible_client.log.warning") as mock_warning:
+        client = await provider.get_client("us")
+
+    assert client is None
+    mock_warning.assert_called_once_with(
+        "audible.library.auth_file_missing",
+        auth_file=missing_auth_file.name,
+    )
 
 
 @pytest.mark.asyncio

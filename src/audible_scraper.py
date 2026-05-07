@@ -101,7 +101,8 @@ class AudibleScraper:
         """Accept common English language codes returned by Audible/Audnex."""
         if not isinstance(language, str):
             return False
-        return language.strip().lower() in {"english", "en", "en-us", "en-gb"}
+        normalized = language.strip().lower()
+        return normalized == "english" or normalized.startswith("en")
 
     def _is_valid_asin(self, asin: str) -> bool:
         """Validate ASIN format (10 characters, alphanumeric)."""

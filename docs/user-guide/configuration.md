@@ -122,7 +122,7 @@ The encrypted auth file format used by `Authenticator.from_file(...)` matches th
 
 `AUDIBLE_AUTH_FILE_PASSWORD` is the decryption password for the auth file. It is not your Audible or Amazon login password.
 
-Installation note: this repo installs `mkb79/Audible` directly from GitHub because the PyPI release is behind upstream. The project Makefile includes the required `pip` flags for the current Python 3.14 environment.
+Installation note: this repo installs `mkb79/Audible` directly from GitHub because the PyPI release is behind upstream. The supported Python range for the Audible install path is 3.11-3.13.
 
 ## 🎯 Configuration Examples
 

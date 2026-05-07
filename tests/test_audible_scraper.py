@@ -150,3 +150,10 @@ async def test_shared_injected_provider_is_not_closed_on_scraper_exit() -> None:
 
     assert first_results[0]["asin"] == "B0TEST1234"
     assert second_results[0]["asin"] == "B0TEST1234"
+
+
+def test_is_english_language_accepts_common_locale_variants() -> None:
+    assert AudibleScraper._is_english_language("english")
+    assert AudibleScraper._is_english_language("en-au")
+    assert AudibleScraper._is_english_language("en-ca")
+    assert not AudibleScraper._is_english_language("fr")

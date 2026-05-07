@@ -73,7 +73,7 @@ class AudibleClientProvider:
 
         auth_path = Path(self.auth_file).expanduser()
         if not auth_path.exists():
-            log.warning("audible.library.auth_file_missing", auth_file=self.auth_file)
+            log.warning("audible.library.auth_file_missing", auth_file=auth_path.name)
             return None
 
         async with self._init_lock:

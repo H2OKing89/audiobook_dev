@@ -228,8 +228,10 @@ tail -f logs/metadata_coordinator.log
 ```bash
 curl -X POST -H "Content-Type: application/json" \
   -d '{"content":"Test message"}' \
-  YOUR_DISCORD_WEBHOOK_URL
+  "$DISCORD_WEBHOOK_URL"
 ```
+
+Do not paste or share your real Discord webhook URL in public issues or support channels.
 
 1. **Check webhook permissions:**
    - Verify webhook has send message permissions
