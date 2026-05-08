@@ -27,6 +27,7 @@ metadata:
   audible:
     base_url: "https://api.audible.com"
     search_endpoint: "/1.0/catalog/products"
+    auth_file: "secrets/audible-auth.json"  # Optional mkb79/Audible auth file for authenticated fallback searches
 
 
 notifications:

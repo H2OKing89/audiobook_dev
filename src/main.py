@@ -18,7 +18,6 @@ from src.config import load_config  # add import for config
 from src.db import save_request  # switch to persistent DB store
 from src.http_client import AsyncHttpClient, close_default_client
 from src.logging_setup import clear_contextvars, configure_logging, get_logger
-from src.metadata import fetch_metadata
 from src.metadata_coordinator import MetadataCoordinator
 from src.notify.discord import send_discord
 from src.notify.gotify import send_gotify
@@ -309,38 +308,22 @@ async def webhook(request: Request):
         metadata = None
         last_error: Exception | None = None
 
-        # Try 1: Compatibility wrapper (tests often patch fetch_metadata)
+        # Primary metadata workflow: coordinator-managed async lookup
         try:
-            metadata = await fetch_metadata(payload)
+            metadata = await coordinator.get_metadata_from_webhook(payload)
             if metadata:
-                log.info("metadata.fetch.success", source="fetch_metadata_wrapper")
                 metadata = await coordinator.get_enhanced_metadata(metadata)
+                log.info("metadata.fetch.success", source="coordinator")
         except ValueError as e:
-            # Expected when fetch_metadata returns None or finds no metadata
-            log.debug("metadata.fetch.no_result", source="fetch_metadata", reason=str(e))
+            # Expected when coordinator finds no metadata
+            log.debug("metadata.fetch.no_result", source="coordinator", reason=str(e))
             last_error = e
         except Exception as e:
-            # Unexpected exceptions from fetch_metadata - log and continue to next method
-            log.exception("metadata.fetch.error", source="fetch_metadata")
+            # Unexpected exceptions from coordinator - log and continue to fallback
+            log.exception("metadata.fetch.error", source="coordinator")
             last_error = e
 
-        # Try 2: Coordinator async workflow
-        if not metadata:
-            try:
-                metadata = await coordinator.get_metadata_from_webhook(payload)
-                if metadata:
-                    metadata = await coordinator.get_enhanced_metadata(metadata)
-                    log.info("metadata.fetch.success", source="coordinator")
-            except ValueError as e:
-                # Expected when coordinator finds no metadata
-                log.debug("metadata.fetch.no_result", source="coordinator", reason=str(e))
-                last_error = e
-            except Exception as e:
-                # Network errors or other issues from coordinator
-                log.exception("metadata.fetch.error", source="coordinator")
-                last_error = e
-
-        # Try 3: Fallback metadata
+        # Final fallback metadata
         if not metadata:
             metadata = _create_fallback_metadata(
                 payload, token, last_error or Exception("No metadata sources available")

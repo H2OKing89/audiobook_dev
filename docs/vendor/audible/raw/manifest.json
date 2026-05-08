@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-03-27T00:45:50.799815+00:00",
+  "count": 15,
+  "entries": [
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/index.rst.txt",
+      "path": "docs/vendor/audible/raw/index.rst.txt",
+      "bytes": 2097
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/intro/install.rst.txt",
+      "path": "docs/vendor/audible/raw/intro/install.rst.txt",
+      "bytes": 5972
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/intro/getting_started.rst.txt",
+      "path": "docs/vendor/audible/raw/intro/getting_started.rst.txt",
+      "bytes": 2762
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/marketplaces/marketplaces.rst.txt",
+      "path": "docs/vendor/audible/raw/marketplaces/marketplaces.rst.txt",
+      "bytes": 2115
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/auth/authorization.rst.txt",
+      "path": "docs/vendor/audible/raw/auth/authorization.rst.txt",
+      "bytes": 5493
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/auth/authentication.rst.txt",
+      "path": "docs/vendor/audible/raw/auth/authentication.rst.txt",
+      "bytes": 3644
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/auth/register.rst.txt",
+      "path": "docs/vendor/audible/raw/auth/register.rst.txt",
+      "bytes": 1536
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/load_save.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/load_save.rst.txt",
+      "bytes": 4456
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/async.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/async.rst.txt",
+      "bytes": 295
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/advanced.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/advanced.rst.txt",
+      "bytes": 7215
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/logging.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/logging.rst.txt",
+      "bytes": 1039
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/external_api.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/external_api.rst.txt",
+      "bytes": 20890
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/examples.rst.txt",
+      "path": "docs/vendor/audible/raw/misc/examples.rst.txt",
+      "bytes": 1163
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/misc/changelog.md.txt",
+      "path": "docs/vendor/audible/raw/misc/changelog.md.txt",
+      "bytes": 68
+    },
+    {
+      "url": "https://audible.readthedocs.io/en/latest/_sources/modules/audible.rst.txt",
+      "path": "docs/vendor/audible/raw/modules/audible.rst.txt",
+      "bytes": 4308
+    }
+  ]
+}

@@ -1,24 +1,18 @@
-"""
-Audible.com metadata fallback scraper
-Searches for audiobook metadata using Audible's search API
-
-This module provides async methods for searching Audible's catalog,
-with support for title/author searches and ASIN lookups.
-"""
+"""Audible metadata search backend powered by mkb79/Audible."""
 
 import argparse
 import asyncio
+import os
 import re
 from typing import Any
-from urllib.parse import urlencode
 
+from src.audible_client import AudibleClientProvider
 from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 from src.http_client import (
     REGION_MAP,
     AsyncHttpClient,
     get_default_client,
-    get_region_tld,
 )
 from src.logging_setup import get_logger
 
@@ -28,7 +22,7 @@ log = get_logger(__name__)
 
 class AudibleScraper:
     """
-    Async Audible metadata scraper with shared HTTP client.
+    Async Audible metadata backend with shared Audnex/HTTP helpers.
 
     Example usage:
         async with AudibleScraper() as scraper:
@@ -36,9 +30,13 @@ class AudibleScraper:
             metadata = await scraper.search_by_asin("B08G9PRS1K")
     """
 
-    def __init__(self, client: AsyncHttpClient | None = None) -> None:
+    def __init__(
+        self,
+        client: AsyncHttpClient | None = None,
+        audible_client_provider: AudibleClientProvider | None = None,
+    ) -> None:
         """
-        Initialize the Audible scraper.
+        Initialize the Audible metadata backend.
 
         Args:
             client: Optional AsyncHttpClient instance. If not provided, uses the default shared client.
@@ -46,8 +44,16 @@ class AudibleScraper:
         self._client = client
         self.config = load_config()
         self.audible_config = self.config.get("metadata", {}).get("audible", {})
-        self.base_url = self.audible_config.get("base_url", "https://api.audible.com")
         self.search_endpoint = self.audible_config.get("search_endpoint", "/1.0/catalog/products")
+        if audible_client_provider is None:
+            self._audible_client_provider = AudibleClientProvider(
+                auth_file=os.getenv("AUDIBLE_AUTH_FILE") or self.audible_config.get("auth_file"),
+                auth_file_password=os.getenv("AUDIBLE_AUTH_FILE_PASSWORD"),
+            )
+            self._owns_audible_provider = True
+        else:
+            self._audible_client_provider = audible_client_provider
+            self._owns_audible_provider = False
 
         # Use shared region map from http_client
         self.region_map = REGION_MAP
@@ -83,6 +89,20 @@ class AudibleScraper:
         Note: Does not close the HTTP client as it's managed by the application lifespan.
         The shared client is closed during app shutdown.
         """
+        if self._owns_audible_provider:
+            await self._audible_client_provider.aclose()
+
+    async def _get_audible_library_client(self, region: str) -> Any | None:
+        """Create or reuse an authenticated mkb79/Audible client for a region."""
+        return await self._audible_client_provider.get_client(region)
+
+    @staticmethod
+    def _is_english_language(language: str | None) -> bool:
+        """Accept common English language codes returned by Audible/Audnex."""
+        if not isinstance(language, str):
+            return False
+        normalized = language.strip().lower()
+        return normalized == "english" or normalized.startswith("en")
 
     def _is_valid_asin(self, asin: str) -> bool:
         """Validate ASIN format (10 characters, alphanumeric)."""
@@ -139,7 +159,7 @@ class AudibleScraper:
         cover_url = None
         if product.get("product_images"):
             # Get the highest resolution image available
-            for size in ["500", "300", "200", "100"]:
+            for size in ["500", "408", "360", "252"]:
                 if product["product_images"].get(size):
                     cover_url = product["product_images"][size]
                     break
@@ -219,7 +239,7 @@ class AudibleScraper:
 
     async def search_by_title_author(self, title: str, author: str = "", region: str = "us") -> list[dict[str, Any]]:
         """
-        Search for audiobooks by title and author using Audible's catalog API.
+        Search for audiobooks by title and author using Audible's authenticated catalog API.
 
         Only returns English results.
 
@@ -235,31 +255,30 @@ class AudibleScraper:
             log.error("audible.search.invalid_region", region=region)
             region = "us"
 
-        client = await self._get_client()
-
-        # Add response_groups parameter to get full metadata directly from Audible
+        # Request enough groups to build user-facing metadata directly from Audible.
         params = {
-            "num_results": "10",
+            "num_results": 10,
             "products_sort_by": "Relevance",
-            "title": title,
-            "response_groups": "product_desc,media,contributors,series",
+            "keywords": title,
+            "response_groups": "product_desc,product_attrs,product_extended_attrs,media,contributors,series,rating",
         }
         if author:
             params["author"] = author
 
-        tld = get_region_tld(region)
-        url = f"https://api.audible{tld}{self.search_endpoint}?{urlencode(params)}"
         log.info("audible.search.start", title=title, author=author, region=region)
-        log.debug("audible.search.url", url=url)
-
-        data = await client.get_json(url)
-
-        if not data:
-            log.warning("audible.search.no_response")
+        audible_client = await self._get_audible_library_client(region)
+        if audible_client is None:
+            log.warning("audible.library.not_configured")
             return []
 
-        products = data.get("products", [])
-        log.info("audible.search.results", count=len(products))
+        try:
+            data = await audible_client.get(self.search_endpoint, params=params)
+        except Exception as exc:
+            log.warning("audible.library.search_failed", error=str(exc))
+            return []
+
+        products = data.get("products", []) if isinstance(data, dict) else []
+        log.info("audible.search.results", count=len(products), backend="library")
 
         if not products:
             log.warning("audible.search.no_products")
@@ -270,8 +289,8 @@ class AudibleScraper:
 
         for product in products:
             # Only include English books
-            language = product.get("language", "").lower()
-            if language and language != "english":
+            language = product.get("language")
+            if language and not self._is_english_language(language):
                 log.debug("audible.search.skip_non_english", language=language)
                 continue
 
@@ -293,7 +312,7 @@ class AudibleScraper:
             # Fallback: try Audnex for detailed metadata
             try:
                 metadata = await audnex.get_book_by_asin(asin, region=region)
-                if metadata and metadata.get("language", "").lower() == "english":
+                if metadata and self._is_english_language(metadata.get("language")):
                     audnex_book = self._product_to_book(metadata)
                     if audnex_book:
                         detailed_results.append(audnex_book)
@@ -313,7 +332,7 @@ class AudibleScraper:
 
     async def search_by_asin(self, asin: str, region: str = "us") -> dict[str, Any] | None:
         """
-        Search for audiobook by ASIN (delegates to Audnex).
+        Search for audiobook by ASIN via Audnex.
 
         Args:
             asin: Amazon Standard Identification Number
@@ -328,7 +347,29 @@ class AudibleScraper:
 
         log.info("audible.asin_search.start", asin=asin, region=region)
 
-        # Use Audnex for ASIN lookups as it's more reliable
+        # Try the authenticated Audible catalog endpoint first — richer data than Audnex.
+        audible_client = await self._get_audible_library_client(region)
+        if audible_client is not None:
+            try:
+                data = await audible_client.get(
+                    self.search_endpoint,
+                    params={
+                        "asin": asin,
+                        "response_groups": "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,series,rating,category_ladders",
+                    },
+                )
+                products = data.get("products", []) if isinstance(data, dict) else []
+                product = products[0] if products else data.get("product", {}) if isinstance(data, dict) else {}
+                if product:
+                    book = self._product_to_book(product)
+                    if book.get("title"):
+                        log.info("audible.asin_search.found", asin=asin, source="audible_catalog")
+                        return book
+            except Exception as exc:
+                log.warning("audible.asin_search.api_failed", asin=asin, error=str(exc))
+
+        # Fall back to Audnex when the Audible client is unavailable or the call failed.
+        log.info("audible.asin_search.audnex_fallback", asin=asin)
         audnex = await self._get_audnex()
         return await audnex.get_book_by_asin(asin, region=region)
 
@@ -367,7 +408,7 @@ class AudibleScraper:
                 results.append(result)
                 return results
 
-        # Strategy 3: Title/Author search via Audible catalog
+        # Strategy 3: Title/Author search via the authenticated Audible backend
         if title:
             log.info("audible.search.strategy3", title=title, author=author, strategy="title_author")
             results = await self.search_by_title_author(title, author, region=region)

@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from src.db import delete_request, save_request
 from src.main import app
+from src.metadata_coordinator import MetadataCoordinator
 from src.qbittorrent import QBittorrentManager
 from src.security import reset_rate_limit_buckets
 from src.token_gen import generate_token
@@ -146,7 +147,9 @@ def mock_metadata():
     Returns the mock object so callers can customize the return value:
         mock_metadata.return_value = {"title": "Custom Title"}
     """
-    with patch("src.metadata.fetch_metadata", new_callable=AsyncMock) as mock:
+    with patch(
+        "src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = {
             "title": "Test Book",
             "author": "Test Author",
@@ -296,6 +299,25 @@ def sample_html():
 @pytest.fixture
 def sample_authors():
     return [{"name": "John Doe"}, {"name": "Jane Translator"}, {"name": "Alice Illustrator"}]
+
+
+@pytest.fixture
+def coordinator():
+    """Pre-wired MetadataCoordinator with all external adapters replaced by mocks."""
+    with (
+        patch("src.metadata_coordinator.load_config", return_value={}),
+        patch("src.metadata_coordinator.MAMApiAdapter") as mock_mam,
+        patch("src.metadata_coordinator.AudnexMetadata") as mock_audnex,
+        patch("src.metadata_coordinator.AudibleScraper") as mock_audible,
+    ):
+        coord = MetadataCoordinator()
+        coord.mam_adapter = mock_mam.return_value
+        coord.audnex = mock_audnex.return_value
+        coord.audible = mock_audible.return_value
+        coord.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)  # type: ignore[method-assign]
+        coord.audnex.get_book_by_asin = AsyncMock(return_value=None)  # type: ignore[method-assign]
+        coord.audible.search_from_webhook_name = AsyncMock(return_value=[])  # type: ignore[method-assign]
+        yield coord
 
 
 @pytest.fixture

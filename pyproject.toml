@@ -7,7 +7,7 @@ name = "audiobook-dev"
 version = "2.0.0"
 description = "Automated audiobook request system with MAM integration"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 license = {text = "MIT"}
 authors = [
     {name = "H2OKing89", email = "kingmobileaudio@gmail.com"}
@@ -49,6 +49,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "audible @ git+https://github.com/mkb79/Audible.git@458131b4702cca48a8a6eb68c19c21b91b276d37 ; python_version < '3.14'",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=1.3.0",

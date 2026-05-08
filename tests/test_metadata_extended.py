@@ -2,7 +2,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.metadata import clean_metadata, fetch_metadata, get_audible_asin, levenshtein_distance
+from src.metadata import (
+    clean_metadata,
+    clean_series_sequence,
+    get_audible_asin,
+    levenshtein_distance,
+    normalize_book_result,
+)
 
 
 class TestMetadataModule:
@@ -41,6 +47,27 @@ class TestMetadataModule:
         assert result["series"] == ""
         assert result["narrators"] == []
 
+    def test_clean_metadata_scalar_author_fallback(self):
+        item = {"title": "Minimal Book", "author": "Brandon Sanderson"}
+
+        result = clean_metadata(item)
+
+        assert result["author"] == "Brandon Sanderson"
+
+    def test_clean_series_sequence_numeric_inputs(self):
+        assert clean_series_sequence("Test Series", 1) == "1"
+        assert clean_series_sequence("Test Series", 1.5) == "1.5"
+
+    def test_normalize_book_result_accepts_decimal_runtime_values(self):
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": 360})["duration"] == 360
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": "360.5"})["duration"] == 360
+        assert normalize_book_result({"title": "Test Book", "runtimeLengthMin": 360.5})["duration"] == 360
+
+    def test_normalize_book_result_handles_non_string_release_date(self):
+        result = normalize_book_result({"title": "Test Book", "releaseDate": 1700000000, "publishedYear": "2024"})
+
+        assert result["publishedYear"] == "2024"
+
     def test_clean_metadata_genres_and_tags(self):
         item = {
             "title": "Test Book",
@@ -57,146 +84,99 @@ class TestMetadataModule:
         assert result["tags"] == "Epic, Magic"
 
     @pytest.mark.asyncio
-    @patch("src.metadata.get_default_client", new_callable=AsyncMock)
-    @patch("builtins.__import__")
-    async def test_get_audible_asin_success(self, mock_import, mock_get_client):
-        # Mock HTTP client response
-        mock_response = MagicMock()
-        mock_response.text = '<div class="adbl-impression-container" data-asin="B123456789"></div>'
-
-        mock_client = MagicMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
-        mock_get_client.return_value = mock_client
-
-        # Mock the bs4 import
-        mock_bs4 = MagicMock()
-        mock_soup = MagicMock()
-        mock_bs4.BeautifulSoup.return_value = mock_soup
-        mock_soup.find.return_value = {"data-asin": "B123456789"}
-
-        # Store original import
-        original_import = __builtins__["__import__"]
-
-        def import_side_effect(name, *args, **kwargs):
-            if name == "bs4":
-                return mock_bs4
-            elif name == "bs4.element":
-                mock_element = MagicMock()
-                return mock_element
-            return original_import(name, *args, **kwargs)
-
-        mock_import.side_effect = import_side_effect
+    @patch("src.metadata.AudibleScraper")
+    async def test_get_audible_asin_success(self, mock_scraper_cls):
+        mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
+        mock_scraper.search = AsyncMock(return_value=[{"asin": "B123456789"}])
+        mock_scraper_cls.return_value = mock_scraper
 
         asin = await get_audible_asin("Test Title", "Test Author")
         assert asin == "B123456789"
 
     @pytest.mark.asyncio
-    @patch("src.metadata.get_default_client", new_callable=AsyncMock)
-    @patch("builtins.__import__")
-    async def test_get_audible_asin_not_found(self, mock_import, mock_get_client):
-        mock_response = MagicMock()
-        mock_response.text = "<div>No ASIN here</div>"
-
-        mock_client = MagicMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
-        mock_get_client.return_value = mock_client
-
-        # Mock the bs4 import
-        mock_bs4 = MagicMock()
-        mock_soup = MagicMock()
-        mock_bs4.BeautifulSoup.return_value = mock_soup
-        mock_soup.find.return_value = None
-
-        # Store original import
-        original_import = __builtins__["__import__"]
-
-        def import_side_effect(name, *args, **kwargs):
-            if name == "bs4":
-                return mock_bs4
-            elif name == "bs4.element":
-                mock_element = MagicMock()
-                return mock_element
-            return original_import(name, *args, **kwargs)
-
-        mock_import.side_effect = import_side_effect
+    @patch("src.metadata.AudibleScraper")
+    async def test_get_audible_asin_not_found(self, mock_scraper_cls):
+        mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
+        mock_scraper.search = AsyncMock(return_value=[{"title": "Unknown Title"}])
+        mock_scraper_cls.return_value = mock_scraper
 
         asin = await get_audible_asin("Unknown Title", "Unknown Author")
         assert asin is None
 
     @pytest.mark.asyncio
-    async def test_get_audible_asin_no_beautifulsoup(self):
-        # Test when BeautifulSoup is not available
-        with patch("builtins.__import__", side_effect=ImportError("No module named 'bs4'")):
-            asin = await get_audible_asin("Test Title", "Test Author")
-            assert asin is None
+    @patch("src.metadata.AudibleScraper")
+    async def test_get_audible_asin_search_error(self, mock_scraper_cls):
+        mock_scraper = MagicMock()
+        mock_scraper.__aenter__ = AsyncMock(return_value=mock_scraper)
+        mock_scraper.__aexit__ = AsyncMock(return_value=False)
+        mock_scraper.search = AsyncMock(side_effect=RuntimeError("search failed"))
+        mock_scraper_cls.return_value = mock_scraper
+
+        asin = await get_audible_asin("Test Title", "Test Author")
+        assert asin is None
 
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    @patch("src.metadata.get_cached_metadata")
-    async def test_fetch_metadata_success(self, mock_cached, mock_coord):
-        # Mock successful metadata fetch
-        expected_metadata = {"title": "Test Book", "authors": [{"name": "Test Author"}], "asin": "B123456789"}
-        mock_cached.return_value = expected_metadata
-        mock_coord.return_value = expected_metadata
-
+    @pytest.mark.no_mock_external_apis
+    async def test_coordinator_webhook_success(self, coordinator):
         payload = {
             "name": "Test Book by Test Author [B123456789]",
-            "url": "http://example.com/view",
+            "url": "https://www.myanonamouse.net/t/12345",
             "download_url": "http://example.com/download.torrent",
         }
-        result = await fetch_metadata(payload)
+
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B123456789")
+        coordinator.audnex.get_book_by_asin = AsyncMock(
+            return_value={"title": "Test Book", "authors": [{"name": "Test Author"}], "asin": "B123456789"}
+        )
+
+        result = await coordinator.get_metadata_from_webhook(payload)
 
         assert result["title"] == "Test Book"
-        assert "asin" in result
+        assert result["asin"] == "B123456789"
+        assert result["source"] == "audnex"
 
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    @patch("src.metadata.get_cached_metadata")
-    @patch("src.metadata.get_audible_asin")
-    async def test_fetch_metadata_fallback_to_scraping(self, mock_scrape, mock_cached, mock_coord):
-        # Test fallback when API fails but scraping succeeds
-        mock_cached.return_value = None
-        mock_scrape.return_value = "B987654321"
-
-        # Mock successful API call with scraped ASIN
-        def cached_side_effect(asin, region, api_url):
-            if asin == "B987654321":
-                return {"title": "Scraped Book", "asin": asin}
-            return None
-
-        mock_cached.side_effect = cached_side_effect
-        mock_coord.return_value = {"title": "Scraped Book", "asin": "B987654321"}
-
+    @pytest.mark.no_mock_external_apis
+    async def test_coordinator_fallback_to_audible_search(self, coordinator):
         payload = {
             "name": "Unknown Book by Unknown Author",
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent",
         }
-        result = await fetch_metadata(payload)
 
-        assert "title" in result
-        assert result.get("asin") == "B987654321"
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
+        coordinator.audible.search_from_webhook_name = AsyncMock(
+            return_value=[{"title": "Resolved Book", "asin": "B987654321"}]
+        )
+
+        result = await coordinator.get_metadata_from_webhook(payload)
+
+        assert result is not None
+        assert result["title"] == "Resolved Book"
+        assert result["asin"] == "B987654321"
+        assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    @patch("src.metadata_coordinator.MetadataCoordinator.get_metadata_from_webhook", new_callable=AsyncMock)
-    async def test_fetch_metadata_no_asin_found(self, mock_coord):
-        # Test when no ASIN can be extracted or found
+    @pytest.mark.no_mock_external_apis
+    async def test_coordinator_returns_none_when_no_metadata_found(self, coordinator):
         payload = {
             "name": "Very Obscure Book",
             "url": "http://example.com/view",
             "download_url": "http://example.com/download.torrent",
         }
 
-        # Override autouse mock to raise ValueError
-        mock_coord.return_value = None
+        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
+        coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[])
 
-        with (
-            patch("src.metadata.get_cached_metadata", return_value=None),
-            patch("src.metadata.get_audible_asin", return_value=None),
-            pytest.raises(ValueError, match="ASIN could not be determined"),
-        ):
-            # Should raise ValueError when no ASIN can be found
-            await fetch_metadata(payload)
+        result = await coordinator.get_metadata_from_webhook(payload)
+
+        assert result is None
 
     def test_clean_metadata_runtime_conversion(self):
         # Test runtime conversion from minutes to readable format
