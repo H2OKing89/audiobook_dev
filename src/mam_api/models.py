@@ -117,11 +117,72 @@ class MamMediaInfoAudio(BaseModel):
 
     Format: str | None = None
     BitRate: str | None = None
+    Bitrate: str | None = None
     BitRate_Mode: str | None = None
     Channels: int | None = None
     SamplingRate: str | None = None
     BitRate_Maximum: str | None = None
     Compression_Mode: str | None = None
+
+    def _extra_value(self, *keys: str) -> str | int | None:
+        extra = self.model_extra or {}
+        for key in keys:
+            value = extra.get(key)
+            if value not in (None, ""):
+                return value
+        return None
+
+    @property
+    def codec_label(self) -> str | None:
+        parts: list[str] = []
+        for value in (
+            self.Format,
+            self._extra_value("CommercialName", "Format/String", "CodecID/Hint"),
+            self._extra_value("Format_Profile", "Format profile", "Format/Info"),
+        ):
+            if value is None:
+                continue
+            text = str(value).strip()
+            if not text:
+                continue
+            if text not in parts:
+                parts.append(text)
+        if not parts:
+            return None
+        return " / ".join(parts)
+
+    @property
+    def bitrate_value(self) -> str | None:
+        for value in (
+            self.BitRate,
+            self.Bitrate,
+            self._extra_value("BitRate/String", "Bit rate", "Bit rate mode"),
+        ):
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                return text
+        return None
+
+    @property
+    def sampling_rate_value(self) -> str | None:
+        for value in (
+            self.SamplingRate,
+            self._extra_value("SamplingRate/String", "Sampling rate"),
+        ):
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                return text
+        return None
+
+    @property
+    def channels_value(self) -> int | str | None:
+        if self.Channels is not None:
+            return self.Channels
+        return self._extra_value("Channel(s)", "Channels", "Channel(s)_Original")
 
 
 class MamMediaInfo(BaseModel):
@@ -182,6 +243,8 @@ class MamTorrentRaw(BaseModel):
     comments: int = 0
 
     # User-related
+    owner: int = 0
+    owner_name: str | None = None
     bookmarked: str | None = None
     my_snatched: bool = False
 
@@ -220,6 +283,7 @@ class MamTorrentRaw(BaseModel):
         "language",
         "numfiles",
         "mediatype",
+        "owner",
         "vip_expire",
         "browseflags",
         "w",
@@ -314,6 +378,26 @@ class MamTorrentRaw(BaseModel):
         return _parse_added_datetime(self.added)
 
     @property
+    def uploader_id(self) -> int | None:
+        if self.owner:
+            return self.owner
+        if self.ownership and self.ownership[0]:
+            return self.ownership[0]
+        return None
+
+    @property
+    def uploader_name(self) -> str | None:
+        if self.owner_name:
+            name = self.owner_name.strip()
+            if name:
+                return name
+        if self.ownership and len(self.ownership) >= 2:
+            name = str(self.ownership[1]).strip()
+            if name:
+                return name
+        return None
+
+    @property
     def author_names(self) -> list[str]:
         """Get sorted list of author names."""
         return [name for _, name in sorted(self.author_info.items(), key=lambda kv: kv[0])]
@@ -346,6 +430,13 @@ class MamTorrentRaw(BaseModel):
     def to_normalized(self) -> MamTorrentNormalized:
         """Convert to normalized internal format."""
         mi = self.mediainfo
+        audio = mi.Audio1 if mi else None
+        general = mi.General if mi else None
+        bitrate = audio.bitrate_value if audio else None
+        codec = audio.codec_label if audio else None
+        channels = audio.channels_value if audio else None
+        sample_rate = audio.sampling_rate_value if audio else None
+
         return MamTorrentNormalized(
             tid=self.id,
             title=self.title,
@@ -358,14 +449,24 @@ class MamTorrentRaw(BaseModel):
             fl_vip=self.fl_vip,
             seeders=self.seeders,
             leechers=self.leechers,
+            times_completed=self.times_completed,
+            comments=self.comments,
             asin=self.asin,
+            isbn=self.isbn,
             author=", ".join(self.author_names),
             narrator=", ".join(self.narrator_names),
             series=self.series_display or None,
-            duration=(mi.General.Duration if mi and mi.General else None),
-            bitrate=(mi.Audio1.BitRate if mi and mi.Audio1 else None),
-            codec=(mi.Audio1.Format if mi and mi.Audio1 else None),
+            uploader=self.uploader_name,
+            uploader_id=self.uploader_id,
+            language_code=self.lang_code,
+            duration=(general.Duration if general else None),
+            bitrate=bitrate,
+            codec=codec,
+            channels=channels,
+            sample_rate=sample_rate,
+            container=(general.Format if general else None),
             tags=self.tags,
+            upload_notes=self.description,
             dl_token=self.dl,
         )
 
@@ -415,18 +516,28 @@ class MamTorrentNormalized(BaseModel):
     # Stats
     seeders: int
     leechers: int
+    times_completed: int = 0
+    comments: int = 0
 
     # Metadata
     asin: str = ""
+    isbn: str | None = None
     author: str = ""
     narrator: str = ""
     series: str | None = None
+    uploader: str | None = None
+    uploader_id: int | None = None
+    language_code: str = ""
     tags: str = ""
 
     # Audio info (from mediainfo)
     duration: str | None = None
     bitrate: str | None = None
     codec: str | None = None
+    channels: int | str | None = None
+    sample_rate: str | None = None
+    container: str | None = None
+    upload_notes: str | None = None
 
     # Download token (if dlLink was requested)
     dl_token: str | None = None

@@ -46,16 +46,39 @@ def send_pushover(
         message = (
             '<font color="green"><b>🎉 NEW AUDIOBOOK</b></font><br>'
             f'<font color="#30bfff"><b>🎧 Title:</b></font> <b>{escape(fields["title"])}</b><br>'
-            f'<font color="#e040fb"><b>🔗 Series:</b></font> {escape(fields["series"])}<br>'
+        )
+        if fields["series"]:
+            message += f'<font color="#e040fb"><b>🔗 Series:</b></font> {escape(fields["series"])}<br>'
+        message += (
             f'<font color="#ff9500"><b>✍️ Author:</b></font> <i>{escape(fields["author"])}</i><br>'
             f'<font color="#30bfff"><b>🏢 Publisher:</b></font> {escape(fields["publisher"])}<br>'
             f'<font color="#b889f4"><b>🎤 Narrators:</b></font> {escape(", ".join(fields["narrators"]))}<br>'
-            f'<font color="#ff9500"><b>📅 Release Date:</b></font> {escape(fields["release_date"])}<br>'
+        )
+        if fields["release_date"]:
+            message += f'<font color="#ff9500"><b>📅 Release Date:</b></font> {escape(fields["release_date"])}<br>'
+        message += (
             f'<font color="green"><b>⏱️ Runtime:</b></font> {escape(fields["runtime"])}<br>'
             f'<font color="#b889f4"><b>📚 Category:</b></font> {escape(fields["category"])}<br>'
             f'<font color="#888"><b>💾 Size:</b></font> {fields["size"]}<br>'
             f'<font color="#888"><b>📝 Description:</b></font> {fields["description"]}<br>'
         )
+        if fields["audio_summary"]:
+            message += (
+                f'<font color="#30bfff"><b>🎛️ Audio:</b></font> {escape(fields["audio_summary"])}<br>'
+            )
+        if fields["torrent_health"]:
+            message += (
+                f'<font color="#b889f4"><b>📈 Torrent:</b></font> {escape(fields["torrent_health"])}<br>'
+            )
+        if fields["freeleech_label"]:
+            message += (
+                f'<font color="green"><b>🎟️ Access:</b></font> {escape(fields["freeleech_label"])}<br>'
+            )
+        if fields["added_date"]:
+            message += f'<font color="#888"><b>🕒 Added:</b></font> {escape(fields["added_date"])}<br>'
+        if fields["asin"] or fields["isbn"]:
+            identifier = fields["asin"] or fields["isbn"]
+            message += f'<font color="#888"><b>🆔 ID:</b></font> {escape(identifier)}<br>'
         # Add url and download_url
         if fields["url"]:
             message += f'<br><font color="#30bfff"><b>🔗 URL:</b></font> <a href="{escape(fields["url"])}">{escape(fields["url"])}</a>'

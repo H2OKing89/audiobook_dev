@@ -12,7 +12,7 @@ from src.logging_setup import get_logger
 from src.qbittorrent import add_torrent_file_with_cookie
 from src.security import generate_csrf_token, get_client_ip
 from src.template_helpers import render_template
-from src.utils import format_release_date, format_size, strip_html_tags
+from src.utils import get_notification_fields
 
 
 router = APIRouter()
@@ -90,32 +90,29 @@ async def approve(token: str, request: Request) -> HTMLResponse:
             author=metadata.get("author"),
         )
 
-        # Format release_date to YYYY-MM-DD if present
-        release_date = metadata.get("release_date") or payload.get("release_date") or ""
-        metadata["release_date"] = format_release_date(str(release_date))
-        # Format size to MB/GB if present
-        size = payload.get("size") or metadata.get("size")
-        if size:
-            metadata["size"] = format_size(size)
-            log.debug("webui.approve.size_formatted", token_id=token_fp, size=metadata["size"])
-        # Ensure url and download_url are present
-        metadata["url"] = payload.get("url")
-        metadata["download_url"] = payload.get("download_url")
-        # Sanitize description to prevent XSS and strip dangerous HTML
-        raw_desc = metadata.get("description", "") or ""
-        cleaned_desc = strip_html_tags(raw_desc)
-        # Collapse excessive whitespace
-        cleaned_desc = "\n".join(line.strip() for line in cleaned_desc.splitlines() if line.strip())
-        metadata["description"] = cleaned_desc
+        fields = get_notification_fields(metadata, payload)
+        log.debug(
+            "webui.approve.fields",
+            token_id=token_fp,
+            has_mam_enrichment=fields.get("has_mam_enrichment", False),
+            audio_summary=fields.get("audio_summary"),
+            torrent_health=fields.get("torrent_health"),
+        )
 
         # Merge metadata and payload for template context
-        context = {"token": token, **payload, **metadata}
+        context = {
+            "token": token,
+            **payload,
+            **metadata,
+            **fields,
+            "narrator": fields.get("narrator_text", ""),
+        }
         # Add dynamic Open Graph/Twitter meta
         context.update(
             {
-                "og_title": metadata.get("title"),
-                "og_description": metadata.get("description") or payload.get("name"),
-                "og_image": metadata.get("cover_url") or metadata.get("image"),
+                "og_title": fields.get("title") or metadata.get("title"),
+                "og_description": fields.get("description") or payload.get("name"),
+                "og_image": fields.get("cover_url") or metadata.get("cover_url") or metadata.get("image"),
             }
         )
 

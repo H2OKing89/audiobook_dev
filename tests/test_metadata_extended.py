@@ -128,7 +128,20 @@ class TestMetadataModule:
             "download_url": "http://example.com/download.torrent",
         }
 
-        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value="B123456789")
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(
+            return_value={
+                "asin": "B123456789",
+                "mam_id": 12345,
+                "mam_enrichment": {
+                    "mam_id": 12345,
+                    "filetype": "MP3",
+                    "seeders": 10,
+                    "leechers": 2,
+                    "times_completed": 50,
+                    "audio": {"codec": "MP3", "bitrate": "128000"},
+                },
+            }
+        )
         coordinator.audnex.get_book_by_asin = AsyncMock(
             return_value={"title": "Test Book", "authors": [{"name": "Test Author"}], "asin": "B123456789"}
         )
@@ -138,6 +151,7 @@ class TestMetadataModule:
         assert result["title"] == "Test Book"
         assert result["asin"] == "B123456789"
         assert result["source"] == "audnex"
+        assert result["mam_enrichment"]["mam_id"] == 12345
 
     @pytest.mark.asyncio
     @pytest.mark.no_mock_external_apis
@@ -148,7 +162,7 @@ class TestMetadataModule:
             "download_url": "http://example.com/download.torrent",
         }
 
-        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(return_value=None)
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(
             return_value=[{"title": "Resolved Book", "asin": "B987654321"}]
@@ -170,7 +184,7 @@ class TestMetadataModule:
             "download_url": "http://example.com/download.torrent",
         }
 
-        coordinator.mam_adapter.get_asin_from_url = AsyncMock(return_value=None)
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(return_value=None)
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=None)
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[])
 

@@ -42,6 +42,18 @@ class MetadataCoordinator:
 
         log.info("coordinator.init", seed_authors=self.seed_authors, force_update=self.force_update)
 
+    @staticmethod
+    def _attach_mam_enrichment(metadata: dict[str, Any], mam_metadata: dict[str, Any] | None) -> dict[str, Any]:
+        """Attach non-authoritative MAM enrichment to a metadata result."""
+        if not mam_metadata:
+            return metadata
+
+        mam_enrichment = mam_metadata.get("mam_enrichment")
+        if mam_enrichment:
+            metadata["mam_enrichment"] = mam_enrichment
+
+        return metadata
+
     async def get_metadata_from_webhook(self, webhook_payload: dict[str, Any]) -> dict[str, Any] | None:
         """
         Main workflow: Get metadata from webhook payload.
@@ -59,12 +71,16 @@ class MetadataCoordinator:
 
         # Step 1: Try to extract ASIN from MAM URL if it's a MAM URL
         asin = None
+        mam_metadata: dict[str, Any] | None = None
         if url and "myanonamouse.net" in url:
             log.info("coordinator.step1.mam_extract")
             try:
-                asin = await self.mam_adapter.get_asin_from_url(url)
+                mam_metadata = await self.mam_adapter.get_full_metadata(url)
+                asin = mam_metadata.get("asin") if mam_metadata else None
                 if asin:
                     log.info("coordinator.step1.asin_found", asin=asin)
+                elif mam_metadata:
+                    log.info("coordinator.step1.enrichment_found_without_asin", mam_id=mam_metadata.get("mam_id"))
                 else:
                     log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
             except MamApiError:
@@ -97,6 +113,7 @@ class MetadataCoordinator:
 
                     # Add webhook payload information
                     metadata.update(self._add_webhook_info(webhook_payload))
+                    metadata = self._attach_mam_enrichment(metadata, mam_metadata)
 
                     return metadata
                 else:
@@ -122,6 +139,7 @@ class MetadataCoordinator:
 
                 # Add webhook payload information
                 metadata.update(self._add_webhook_info(webhook_payload))
+                metadata = self._attach_mam_enrichment(metadata, mam_metadata)
 
                 return metadata
             else:

@@ -217,6 +217,44 @@ def extract_info_hash(torrent_data: bytes) -> str | None:
         return None
 
 
+def _torrent_add_result_succeeded(result: Any) -> bool:
+    """
+    Interpret qbittorrent-api torrents_add responses across client versions.
+
+    Older versions return string statuses like "Ok." / "Fails.".
+    Newer versions may return metadata objects with counters and added IDs
+    instead of a per-torrent hash.
+    """
+    if isinstance(result, str):
+        if result == "Ok.":
+            return True
+        if result == "Fails.":
+            return False
+        return True
+
+    torrent_hash = getattr(result, "hash", None)
+    if torrent_hash:
+        return True
+
+    success_count = getattr(result, "success_count", None)
+    if isinstance(success_count, int) and success_count > 0:
+        return True
+
+    added_torrent_ids = getattr(result, "added_torrent_ids", None)
+    if isinstance(added_torrent_ids, (list, tuple, set)) and len(added_torrent_ids) > 0:
+        return True
+
+    pending_count = getattr(result, "pending_count", None)
+    failure_count = getattr(result, "failure_count", None)
+    if isinstance(pending_count, int) and pending_count > 0 and isinstance(failure_count, int) and failure_count == 0:
+        return True
+
+    if isinstance(failure_count, int) and failure_count > 0:
+        return False
+
+    return True
+
+
 # =============================================================================
 # QBittorrent Manager (Singleton Pattern)
 # =============================================================================
@@ -532,12 +570,7 @@ class QBittorrentManager:
                 is_skip_checking=opts.is_skip_checking,
             )
 
-            success = False  # Initialize before conditional assignment
-            if isinstance(result, str):
-                success = result == "Ok."
-            else:
-                # TorrentsAddedMetadata response
-                success = bool(getattr(result, "hash", None))
+            success = _torrent_add_result_succeeded(result)
 
             if success:
                 log.info("qbittorrent.torrent.file.add.success", filename=path.name)
@@ -617,13 +650,7 @@ class QBittorrentManager:
                 is_skip_checking=opts.is_skip_checking,
             )
 
-            # Handle both old (string) and new (TorrentsAddedMetadata) responses
-            success = False
-            if isinstance(result, str):
-                success = result == "Ok."
-            else:
-                # TorrentsAddedMetadata response
-                success = bool(getattr(result, "hash", None))
+            success = _torrent_add_result_succeeded(result)
 
             if success:
                 log.info("qbittorrent.torrent.data.add.success")

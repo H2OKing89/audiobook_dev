@@ -131,3 +131,80 @@ def test_get_notification_fields_no_size():
     assert fields["size"] == "?"
     assert fields["title"] == "Test"
     assert fields["series"] == ""  # Empty series
+
+
+def test_get_notification_fields_with_mam_enrichment():
+    meta = {
+        "title": "",
+        "mam_enrichment": {
+            "title": "Torrent Title",
+            "uploader": "UploaderUser",
+            "authors": ["MAM Author"],
+            "narrators": ["MAM Narrator"],
+            "series": "Series Name #1",
+            "language": "ENG",
+            "filetype": "MP3",
+            "asin": "B0TEST1234",
+            "isbn": "ASIN:B0TEST1234",
+            "tags": "mystery, thriller",
+            "upload_notes": "<p>Encoded from CD</p>",
+            "added": "2025-12-20T10:30:00+00:00",
+            "seeders": 10,
+            "leechers": 2,
+            "times_completed": 50,
+            "comments": 12,
+            "free": True,
+            "audio": {
+                "duration": "12h 30m",
+                "codec": "AAC / xHE-AAC / USAC",
+                "bitrate": "128000",
+                "channels": 2,
+                "sampling_rate": "44100",
+            },
+        },
+    }
+    payload = {"url": "u", "download_url": "d", "size": 1024 * 1024 * 500}
+
+    fields = get_notification_fields(meta, payload)
+
+    assert fields["title"] == "Torrent Title"
+    assert fields["author"] == "MAM Author"
+    assert fields["narrators"] == ["MAM Narrator"]
+    assert fields["series"] == "Series Name #1"
+    assert fields["runtime"] == "12h 30m"
+    assert fields["audio_summary"] == "MP3 • AAC / xHE-AAC / USAC • 128 kbps • 2 ch • 44.1 kHz"
+    assert fields["torrent_health"] == "10 seeders • 2 leechers • 50 completed"
+    assert fields["freeleech_label"] == "Freeleech"
+    assert fields["added_date"] == "2025-12-20"
+    assert fields["description"] == "Encoded from CD"
+    assert fields["tag_list"] == ["mystery", "thriller"]
+    assert fields["uploader"] == "UploaderUser"
+    assert fields["comment_count_label"] == "12 comments"
+
+
+def test_get_notification_fields_audible_series_key():
+    """Audible scraper uses 'title' inside series items, not 'series'."""
+    meta = {
+        "title": "The Angel Next Door Spoils Me Rotten, Vol. 3",
+        "series": [{"title": "The Angel Next Door Spoils Me Rotten", "sequence": "3"}],
+        "releaseDate": "2023-06-27",
+        "author": "Saekisan",
+        "narrators": ["Greg D. Barnett"],
+    }
+    payload = {}
+    fields = get_notification_fields(meta, payload)
+    assert fields["series"] == "The Angel Next Door Spoils Me Rotten (Vol. 3)"
+    assert fields["release_date"] == "2023-06-27"
+
+
+def test_get_notification_fields_audible_series_no_sequence():
+    """Audible series item with title but no sequence."""
+    meta = {
+        "title": "Some Book",
+        "series": [{"title": "Some Series", "sequence": ""}],
+        "releaseDate": "2024-01-15T00:00:00Z",
+    }
+    payload = {}
+    fields = get_notification_fields(meta, payload)
+    assert fields["series"] == "Some Series"
+    assert fields["release_date"] == "2024-01-15"

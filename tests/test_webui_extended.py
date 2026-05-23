@@ -163,6 +163,46 @@ class TestWebUIEndpoints:
         finally:
             delete_request(token)
 
+    def test_mam_enrichment_in_approval_page(self, test_client):
+        token = "test_mam_enrichment_token"
+        metadata = {
+            "title": "Test Title",
+            "author": "Author Name",
+            "description": "Primary description",
+            "mam_enrichment": {
+                "uploader": "UploaderUser",
+                "filetype": "MP3",
+                "language": "ENG",
+                "asin": "B0TEST1234",
+                "tags": "mystery, thriller",
+                "upload_notes": "<p>Encoded from CD master</p>",
+                "added": "2025-12-20T10:30:00+00:00",
+                "free": True,
+                "seeders": 10,
+                "leechers": 2,
+                "times_completed": 50,
+                "comments": 12,
+                "audio": {"codec": "AAC / xHE-AAC / USAC", "bitrate": "128000", "channels": 2, "sampling_rate": "44100"},
+            },
+        }
+        payload = {"url": "http://test.com", "download_url": "http://test.com/download", "size": 1024 * 1024 * 100}
+        save_request(token, metadata, payload)
+
+        try:
+            resp = test_client.get(f"/approve/{token}")
+            assert resp.status_code == 200
+            assert "AAC / xHE-AAC / USAC" in resp.text
+            assert "128 kbps" in resp.text
+            assert "10 seeders" in resp.text
+            assert "Freeleech" in resp.text
+            assert "2025-12-20" in resp.text
+            assert "mystery, thriller" in resp.text
+            assert "Encoded from CD master" in resp.text
+            assert "UploaderUser" in resp.text
+            assert "12 comments" in resp.text
+        finally:
+            delete_request(token)
+
     # NOTE: test_token_expiry_handling has been removed due to flaky behavior with
     # session-scoped test_client and event loop timing issues during teardown.
     # The token expiry functionality is tested indirectly by other tests that
