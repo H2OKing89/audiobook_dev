@@ -152,11 +152,89 @@ def build_notification_message(metadata: dict[str, Any], payload: dict[str, Any]
     return msg
 
 
+def _get_mam_enrichment(metadata: dict[str, Any]) -> dict[str, Any]:
+    mam_enrichment = metadata.get("mam_enrichment")
+    return mam_enrichment if isinstance(mam_enrichment, dict) else {}
+
+
+def _clean_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return []
+
+
+def _split_tags(value: Any) -> list[str]:
+    if not value:
+        return []
+    return [tag.strip() for tag in re.split(r",\s*", str(value)) if tag.strip()]
+
+
+def _coerce_optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_bitrate(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        numeric = float(text)
+    except ValueError:
+        return text
+
+    if numeric >= 1000:
+        kbps = numeric / 1000
+        formatted = f"{kbps:.1f}".rstrip("0").rstrip(".")
+        return f"{formatted} kbps"
+    return f"{int(numeric)} bps"
+
+
+def _format_sampling_rate(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        numeric = float(text)
+    except ValueError:
+        return text
+
+    if numeric >= 1000:
+        khz = numeric / 1000
+        formatted = f"{khz:.1f}".rstrip("0").rstrip(".")
+        return f"{formatted} kHz"
+    return f"{int(numeric)} Hz"
+
+
+def _format_channels(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+    try:
+        channels = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{channels} ch"
+
+
 def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     """
     Extract and sanitize common fields for notification formatting.
     """
-    title = clean_light_novel(metadata.get("title", "")) or ""
+    mam_enrichment = _get_mam_enrichment(metadata)
+    audio_data = mam_enrichment.get("audio")
+    mam_audio = audio_data if isinstance(audio_data, dict) else {}
+
+    title = clean_light_novel(metadata.get("title") or mam_enrichment.get("title") or "") or ""
 
     # Series handling - try multiple field names
     series = ""
@@ -168,13 +246,14 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         else:
             series = str(series_name) if series_name else ""
     elif metadata.get("series"):
-        # Handle series as array or string
+        # Handle series as array or string.
+        # Audnex uses key "series"; Audible scraper uses key "title".
         series_data = metadata.get("series")
         if isinstance(series_data, list) and series_data:
             s = series_data[0]
             if isinstance(s, dict):
-                series_name = s.get("series", "")
-                series_seq = s.get("sequence", "")
+                series_name = s.get("series") or s.get("title") or s.get("name") or ""
+                series_seq = s.get("sequence") or s.get("position") or ""
                 if series_name and series_seq:
                     series = f"{series_name} (Vol. {series_seq})"
                 elif series_name:
@@ -189,11 +268,15 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
             series = f"{series_name} (Vol. {series_info['position']})"
         elif series_name:
             series = series_name
+    elif mam_enrichment.get("series"):
+        series = str(mam_enrichment.get("series") or "")
 
     # Clean series name
     series = clean_light_novel(series) or ""
 
     author = metadata.get("author", "") or metadata.get("book_author", "")
+    if not author:
+        author = ", ".join(_clean_list(mam_enrichment.get("authors")))
     publisher = metadata.get("publisher", "") or metadata.get("book_publisher", "")
 
     # Narrator handling - try multiple field names
@@ -215,22 +298,88 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         narrators_raw = metadata.get("narrators_raw", [])
         narrators = [n.get("name", "") for n in narrators_raw if n.get("name")]
 
+    if not narrators:
+        narrators = _clean_list(mam_enrichment.get("narrators"))
+
     # Fallback to payload if no narrators found
     if not narrators:
         narrators = payload.get("narrators", [])
 
-    release_date = format_release_date(metadata.get("release_date", "") or metadata.get("book_release_date", ""))
-    runtime = str(metadata.get("runtime_minutes", "") or metadata.get("book_duration", ""))
-    category = payload.get("category", "")
-    size = format_size(payload.get("size") or metadata.get("size"))
-    description = strip_html_tags(
+    release_date = format_release_date(
+        metadata.get("release_date")
+        or metadata.get("releaseDate")
+        or metadata.get("book_release_date")
+        or payload.get("release_date")
+        or ""
+    )
+    runtime = str(
+        metadata.get("runtime_minutes", "") or metadata.get("book_duration", "") or mam_audio.get("duration") or ""
+    )
+    category = payload.get("category", "") or metadata.get("category", "") or mam_enrichment.get("category", "")
+    size_value = payload.get("size") or metadata.get("size") or mam_enrichment.get("size")
+    size = format_size(size_value) if size_value is not None else ""
+    book_description = strip_html_tags(
         metadata.get("summary") or metadata.get("description", "") or metadata.get("book_description", "")
     )
+    upload_notes = strip_html_tags(mam_enrichment.get("upload_notes"))
+    description = book_description or upload_notes
     url = payload.get("url") or metadata.get("url")
     download_url = payload.get("download_url") or metadata.get("download_url")
     cover_url = (
         metadata.get("cover_url") or metadata.get("image") or metadata.get("cover") or metadata.get("book_cover")
     )
+
+    language = str(metadata.get("language") or mam_enrichment.get("language") or "")
+    filetype = str(mam_enrichment.get("filetype") or metadata.get("format") or "")
+    isbn = str(mam_enrichment.get("isbn") or metadata.get("isbn") or "")
+    asin = str(metadata.get("asin") or mam_enrichment.get("asin") or "")
+    tags = str(mam_enrichment.get("tags") or metadata.get("tags") or "")
+    tag_list = _split_tags(tags)
+    uploader = str(mam_enrichment.get("uploader") or metadata.get("uploader") or payload.get("uploader") or "")
+
+    audio_codec = str(mam_audio.get("codec") or "")
+    audio_bitrate = _format_bitrate(mam_audio.get("bitrate"))
+    audio_channels = _format_channels(mam_audio.get("channels"))
+    audio_sampling_rate = _format_sampling_rate(mam_audio.get("sampling_rate"))
+    audio_container = str(mam_audio.get("container") or "")
+
+    audio_summary_parts = []
+    if filetype:
+        audio_summary_parts.append(filetype)
+    if audio_codec and audio_codec.lower() != filetype.lower():
+        audio_summary_parts.append(audio_codec)
+    if audio_bitrate:
+        audio_summary_parts.append(audio_bitrate)
+    if audio_channels:
+        audio_summary_parts.append(audio_channels)
+    if audio_sampling_rate:
+        audio_summary_parts.append(audio_sampling_rate)
+    audio_summary = " • ".join(audio_summary_parts)
+
+    seeders = _coerce_optional_int(mam_enrichment.get("seeders"))
+    leechers = _coerce_optional_int(mam_enrichment.get("leechers"))
+    times_completed = _coerce_optional_int(mam_enrichment.get("times_completed"))
+    comments = _coerce_optional_int(mam_enrichment.get("comments"))
+    torrent_health_parts = []
+    if seeders is not None:
+        torrent_health_parts.append(f"{seeders} seeders")
+    if leechers is not None:
+        torrent_health_parts.append(f"{leechers} leechers")
+    if times_completed is not None:
+        torrent_health_parts.append(f"{times_completed} completed")
+    torrent_health = " • ".join(torrent_health_parts)
+    comment_count_label = f"{comments} comments" if comments is not None else ""
+
+    freeleech_flags = []
+    if mam_enrichment.get("fl_vip"):
+        freeleech_flags.append("VIP Freeleech")
+    else:
+        if mam_enrichment.get("free") or payload.get("freeleech"):
+            freeleech_flags.append("Freeleech")
+        if mam_enrichment.get("vip"):
+            freeleech_flags.append("VIP")
+    freeleech_label = " • ".join(freeleech_flags)
+    added_date = format_release_date(str(mam_enrichment.get("added") or ""))
 
     return {
         "title": title,
@@ -238,6 +387,7 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         "author": author,
         "publisher": publisher,
         "narrators": narrators,
+        "narrator_text": ", ".join(narrators),
         "release_date": release_date,
         "runtime": runtime,
         "category": category,
@@ -246,4 +396,28 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         "url": url,
         "download_url": download_url,
         "cover_url": cover_url,
+        "language": language,
+        "filetype": filetype,
+        "asin": asin,
+        "isbn": isbn,
+        "tags": tags,
+        "tag_list": tag_list,
+        "uploader": uploader,
+        "audio_summary": audio_summary,
+        "audio_codec": audio_codec,
+        "audio_bitrate": audio_bitrate,
+        "audio_channels": audio_channels,
+        "audio_sampling_rate": audio_sampling_rate,
+        "audio_container": audio_container,
+        "torrent_health": torrent_health,
+        "seeders": seeders,
+        "leechers": leechers,
+        "times_completed": times_completed,
+        "comments": comments,
+        "comment_count_label": comment_count_label,
+        "freeleech_label": freeleech_label,
+        "freeleech_flags": freeleech_flags,
+        "added_date": added_date,
+        "upload_notes": upload_notes,
+        "has_mam_enrichment": bool(mam_enrichment),
     }

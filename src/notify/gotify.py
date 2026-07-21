@@ -61,6 +61,11 @@ def send_gotify(
         f"**⏱️ Runtime:** {runtime}" if runtime else None,
         f"**📚 Category:** {category}" if category else None,
         f"**💾 Size:** {size_fmt}" if size_fmt else None,
+        f"**🎛️ Audio:** {escape_md(fields['audio_summary'])}" if fields["audio_summary"] else None,
+        f"**📈 Torrent:** {escape_md(fields['torrent_health'])}" if fields["torrent_health"] else None,
+        f"**🎟️ Access:** {escape_md(fields['freeleech_label'])}" if fields["freeleech_label"] else None,
+        f"**🕒 Added:** {escape_md(fields['added_date'])}" if fields["added_date"] else None,
+        f"**🆔 ID:** {escape_md(fields['asin'] or fields['isbn'])}" if (fields["asin"] or fields["isbn"]) else None,
         f"**📝 Description:** {description}" if description else None,
         f"![cover]({cover_url})" if cover_url else None,  # Markdown image line
         f"[🌐 View]({view_url})",

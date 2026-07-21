@@ -58,6 +58,7 @@ def sample_torrent_data():
         "my_bookmarked": "0",
         "browseflags": "00000000000000000000000000",
         "cat_name": "Audiobooks",
+        "catname": "Audiobooks",
         "added": "2025-12-20 10:30:00",
         "size": "524288000",
         "times_completed": "50",
@@ -73,7 +74,8 @@ def sample_torrent_data():
         "sub_cat": "14",
         "thumb": "https://example.com/thumb.jpg",
         "files": "25",
-        "mediainfo": '{"General": {"Duration": "12h 30m"}, "Audio1": {"Format": "MP3", "Bitrate": "128000"}}',
+        "tags": "mystery, thriller",
+        "mediainfo": '{"General": {"Duration": "12h 30m", "Format": "MPEG Audio"}, "Audio1": {"Format": "MP3", "Bitrate": "128000", "Channels": 2, "SamplingRate": "44100"}}',
         "ownership": '["67890", "downloader"]',
     }
 
@@ -206,12 +208,40 @@ class TestMamTorrentRaw:
         assert torrent.mediainfo.General is not None
         assert torrent.mediainfo.Audio1 is not None
 
+    def test_mediainfo_alias_parsing(self):
+        """Test mediainfo parsing when MAM returns alternate MediaInfo keys."""
+        torrent = MamTorrentRaw(
+            id=123,
+            title="Alias Test",
+            owner_name="Uploader",
+            mediainfo={
+                "General": {"Duration": "8h 00m", "Format": "M4B"},
+                "Audio1": {
+                    "Format": "AAC",
+                    "CommercialName": "xHE-AAC",
+                    "Format_Profile": "USAC",
+                    "BitRate/String": "48.0 kb/s",
+                    "Channel(s)": "2",
+                    "SamplingRate/String": "24.0 kHz",
+                },
+            },
+        )
+
+        normalized = torrent.to_normalized()
+        assert normalized.codec == "AAC / xHE-AAC / USAC"
+        assert normalized.bitrate == "48.0 kb/s"
+        assert normalized.channels == "2"
+        assert normalized.sample_rate == "24.0 kHz"
+        assert normalized.uploader == "Uploader"
+
     def test_ownership_parsing(self, sample_torrent_data):
         """Test ownership JSON-inside-string parsing."""
         torrent = MamTorrentRaw(**sample_torrent_data)
 
         # ownership is (int, str) tuple
         assert torrent.ownership == (67890, "downloader")
+        assert torrent.uploader_name == "uploader123"
+        assert torrent.uploader_id == 12345
 
     def test_numeric_fields(self, sample_torrent_data):
         """Test numeric field parsing - strings are preserved."""
@@ -283,6 +313,12 @@ class TestMamTorrentRaw:
         assert "Test Author" in normalized.author
         # narrator is comma-joined string of narrator names
         assert "Narrator One" in normalized.narrator
+        assert normalized.bitrate == "128000"
+        assert normalized.channels == 2
+        assert normalized.sample_rate == "44100"
+        assert normalized.times_completed == 50
+        assert normalized.upload_notes == "This is a test audiobook description."
+        assert normalized.uploader == "uploader123"
 
 
 class TestMamSearchResponseRaw:
@@ -603,6 +639,12 @@ class TestMAMApiAdapter:
             assert "Test Author" in metadata["authors"]
             assert "Narrator One" in metadata["narrators"]
             assert metadata["source"] == "mam_api"
+            assert metadata["mam_enrichment"]["seeders"] == 10
+            assert metadata["mam_enrichment"]["times_completed"] == 50
+            assert metadata["mam_enrichment"]["audio"]["bitrate"] == "128000"
+            assert metadata["mam_enrichment"]["audio"]["channels"] == 2
+            assert metadata["mam_enrichment"]["uploader"] == "uploader123"
+            assert metadata["mam_enrichment"]["comments"] == 0
 
     @pytest.mark.asyncio
     async def test_get_full_metadata_no_torrent(self):

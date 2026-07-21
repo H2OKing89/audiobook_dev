@@ -150,6 +150,96 @@
             </div>
             {% endif %}
 
+            {% if audio_summary %}
+            <div class="spec-card spec-wide">
+              <div class="spec-icon">🎛️</div>
+              <div class="spec-data">
+                <div class="spec-label">AUDIO</div>
+                <div class="spec-value">{{ audio_summary }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if torrent_health %}
+            <div class="spec-card spec-wide">
+              <div class="spec-icon">📈</div>
+              <div class="spec-data">
+                <div class="spec-label">TORRENT_HEALTH</div>
+                <div class="spec-value">{{ torrent_health }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if comment_count_label %}
+            <div class="spec-card">
+              <div class="spec-icon">💬</div>
+              <div class="spec-data">
+                <div class="spec-label">COMMENTS</div>
+                <div class="spec-value">{{ comment_count_label }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if uploader %}
+            <div class="spec-card">
+              <div class="spec-icon">🧑</div>
+              <div class="spec-data">
+                <div class="spec-label">UPLOADER</div>
+                <div class="spec-value">{{ uploader }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if freeleech_label %}
+            <div class="spec-card">
+              <div class="spec-icon">🎟️</div>
+              <div class="spec-data">
+                <div class="spec-label">ACCESS</div>
+                <div class="spec-value">{{ freeleech_label }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if added_date %}
+            <div class="spec-card">
+              <div class="spec-icon">🕒</div>
+              <div class="spec-data">
+                <div class="spec-label">MAM_ADDED</div>
+                <div class="spec-value">{{ added_date }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if language or filetype %}
+            <div class="spec-card">
+              <div class="spec-icon">🌐</div>
+              <div class="spec-data">
+                <div class="spec-label">LANGUAGE_FILE</div>
+                <div class="spec-value">{{ language }}{% if language and filetype %} • {% endif %}{{ filetype }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if asin or isbn %}
+            <div class="spec-card spec-wide">
+              <div class="spec-icon">🆔</div>
+              <div class="spec-data">
+                <div class="spec-label">IDENTIFIERS</div>
+                <div class="spec-value">{% if asin %}ASIN {{ asin }}{% endif %}{% if asin and isbn %} • {% endif %}{% if isbn %}{{ isbn }}{% endif %}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if tag_list %}
+            <div class="spec-card spec-wide">
+              <div class="spec-icon">🏷️</div>
+              <div class="spec-data">
+                <div class="spec-label">TAGS</div>
+                <div class="spec-value">{{ tag_list|join(', ') }}</div>
+              </div>
+            </div>
+            {% endif %}
+
             {% if url %}
             <div class="spec-card spec-wide">
               <div class="spec-icon">🔗</div>
@@ -164,6 +254,13 @@
             </div>
             {% endif %}
           </div>
+
+          {% if upload_notes and upload_notes != description %}
+          <div class="description-panel">
+            <div class="panel-subheader">📦 MAM UPLOAD NOTES</div>
+            <div class="description-content" style="white-space: pre-wrap;">{{ upload_notes }}</div>
+          </div>
+          {% endif %}
         </section>
 
         <!-- Action Console -->
