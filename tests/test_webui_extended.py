@@ -20,6 +20,22 @@ class TestWebUIEndpoints:
         assert "Test Book" in resp.text
         assert "Test Author" in resp.text
 
+    def test_approve_page_uses_path_token_over_payload_or_metadata(self, test_client):
+        token = "path_token"
+        metadata = {"title": "Test Book", "token": "metadata_token"}
+        payload = {"token": "payload_token"}
+        save_request(token, metadata, payload)
+
+        try:
+            response = test_client.get(f"/approve/{token}")
+
+            assert response.status_code == 200
+            assert f'action="/approve/{token}"' in response.text
+            assert "metadata_token" not in response.text
+            assert "payload_token" not in response.text
+        finally:
+            delete_request(token)
+
     def test_approve_page_invalid_token(self, test_client):
         resp = test_client.get("/approve/nonexistent_token")
         assert resp.status_code in (401, 410, 404)
@@ -160,6 +176,51 @@ class TestWebUIEndpoints:
             assert "<script" not in desc_html.lower()
             assert "Line1" in desc_html
             assert "Line2" in desc_html
+        finally:
+            delete_request(token)
+
+    def test_mam_enrichment_in_approval_page(self, test_client):
+        token = "test_mam_enrichment_token"
+        metadata = {
+            "title": "Test Title",
+            "author": "Author Name",
+            "description": "Primary description",
+            "mam_enrichment": {
+                "uploader": "UploaderUser",
+                "filetype": "MP3",
+                "language": "ENG",
+                "asin": "B0TEST1234",
+                "tags": "mystery, thriller",
+                "upload_notes": "<p>Encoded from CD master</p>",
+                "added": "2025-12-20T10:30:00+00:00",
+                "free": True,
+                "seeders": 10,
+                "leechers": 2,
+                "times_completed": 50,
+                "comments": 12,
+                "audio": {
+                    "codec": "AAC / xHE-AAC / USAC",
+                    "bitrate": "128000",
+                    "channels": 2,
+                    "sampling_rate": "44100",
+                },
+            },
+        }
+        payload = {"url": "http://test.com", "download_url": "http://test.com/download", "size": 1024 * 1024 * 100}
+        save_request(token, metadata, payload)
+
+        try:
+            resp = test_client.get(f"/approve/{token}")
+            assert resp.status_code == 200
+            assert "AAC / xHE-AAC / USAC" in resp.text
+            assert "128 kbps" in resp.text
+            assert "10 seeders" in resp.text
+            assert "Freeleech" in resp.text
+            assert "2025-12-20" in resp.text
+            assert "mystery, thriller" in resp.text
+            assert "Encoded from CD master" in resp.text
+            assert "UploaderUser" in resp.text
+            assert "12 comments" in resp.text
         finally:
             delete_request(token)
 

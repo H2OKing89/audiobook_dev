@@ -31,6 +31,8 @@ with _lock:
 # Default TTL, will be loaded from config on first use
 _ttl: int | None = None
 
+DEFAULT_REPLY_TOKEN_TTL = 48 * 60 * 60
+
 
 def _get_ttl() -> int:
     """Lazy load TTL from config."""
@@ -38,10 +40,10 @@ def _get_ttl() -> int:
     if _ttl is None:
         try:
             config = load_config()
-            _ttl = config.get("server", {}).get("reply_token_ttl", 3600)
+            _ttl = config.get("server", {}).get("reply_token_ttl", DEFAULT_REPLY_TOKEN_TTL)
         except ConfigurationError:
             # Config not available (e.g., in tests), use default
-            _ttl = 3600
+            _ttl = DEFAULT_REPLY_TOKEN_TTL
     return _ttl
 
 
