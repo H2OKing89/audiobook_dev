@@ -20,6 +20,22 @@ class TestWebUIEndpoints:
         assert "Test Book" in resp.text
         assert "Test Author" in resp.text
 
+    def test_approve_page_uses_path_token_over_payload_or_metadata(self, test_client):
+        token = "path_token"
+        metadata = {"title": "Test Book", "token": "metadata_token"}
+        payload = {"token": "payload_token"}
+        save_request(token, metadata, payload)
+
+        try:
+            response = test_client.get(f"/approve/{token}")
+
+            assert response.status_code == 200
+            assert f'action="/approve/{token}"' in response.text
+            assert "metadata_token" not in response.text
+            assert "payload_token" not in response.text
+        finally:
+            delete_request(token)
+
     def test_approve_page_invalid_token(self, test_client):
         resp = test_client.get("/approve/nonexistent_token")
         assert resp.status_code in (401, 410, 404)

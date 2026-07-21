@@ -23,6 +23,7 @@ from src.audnex_metadata import AudnexMetadata
 from src.config import load_config
 from src.logging_setup import get_logger
 from src.mam_api import MAMApiAdapter, MamApiError
+from src.mam_api.client import MAM_AUTH_ERROR_MESSAGE
 
 
 log = get_logger(__name__)
@@ -84,7 +85,10 @@ class MetadataCoordinator:
                 else:
                     log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
             except MamApiError as exc:
-                log.exception("coordinator.step1.mam_api_error")
+                auth_error = MAM_AUTH_ERROR_MESSAGE in str(exc) or "MAM_ID not configured" in str(exc)
+                log.exception("coordinator.step1.mam_api_error", alert=auth_error)
+                if auth_error:
+                    log.error("coordinator.step1.mam_auth_alert", error=str(exc))
                 log.warning("coordinator.step1.continuing_without_mam", error=str(exc))
             except httpx.RequestError:
                 log.exception("coordinator.step1.network_error")

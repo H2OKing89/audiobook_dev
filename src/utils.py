@@ -213,7 +213,7 @@ def _format_sampling_rate(value: Any) -> str:
         khz = numeric / 1000
         formatted = f"{khz:.1f}".rstrip("0").rstrip(".")
         return f"{formatted} kHz"
-    return text
+    return f"{int(numeric)} Hz"
 
 
 def _format_channels(value: Any) -> str:
@@ -306,13 +306,18 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
         narrators = payload.get("narrators", [])
 
     release_date = format_release_date(
-        metadata.get("release_date") or metadata.get("releaseDate") or metadata.get("book_release_date") or ""
+        metadata.get("release_date")
+        or metadata.get("releaseDate")
+        or metadata.get("book_release_date")
+        or payload.get("release_date")
+        or ""
     )
     runtime = str(
         metadata.get("runtime_minutes", "") or metadata.get("book_duration", "") or mam_audio.get("duration") or ""
     )
     category = payload.get("category", "") or metadata.get("category", "") or mam_enrichment.get("category", "")
-    size = format_size(payload.get("size") or metadata.get("size") or mam_enrichment.get("size"))
+    size_value = payload.get("size") or metadata.get("size") or mam_enrichment.get("size")
+    size = format_size(size_value) if size_value is not None else ""
     book_description = strip_html_tags(
         metadata.get("summary") or metadata.get("description", "") or metadata.get("book_description", "")
     )

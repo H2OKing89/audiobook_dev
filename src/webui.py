@@ -101,11 +101,11 @@ async def approve(token: str, request: Request) -> HTMLResponse:
 
         # Merge metadata and payload for template context
         context = {
-            "token": token,
             **payload,
             **metadata,
             **fields,
             "narrator": fields.get("narrator_text", ""),
+            "token": token,
         }
         # Add dynamic Open Graph/Twitter meta
         context.update(

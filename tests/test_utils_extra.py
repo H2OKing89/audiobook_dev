@@ -5,6 +5,7 @@ import pytest
 from src.db import delete_request, get_request, save_request
 from src.metadata import clean_metadata
 from src.utils import (
+    _format_sampling_rate,
     build_notification_message,
     clean_author_list,
     format_release_date,
@@ -128,9 +129,19 @@ def test_get_notification_fields_no_size():
     meta = {"title": "Test", "author": "Auth"}
     payload = {"url": "u", "download_url": "d"}  # No size
     fields = get_notification_fields(meta, payload)
-    assert fields["size"] == "?"
+    assert fields["size"] == ""
     assert fields["title"] == "Test"
     assert fields["series"] == ""  # Empty series
+
+
+def test_get_notification_fields_uses_payload_release_date():
+    fields = get_notification_fields({"title": "Test"}, {"release_date": "2026-07-20T12:00:00Z"})
+
+    assert fields["release_date"] == "2026-07-20"
+
+
+def test_format_sampling_rate_below_one_khz_uses_hz():
+    assert _format_sampling_rate("800") == "800 Hz"
 
 
 def test_get_notification_fields_with_mam_enrichment():

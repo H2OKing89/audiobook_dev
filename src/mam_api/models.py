@@ -116,6 +116,7 @@ class MamMediaInfoAudio(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     Format: str | None = None
+    # Distinct raw MAM/MediaInfo casings; both are used by bitrate_value()'s fallback chain.
     BitRate: str | None = None
     Bitrate: str | None = None
     BitRate_Mode: str | None = None

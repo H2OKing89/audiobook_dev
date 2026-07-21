@@ -155,6 +155,27 @@ class TestQBittorrentManager:
             assert result is True
             mock_client.torrents_add.assert_called_once()
 
+    def test_add_torrent_by_url_metadata_failure(self, monkeypatch):
+        monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
+        monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
+        monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
+
+        with patch("src.qbittorrent.Client") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client.app_version.return_value = "4.5.0"
+            metadata = MagicMock()
+            metadata.hash = None
+            metadata.success_count = 0
+            metadata.added_torrent_ids = []
+            metadata.failure_count = 1
+            metadata.pending_count = 0
+            mock_client.torrents_add.return_value = metadata
+            mock_client_class.return_value = mock_client
+
+            manager = QBittorrentManager()
+
+            assert manager.add_torrent_by_url("magnet:?xt=urn:btih:abc123") is False
+
     def test_add_torrent_by_url_with_cookie(self, monkeypatch):
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")

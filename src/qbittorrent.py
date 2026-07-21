@@ -519,7 +519,7 @@ class QBittorrentManager:
                 torrent_hash = getattr(result, "hash", None)
                 if torrent_hash:
                     log.info("qbittorrent.torrent.add.success", hash=torrent_hash)
-                return True
+                return _torrent_add_result_succeeded(result)
 
         except Conflict409Error:
             log.info("qbittorrent.torrent.already_exists")
