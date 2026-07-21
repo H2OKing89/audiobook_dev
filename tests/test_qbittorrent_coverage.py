@@ -202,7 +202,7 @@ class TestAddTorrentByUrlEdgeCases:
                 manager.add_torrent_by_url("magnet:?xt=urn:btih:abc123")
 
     def test_unknown_string_response(self, monkeypatch):
-        """Test handling of unknown string response."""
+        """Test that an unrecognised string response is not treated as success."""
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
@@ -210,15 +210,13 @@ class TestAddTorrentByUrlEdgeCases:
         with patch("src.qbittorrent.Client") as mock_client_class:
             mock_client = MagicMock()
             mock_client.app_version.return_value = "4.5.0"
-            # Return an unknown string response
-            mock_client.torrents_add.return_value = "Unknown response"
+            mock_client.torrents_add.return_value = "Unexpected."
             mock_client_class.return_value = mock_client
 
             manager = QBittorrentManager()
 
-            # Should return True for unknown responses (assume success)
             result = manager.add_torrent_by_url("magnet:?xt=urn:btih:abc123")
-            assert result is True
+            assert result is False
 
     def test_metadata_response_with_hash(self, monkeypatch):
         """Test handling of TorrentsAddedMetadata response with hash."""

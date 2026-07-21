@@ -185,7 +185,10 @@ class TestGetMetadataFromWebhook:
     async def test_webhook_mam_url_success(self, coordinator, sample_webhook_payload, sample_audnex_metadata):
         """Test successful ASIN extraction from MAM URL."""
         # MAM returns ASIN
-        coordinator.mam_adapter.get_full_metadata = AsyncMock(return_value={"asin": "B0TEST1234"})
+        mam_enrichment = {"mam_id": 12345, "filetype": "MP3"}
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(
+            return_value={"asin": "B0TEST1234", "mam_enrichment": mam_enrichment}
+        )
         # Audnex returns metadata
         coordinator.audnex.get_book_by_asin = AsyncMock(return_value=sample_audnex_metadata.copy())
 
@@ -195,6 +198,7 @@ class TestGetMetadataFromWebhook:
         assert result["asin"] == "B0TEST1234"
         assert result["source"] == "audnex"
         assert result["asin_source"] == "mam"
+        assert result["mam_enrichment"] == mam_enrichment
         coordinator.mam_adapter.get_full_metadata.assert_called_once_with(sample_webhook_payload["url"])
 
     @pytest.mark.asyncio
@@ -203,7 +207,8 @@ class TestGetMetadataFromWebhook:
     ):
         """Test fallback to Audible search when MAM returns no ASIN."""
         # MAM returns no ASIN
-        coordinator.mam_adapter.get_full_metadata = AsyncMock(return_value=None)
+        mam_enrichment = {"mam_id": 54321, "filetype": "M4B"}
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(return_value={"mam_enrichment": mam_enrichment})
         # Audible search returns results
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
@@ -212,6 +217,7 @@ class TestGetMetadataFromWebhook:
         assert result is not None
         assert result["source"] == "audible"
         assert result["asin_source"] == "search"
+        assert result["mam_enrichment"] == mam_enrichment
 
     @pytest.mark.asyncio
     async def test_webhook_no_mam_url_goes_to_audible(self, coordinator, sample_audible_metadata):
@@ -270,11 +276,12 @@ class TestGetMetadataFromWebhook:
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("auth_error", [MAM_AUTH_ERROR_MESSAGE, "MAM_ID not configured"])
     async def test_webhook_mam_auth_error_falls_back_to_audible(
-        self, coordinator, sample_webhook_payload, sample_audible_metadata
+        self, coordinator, sample_webhook_payload, sample_audible_metadata, auth_error
     ):
         """Test MAM auth errors do not prevent the Audible fallback search."""
-        coordinator.mam_adapter.get_full_metadata = AsyncMock(side_effect=MamApiError(MAM_AUTH_ERROR_MESSAGE))
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(side_effect=MamApiError(auth_error))
         coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
         with patch("src.metadata_coordinator.log") as mock_log:
@@ -284,7 +291,7 @@ class TestGetMetadataFromWebhook:
         assert result["source"] == "audible"
         coordinator.audible.search_from_webhook_name.assert_called_once()
         mock_log.exception.assert_any_call("coordinator.step1.mam_api_error", alert=True)
-        mock_log.error.assert_any_call("coordinator.step1.mam_auth_alert", error=MAM_AUTH_ERROR_MESSAGE)
+        mock_log.error.assert_any_call("coordinator.step1.mam_auth_alert", error=auth_error)
 
     @pytest.mark.asyncio
     async def test_webhook_mam_api_error_falls_back_to_audible(

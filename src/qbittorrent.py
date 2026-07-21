@@ -502,18 +502,14 @@ class QBittorrentManager:
                 is_skip_checking=opts.is_skip_checking,
             )
 
-            # Handle both old (string) and new (TorrentsAddedMetadata) responses
+            # Handle both old (string) and new (TorrentsAddedMetadata) responses.
             if isinstance(result, str):
-                if result == "Ok.":
+                success = _torrent_add_result_succeeded(result)
+                if success:
                     log.info("qbittorrent.torrent.add.success")
-                    return True
                 elif result == "Fails.":
                     log.warning("qbittorrent.torrent.add.rejected", url=url[:100])
-                    return False
-                else:
-                    # Unknown string response, log it
-                    log.debug("qbittorrent.torrent.add.response", response=result)
-                    return True
+                return success
             else:
                 # TorrentsAddedMetadata response (newer API versions)
                 torrent_hash = getattr(result, "hash", None)
