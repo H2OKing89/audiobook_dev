@@ -83,9 +83,9 @@ class MetadataCoordinator:
                     log.info("coordinator.step1.enrichment_found_without_asin", mam_id=mam_metadata.get("mam_id"))
                 else:
                     log.warning("coordinator.step1.no_asin", reason="mam_torrent_has_no_asin")
-            except MamApiError:
+            except MamApiError as exc:
                 log.exception("coordinator.step1.mam_auth_error")
-                raise
+                log.warning("coordinator.step1.continuing_without_mam", error=str(exc))
             except httpx.RequestError:
                 log.exception("coordinator.step1.network_error")
             except ValueError:

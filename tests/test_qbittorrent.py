@@ -359,6 +359,48 @@ class TestQbittorrentClient:
             )
 
             assert result is True
+            mock_client.torrents_add.assert_called_once()
+
+    def test_add_torrent_file_with_cookie_metadata_counts_failure(self, monkeypatch):
+        """Test that metadata with success_count=0 and no other success signals returns False."""
+        monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
+        monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
+        monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
+
+        fake_torrent_data = b"d8:announce3:url4:infod4:name4:teste"
+
+        with (
+            patch("src.qbittorrent.Client") as mock_client_class,
+            patch("src.qbittorrent.httpx.Client") as mock_httpx_class,
+        ):
+            mock_client = MagicMock()
+            mock_client.app_version.return_value = "4.5.0"
+            metadata = MagicMock()
+            metadata.hash = None
+            metadata.success_count = 0
+            metadata.added_torrent_ids = []
+            metadata.failure_count = 0
+            metadata.pending_count = 0
+            mock_client.torrents_add.return_value = metadata
+            mock_client_class.return_value = mock_client
+
+            mock_response = MagicMock()
+            mock_response.content = fake_torrent_data
+            mock_response.headers = {"content-type": "application/x-bittorrent"}
+            mock_httpx = MagicMock()
+            mock_httpx.get.return_value = mock_response
+            mock_httpx.__enter__ = MagicMock(return_value=mock_httpx)
+            mock_httpx.__exit__ = MagicMock(return_value=False)
+            mock_httpx_class.return_value = mock_httpx
+
+            result = add_torrent_file_with_cookie(
+                download_url="http://example.com/test.torrent",
+                name="Test Torrent",
+                cookie="session=abc123",
+            )
+
+            assert result is False
+            mock_client.torrents_add.assert_called_once()
 
     def test_add_torrent_file_invalid_url(self, monkeypatch):
         """Test that invalid URLs are rejected."""

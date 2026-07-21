@@ -221,16 +221,34 @@ def _torrent_add_result_succeeded(result: Any) -> bool:
     """
     Interpret qbittorrent-api torrents_add responses across client versions.
 
-    Older versions return string statuses like "Ok." / "Fails.".
-    Newer versions may return metadata objects with counters and added IDs
-    instead of a per-torrent hash.
+    Returns True only for explicitly recognised success signals; returns False
+    (with a warning log) for anything unrecognised.
+
+    Expected response shapes:
+
+    1. String (qBittorrent <= 4.x / API < v2.9):
+       - ``"Ok."``    → success
+       - ``"Fails."`` → failure (torrent rejected or already exists)
+       - any other string → unrecognised, treated as failure
+
+    2. Object with ``hash`` attribute (newer API):
+       - non-empty ``hash`` → success
+
+    3. Object with ``success_count`` (TorrentsAddedMetadata, API >= v2.9):
+       - ``success_count > 0``                              → success
+       - ``added_torrent_ids`` non-empty collection         → success
+       - ``pending_count > 0`` and ``failure_count == 0``   → success
+       - ``failure_count > 0``                              → failure
+
+    4. Anything else → unrecognised, treated as failure with a warning log.
     """
     if isinstance(result, str):
         if result == "Ok.":
             return True
         if result == "Fails.":
             return False
-        return True
+        log.warning("qbittorrent.torrent.add.unrecognised_string_response", response=result)
+        return False
 
     torrent_hash = getattr(result, "hash", None)
     if torrent_hash:
@@ -252,7 +270,8 @@ def _torrent_add_result_succeeded(result: Any) -> bool:
     if isinstance(failure_count, int) and failure_count > 0:
         return False
 
-    return True
+    log.warning("qbittorrent.torrent.add.unrecognised_response", response_type=type(result).__name__, response=str(result)[:200])
+    return False
 
 
 # =============================================================================

@@ -269,15 +269,18 @@ class TestGetMetadataFromWebhook:
         assert result["source"] == "audible"
 
     @pytest.mark.asyncio
-    async def test_webhook_mam_auth_error_raises(self, coordinator, sample_webhook_payload):
-        """Test MAM auth errors are surfaced instead of falling back to Audible."""
-        coordinator.mam_adapter.get_asin_from_url = AsyncMock(side_effect=MamApiError("Auth failed"))
-        coordinator.audible.search_from_webhook_name = AsyncMock()
+    async def test_webhook_mam_auth_error_falls_back_to_audible(
+        self, coordinator, sample_webhook_payload, sample_audible_metadata
+    ):
+        """Test MAM auth errors do not prevent the Audible fallback search."""
+        coordinator.mam_adapter.get_full_metadata = AsyncMock(side_effect=MamApiError("Auth failed"))
+        coordinator.audible.search_from_webhook_name = AsyncMock(return_value=[sample_audible_metadata.copy()])
 
-        with pytest.raises(MamApiError, match="Auth failed"):
-            await coordinator.get_metadata_from_webhook(sample_webhook_payload)
+        result = await coordinator.get_metadata_from_webhook(sample_webhook_payload)
 
-        coordinator.audible.search_from_webhook_name.assert_not_called()
+        assert result is not None
+        assert result["source"] == "audible"
+        coordinator.audible.search_from_webhook_name.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_webhook_audnex_network_error(self, coordinator, sample_webhook_payload, sample_audible_metadata):
