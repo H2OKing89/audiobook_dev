@@ -182,7 +182,12 @@ class TestWebUIEndpoints:
                 "leechers": 2,
                 "times_completed": 50,
                 "comments": 12,
-                "audio": {"codec": "AAC / xHE-AAC / USAC", "bitrate": "128000", "channels": 2, "sampling_rate": "44100"},
+                "audio": {
+                    "codec": "AAC / xHE-AAC / USAC",
+                    "bitrate": "128000",
+                    "channels": 2,
+                    "sampling_rate": "44100",
+                },
             },
         }
         payload = {"url": "http://test.com", "download_url": "http://test.com/download", "size": 1024 * 1024 * 100}

@@ -63,17 +63,11 @@ def send_pushover(
             f'<font color="#888"><b>📝 Description:</b></font> {fields["description"]}<br>'
         )
         if fields["audio_summary"]:
-            message += (
-                f'<font color="#30bfff"><b>🎛️ Audio:</b></font> {escape(fields["audio_summary"])}<br>'
-            )
+            message += f'<font color="#30bfff"><b>🎛️ Audio:</b></font> {escape(fields["audio_summary"])}<br>'
         if fields["torrent_health"]:
-            message += (
-                f'<font color="#b889f4"><b>📈 Torrent:</b></font> {escape(fields["torrent_health"])}<br>'
-            )
+            message += f'<font color="#b889f4"><b>📈 Torrent:</b></font> {escape(fields["torrent_health"])}<br>'
         if fields["freeleech_label"]:
-            message += (
-                f'<font color="green"><b>🎟️ Access:</b></font> {escape(fields["freeleech_label"])}<br>'
-            )
+            message += f'<font color="green"><b>🎟️ Access:</b></font> {escape(fields["freeleech_label"])}<br>'
         if fields["added_date"]:
             message += f'<font color="#888"><b>🕒 Added:</b></font> {escape(fields["added_date"])}<br>'
         if fields["asin"] or fields["isbn"]:

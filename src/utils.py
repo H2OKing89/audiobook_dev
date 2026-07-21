@@ -231,7 +231,8 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
     Extract and sanitize common fields for notification formatting.
     """
     mam_enrichment = _get_mam_enrichment(metadata)
-    mam_audio = mam_enrichment.get("audio") if isinstance(mam_enrichment.get("audio"), dict) else {}
+    audio_data = mam_enrichment.get("audio")
+    mam_audio = audio_data if isinstance(audio_data, dict) else {}
 
     title = clean_light_novel(metadata.get("title") or mam_enrichment.get("title") or "") or ""
 
@@ -307,7 +308,9 @@ def get_notification_fields(metadata: dict[str, Any], payload: dict[str, Any]) -
     release_date = format_release_date(
         metadata.get("release_date") or metadata.get("releaseDate") or metadata.get("book_release_date") or ""
     )
-    runtime = str(metadata.get("runtime_minutes", "") or metadata.get("book_duration", "") or mam_audio.get("duration") or "")
+    runtime = str(
+        metadata.get("runtime_minutes", "") or metadata.get("book_duration", "") or mam_audio.get("duration") or ""
+    )
     category = payload.get("category", "") or metadata.get("category", "") or mam_enrichment.get("category", "")
     size = format_size(payload.get("size") or metadata.get("size") or mam_enrichment.get("size"))
     book_description = strip_html_tags(

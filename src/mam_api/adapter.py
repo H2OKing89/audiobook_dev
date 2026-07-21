@@ -23,7 +23,7 @@ def _serialize_datetime(value: Any) -> str | None:
     if value is None:
         return None
     if hasattr(value, "isoformat"):
-        return value.isoformat()
+        return str(value.isoformat())
     return str(value)
 
 

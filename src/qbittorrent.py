@@ -259,7 +259,7 @@ def _torrent_add_result_succeeded(result: Any) -> bool:
         return True
 
     added_torrent_ids = getattr(result, "added_torrent_ids", None)
-    if isinstance(added_torrent_ids, (list, tuple, set)) and len(added_torrent_ids) > 0:
+    if isinstance(added_torrent_ids, list | tuple | set) and len(added_torrent_ids) > 0:
         return True
 
     pending_count = getattr(result, "pending_count", None)
@@ -270,7 +270,9 @@ def _torrent_add_result_succeeded(result: Any) -> bool:
     if isinstance(failure_count, int) and failure_count > 0:
         return False
 
-    log.warning("qbittorrent.torrent.add.unrecognised_response", response_type=type(result).__name__, response=str(result)[:200])
+    log.warning(
+        "qbittorrent.torrent.add.unrecognised_response", response_type=type(result).__name__, response=str(result)[:200]
+    )
     return False
 
 
