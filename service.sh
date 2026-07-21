@@ -78,7 +78,7 @@ service_candidates() {
 }
 
 unit_exists() {
-    require_systemctl
+    [[ -n "${SYSTEMCTL_BIN}" ]] || return 1
     "${SYSTEMCTL_BIN}" list-unit-files --type=service --no-legend --no-pager 2>/dev/null |
         awk -v unit="$1.service" '$1 == unit { found = 1 } END { exit(found ? 0 : 1) }'
 }
@@ -103,7 +103,8 @@ resolve_service_name() {
 
 list_matching_units() {
     require_systemctl
-    "${SYSTEMCTL_BIN}" list-unit-files --type=service --no-legend --no-pager 2>/dev/null | awk '{print $1}' | rg 'audio|book|approval|mam' || true
+    "${SYSTEMCTL_BIN}" list-unit-files --type=service --no-legend --no-pager 2>/dev/null |
+        awk '{print $1}' | grep -E 'audio|book|approval|mam' || true
 }
 
 ensure_known_unit() {
@@ -270,6 +271,13 @@ action_daemon_reload() {
 main() {
     local action="${1:-help}"
 
+    case "${action}" in
+        help|-h|--help)
+            usage
+            return
+            ;;
+    esac
+
     resolve_service_name
 
     case "${action}" in
@@ -302,9 +310,6 @@ main() {
             ;;
         daemon-reload)
             action_daemon_reload
-            ;;
-        help|-h|--help)
-            usage
             ;;
         *)
             printf '%b\n\n' "${COLOR_RED}Unknown command:${COLOR_RESET} ${action}" >&2
