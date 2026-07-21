@@ -240,8 +240,8 @@ class TestAddTorrentByUrlEdgeCases:
             result = manager.add_torrent_by_url("magnet:?xt=urn:btih:abc123")
             assert result is True
 
-    def test_metadata_response_without_hash(self, monkeypatch):
-        """Test handling of TorrentsAddedMetadata response without hash."""
+    def test_unrecognised_metadata_response_returns_false(self, monkeypatch):
+        """Test that unrecognised torrent-add metadata is not treated as success."""
         monkeypatch.setenv("QBITTORRENT_URL", "http://localhost:8080")
         monkeypatch.setenv("QBITTORRENT_USERNAME", "admin")
         monkeypatch.setenv("QBITTORRENT_PASSWORD", "password")
@@ -249,16 +249,15 @@ class TestAddTorrentByUrlEdgeCases:
         with patch("src.qbittorrent.Client") as mock_client_class:
             mock_client = MagicMock()
             mock_client.app_version.return_value = "4.5.0"
-            # Return a metadata object without hash
+            # Return an unrecognised metadata object without a success signal.
             metadata = MagicMock(spec=[])  # No hash attribute
             mock_client.torrents_add.return_value = metadata
             mock_client_class.return_value = mock_client
 
             manager = QBittorrentManager()
 
-            # Should still return True (benefit of doubt)
             result = manager.add_torrent_by_url("magnet:?xt=urn:btih:abc123")
-            assert result is True
+            assert result is False
 
 
 class TestAddTorrentFile:
