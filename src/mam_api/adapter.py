@@ -19,6 +19,14 @@ from .models import MamTorrentRaw
 log = get_logger(__name__)
 
 
+def _serialize_datetime(value: Any) -> str | None:
+    if value is None:
+        return None
+    if hasattr(value, "isoformat"):
+        return str(value.isoformat())
+    return str(value)
+
+
 def _sanitize_url_for_log(url: str) -> str:
     parsed = urlparse(url)
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
@@ -208,17 +216,8 @@ class MAMApiAdapter:
             url: MAM torrent URL
 
         Returns:
-            Dict with metadata including:
-                - asin: ASIN if available
-                - title: Torrent title
-                - authors: List of author names
-                - narrators: List of narrator names
-                - series: Series name if available
-                - series_position: Position in series
-                - description: Book description
-                - duration: Audio duration in seconds
-                - language: Language code
-                - mam_id: MAM torrent ID
+            Dict with lightweight top-level metadata plus a namespaced
+            mam_enrichment block containing torrent-specific fields.
         """
         torrent = await self.get_torrent_data(url)
         if not torrent:
@@ -235,6 +234,41 @@ class MAMApiAdapter:
                     series_position = str(entry[1])
                     break
 
+        mam_enrichment = {
+            "mam_id": normalized.tid,
+            "asin": normalized.asin,
+            "isbn": normalized.isbn,
+            "title": normalized.title,
+            "uploader": normalized.uploader,
+            "uploader_id": normalized.uploader_id,
+            "authors": torrent.author_names,
+            "narrators": torrent.narrator_names,
+            "series": normalized.series,
+            "series_position": series_position,
+            "upload_notes": normalized.upload_notes,
+            "language": normalized.language_code,
+            "category": normalized.category,
+            "filetype": normalized.filetype,
+            "size": normalized.size,
+            "tags": normalized.tags,
+            "added": _serialize_datetime(normalized.added),
+            "free": normalized.free,
+            "vip": normalized.vip,
+            "fl_vip": normalized.fl_vip,
+            "seeders": normalized.seeders,
+            "leechers": normalized.leechers,
+            "times_completed": normalized.times_completed,
+            "comments": normalized.comments,
+            "audio": {
+                "duration": normalized.duration,
+                "codec": normalized.codec,
+                "bitrate": normalized.bitrate,
+                "channels": normalized.channels,
+                "sampling_rate": normalized.sample_rate,
+                "container": normalized.container,
+            },
+        }
+
         return {
             "asin": normalized.asin,
             "title": normalized.title,
@@ -244,7 +278,8 @@ class MAMApiAdapter:
             "series_position": series_position,
             "description": torrent.description,
             "duration": normalized.duration,
-            "language": torrent.lang_code,
+            "language": normalized.language_code,
             "mam_id": normalized.tid,
+            "mam_enrichment": mam_enrichment,
             "source": "mam_api",
         }

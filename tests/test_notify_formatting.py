@@ -21,6 +21,20 @@ sample_metadata = {
     "series_primary": {"name": "Series Name", "position": "1"},
     "release_date": "2020-01-01T00:00:00Z",
     "narrators": ["Narrator A"],
+    "mam_enrichment": {
+        "asin": "B000123456",
+        "added": "2025-12-20T10:30:00+00:00",
+        "free": True,
+        "seeders": 10,
+        "leechers": 2,
+        "times_completed": 50,
+        "audio": {
+            "codec": "AAC / xHE-AAC / USAC",
+            "bitrate": "128000",
+            "channels": 2,
+            "sampling_rate": "44100",
+        },
+    },
 }
 sample_payload = {
     "name": "TorrentName",
@@ -55,6 +69,11 @@ def test_pushover_message_formatting(mock_httpx_globally):
     assert status == 200
     assert resp["status"] == 1
     assert mock_httpx_globally["post"].called
+    _args, kwargs = mock_httpx_globally["post"].call_args
+    assert "AAC / xHE-AAC / USAC" in kwargs["data"]["message"]
+    assert "128 kbps" in kwargs["data"]["message"]
+    assert "10 seeders" in kwargs["data"]["message"]
+    assert "Freeleech" in kwargs["data"]["message"]
 
 
 def test_gotify_message_formatting(mock_httpx_globally):
@@ -76,6 +95,10 @@ def test_gotify_message_formatting(mock_httpx_globally):
     assert status == 200
     assert "id" in resp
     assert mock_httpx_globally["post"].called
+    _args, kwargs = mock_httpx_globally["post"].call_args
+    assert "AAC / xHE-AAC / USAC" in kwargs["json"]["message"]
+    assert "128 kbps" in kwargs["json"]["message"]
+    assert "10 seeders" in kwargs["json"]["message"]
 
 
 def test_discord_message_formatting(mock_httpx_globally):
@@ -89,6 +112,10 @@ def test_discord_message_formatting(mock_httpx_globally):
 
     assert status == 204
     assert mock_httpx_globally["post"].called
+    _args, kwargs = mock_httpx_globally["post"].call_args
+    assert "AAC / xHE-AAC / USAC" in kwargs["json"]["embeds"][0]["description"]
+    assert "128 kbps" in kwargs["json"]["embeds"][0]["description"]
+    assert "10 seeders" in kwargs["json"]["embeds"][0]["description"]
 
 
 def test_ntfy_message_formatting(mock_httpx_globally):
@@ -108,6 +135,10 @@ def test_ntfy_message_formatting(mock_httpx_globally):
     assert status == 200
     assert resp["result"] == "ok"
     assert mock_httpx_globally["post"].called
+    _args, kwargs = mock_httpx_globally["post"].call_args
+    assert "AAC / xHE-AAC / USAC" in kwargs["json"]["message"]
+    assert "128 kbps" in kwargs["json"]["message"]
+    assert "10 seeders" in kwargs["json"]["message"]
 
 
 @pytest.mark.parametrize("field", ["url", "download_url"])
